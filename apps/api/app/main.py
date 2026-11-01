@@ -59,6 +59,7 @@ class QuizIn(BaseModel):
     mode: Literal["practice", "exam"] = "practice"
     time_limit: int | None = None
     count: int = Field(default=10, ge=1, le=100)
+    agent_session_id: str | None = None
     filters: Filters = Field(default_factory=Filters)
     question_ids: list[str] = Field(default_factory=list)
 
@@ -83,6 +84,23 @@ class PatchIn(BaseModel):
 class SubmitIn(BaseModel):
     active_seconds: int = 0
     answers: list[AnswerIn] = Field(default_factory=list)
+
+
+class AgentSessionIn(BaseModel):
+    title: str = Field(default="未命名会话", max_length=100)
+
+
+class AgentEventIn(BaseModel):
+    session_id: str
+    kind: Literal["note"] = "note"
+    role: Literal["agent"] = "agent"
+    body: str = Field(min_length=1, max_length=2000)
+
+
+class HelpIn(BaseModel):
+    attempt_id: str
+    question_id: str | None = None
+    body: str = Field(min_length=1, max_length=2000)
 
 
 # ---------------------------------------------------------------- helpers
@@ -131,6 +149,7 @@ def get_quiz(conn: sqlite3.Connection, quiz_id: str) -> dict:
         "title": quiz["title"],
         "mode": quiz["mode"],
         "time_limit": quiz["time_limit"],
+        "agent_session_id": quiz["agent_session_id"],
         "created_at": quiz["created_at"],
         "question_count": len(items),
         "questions": [row_to_question(r, reveal=(quiz["mode"] == "practice")) for r in items],
@@ -218,6 +237,23 @@ def upsert_answer(conn: sqlite3.Connection, attempt_id: str, a: AnswerIn) -> Non
             json.dumps(a.self_grade, ensure_ascii=False) if a.self_grade is not None else None,
         ),
     )
+
+
+def add_agent_event(
+    conn: sqlite3.Connection,
+    session_id: str | None,
+    kind: str,
+    role: str,
+    body: str | None = None,
+    ref: str | None = None,
+) -> int | None:
+    if not session_id:
+        return None
+    cur = conn.execute(
+        "INSERT INTO agent_event(session_id, kind, role, body, ref, created_at) VALUES (?,?,?,?,?,?)",
+        (session_id, kind, role, body, ref, database.now_iso()),
+    )
+    return int(cur.lastrowid or 0)
 
 
 def log_event(conn: sqlite3.Connection, attempt_id: str | None, kind: str, payload: dict | None = None) -> None:
@@ -394,8 +430,10 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             limit = body.time_limit
             if limit is None and body.mode == "exam":
                 limit = len(rows) * 90
-            c.execute("INSERT INTO quiz(id, title, mode, time_limit, created_at) VALUES (?,?,?,?,?)",
-                      (qid, title, body.mode, limit, database.now_iso()))
+            c.execute(
+                "INSERT INTO quiz(id, title, mode, time_limit, agent_session_id, created_at) VALUES (?,?,?,?,?,?)",
+                (qid, title, body.mode, limit, body.agent_session_id, database.now_iso()),
+            )
             for pos, row in enumerate(rows):
                 c.execute("INSERT INTO quiz_item(quiz_id, question_id, position) VALUES (?,?,?)",
                           (qid, row["id"], pos))
@@ -425,6 +463,10 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 (aid, body.quiz_id, database.now_iso()),
             )
             log_event(c, aid, "attempt.started", {"quiz_id": body.quiz_id})
+            add_agent_event(
+                c, quiz["agent_session_id"], "started", "system",
+                json.dumps({"attempt_id": aid, "quiz_title": quiz["title"]}, ensure_ascii=False), aid,
+            )
             payload = get_attempt(c, aid, reveal=True)
         return payload
 
@@ -496,6 +538,16 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 (database.now_iso(), active, round(total, 2), round(max_total, 2), attempt_id),
             )
             log_event(c, attempt_id, "attempt.submitted", {"score": total, "max": max_total})
+            quiz_row = c.execute("SELECT agent_session_id FROM quiz WHERE id = ?", (attempt["quiz_id"],)).fetchone()
+            add_agent_event(
+                c, quiz_row["agent_session_id"] if quiz_row else None, "submitted", "system",
+                json.dumps(
+                    {"attempt_id": attempt_id, "score": round(total, 2), "max_score": round(max_total, 2),
+                     "question_count": len(items)},
+                    ensure_ascii=False,
+                ),
+                attempt_id,
+            )
 
             result = get_attempt(c, attempt_id, reveal=True)
             result["results"] = results_for(c, attempt_id)
@@ -561,6 +613,59 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             "correct": answered["ok"] or 0,
             "by_subject": [dict(r) for r in by_subject],
         }
+
+    # -------- agent 协作
+
+    @app.post("/api/agent/sessions", status_code=201)
+    def create_agent_session(body: AgentSessionIn):
+        sid = database.new_id("s")
+        with conn() as c:
+            c.execute("INSERT INTO agent_session(id, title, created_at) VALUES (?,?,?)",
+                      (sid, body.title, database.now_iso()))
+        return {"id": sid, "title": body.title}
+
+    @app.post("/api/agent/events", status_code=201)
+    def create_agent_event(body: AgentEventIn):
+        with conn() as c:
+            if not c.execute("SELECT 1 FROM agent_session WHERE id = ?", (body.session_id,)).fetchone():
+                raise HTTPException(404, "Agent 会话不存在")
+            eid = add_agent_event(c, body.session_id, body.kind, body.role, body.body)
+        return {"id": eid}
+
+    @app.get("/api/agent/feed")
+    def agent_feed(session_id: str, after_id: int = 0, limit: int = Query(100, ge=1, le=200)):
+        with conn() as c:
+            rows = c.execute(
+                "SELECT * FROM agent_event WHERE session_id = ? AND id > ? ORDER BY id LIMIT ?",
+                (session_id, after_id, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    @app.get("/api/agent/inbox")
+    def agent_inbox(after_id: int = 0, limit: int = Query(50, ge=1, le=200)):
+        with conn() as c:
+            rows = c.execute(
+                """SELECT * FROM agent_event WHERE kind IN ('help', 'submitted') AND id > ?
+                   ORDER BY id DESC LIMIT ?""",
+                (after_id, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    @app.post("/api/agent/help", status_code=201)
+    def agent_help(body: HelpIn):
+        with conn() as c:
+            row = c.execute(
+                """SELECT q.agent_session_id FROM attempt a JOIN quiz q ON q.id = a.quiz_id
+                   WHERE a.id = ?""",
+                (body.attempt_id,),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "作答记录不存在")
+            if not row["agent_session_id"]:
+                raise HTTPException(409, "这个练习单没有关联 Agent 会话")
+            eid = add_agent_event(c, row["agent_session_id"], "help", "user", body.body,
+                                  body.question_id or body.attempt_id)
+        return {"id": eid}
 
     # -------- static (production build)
 

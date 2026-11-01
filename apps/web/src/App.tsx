@@ -31,7 +31,7 @@ export function App() {
           <NavLink to="/review">复习</NavLink>
         </nav>
         <div className="topbar-actions">
-          <span className="topbar-note">本地优先 · v0.1</span>
+          <span className="topbar-note">Agent 协作 · v0.1</span>
           <ThemeToggle />
         </div>
       </header>

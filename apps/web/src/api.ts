@@ -1,4 +1,4 @@
-import type { Attempt, DailyStats, OutlineNode, Question, Quiz, Subject } from "./types";
+import type { AgentEvent, Attempt, DailyStats, OutlineNode, Question, Quiz, Subject } from "./types";
 
 const BASE = "/api";
 
@@ -68,4 +68,11 @@ export const api = {
   due: (subjectId?: string) =>
     request<Question[]>(`/reviews/due${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   today: () => request<DailyStats>("/stats/today"),
+  agentFeed: (sessionId: string, afterId = 0) =>
+    request<AgentEvent[]>(`/agent/feed?session_id=${encodeURIComponent(sessionId)}&after_id=${afterId}`),
+  sendHelp: (attemptId: string, questionId: string, body: string) =>
+    request<{ id: number }>("/agent/help", {
+      method: "POST",
+      body: JSON.stringify({ attempt_id: attemptId, question_id: questionId, body }),
+    }),
 };

@@ -48,11 +48,12 @@ CREATE INDEX IF NOT EXISTS idx_question_code ON question(outline_code);
 CREATE INDEX IF NOT EXISTS idx_question_subject ON question(subject_id, type);
 
 CREATE TABLE IF NOT EXISTS quiz (
-    id          TEXT PRIMARY KEY,
-    title       TEXT NOT NULL,
-    mode        TEXT NOT NULL DEFAULT 'practice',
-    time_limit  INTEGER,
-    created_at  TEXT NOT NULL
+    id               TEXT PRIMARY KEY,
+    title            TEXT NOT NULL,
+    mode             TEXT NOT NULL DEFAULT 'practice',
+    time_limit       INTEGER,
+    agent_session_id TEXT,
+    created_at       TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS quiz_item (
@@ -110,3 +111,23 @@ CREATE TABLE IF NOT EXISTS review (
 );
 
 CREATE INDEX IF NOT EXISTS idx_review_due ON review(due_date);
+
+-- Agent 协作：会话与事件流。Agent 写 note，Web 写 help，交卷写 submitted。
+CREATE TABLE IF NOT EXISTS agent_session (
+    id         TEXT PRIMARY KEY,
+    title      TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_event (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL REFERENCES agent_session(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL,
+    role       TEXT NOT NULL DEFAULT 'system',
+    body       TEXT,
+    ref        TEXT,
+    created_at TEXT NOT NULL,
+    read_at    TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_event_session ON agent_event(session_id, id);

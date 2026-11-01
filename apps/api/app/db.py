@@ -46,8 +46,15 @@ def init_db(path: Path | None = None) -> None:
     path = path or db_path()
     with session(path) as conn:
         conn.executescript(SCHEMA.read_text(encoding="utf-8"))
+        migrate(conn)
         seed_subjects(conn)
         seed_questions(conn)
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    cols = {row["name"] for row in conn.execute("PRAGMA table_info(quiz)")}
+    if "agent_session_id" not in cols:
+        conn.execute("ALTER TABLE quiz ADD COLUMN agent_session_id TEXT")
 
 
 def seed_subjects(conn: sqlite3.Connection) -> None:

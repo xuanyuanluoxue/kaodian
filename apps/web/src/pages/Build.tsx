@@ -105,6 +105,7 @@ export function Build() {
           <p className="eyebrow">组卷</p>
           <h1>挑一个范围，开始</h1>
           <p className="lede">选中考点后，题目从题库里随机抽；最近做过的会先避开。</p>
+          <p className="hint">更常用的方式：在对话里让 Agent 出题，链接会直接发给你。</p>
         </div>
 
         {error && <div className="alert">{error}</div>}

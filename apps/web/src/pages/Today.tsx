@@ -56,7 +56,9 @@ export function Today() {
         <div className="hero-text">
           <p className="eyebrow">{today}</p>
           <h1>今天学什么</h1>
-          <p className="lede">复习优先。清完到期的，再开新题。</p>
+          <p className="lede">
+            在对话里让 Agent 出题，在这里作答。计时和结果会自动回传。
+          </p>
         </div>
         <div className="hero-stats">
           <div className="stat">
@@ -130,31 +132,31 @@ export function Today() {
 
       <section className="section">
         <div className="section-head">
-          <h2>怎么用</h2>
+          <h2>和 Agent 一起用</h2>
         </div>
         <div className="steps">
           <div className="step">
             <span>01</span>
             <p>
-              <b>组卷</b>
+              <b>对话里要题</b>
               <br />
-              按科目、考点、题型挑，设定题量和时限。
+              跟 Agent 说「按 C-08 出 10 道」，它会组好卷，把链接发你。
             </p>
           </div>
           <div className="step">
             <span>02</span>
             <p>
-              <b>作答</b>
+              <b>网页里作答</b>
               <br />
-              自动计时。切走会暂停，回来接着算。
+              自动计时，切走暂停。卡住点「卡住了」，Agent 能看到题目和用时。
             </p>
           </div>
           <div className="step">
             <span>03</span>
             <p>
-              <b>回写</b>
+              <b>结果回传</b>
               <br />
-              交卷后错题进队列，按掌握度排下次复习。
+              交卷即写入会话，Agent 直接读结果，接着安排下一组或讲解。
             </p>
           </div>
         </div>

@@ -32,6 +32,7 @@ export function Result() {
   const { attemptId } = useParams();
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!attemptId) return;
@@ -45,6 +46,26 @@ export function Result() {
   if (!attempt) return <div className="page"><p className="muted">正在读取结果…</p></div>;
 
   const results = attempt.results || [];
+
+  async function copySummary() {
+    const lines = [
+      `【考点】${attempt!.quiz.title}`,
+      `得分 ${attempt!.score}/${attempt!.max_score}，用时 ${formatDuration(attempt!.active_seconds)}`,
+      attempt!.weak?.length ? `薄弱：${attempt!.weak.map((w) => `${w.code}×${w.wrong}`).join("、")}` : "薄弱：无",
+      "逐题：",
+      ...results.map((r, i) => {
+        const mark = r.correct === true ? "✓" : r.correct === false ? "×" : "自评";
+        return `${i + 1}. ${r.question.outline_code} ${mark} ${r.score}/${r.max_score}`;
+      }),
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setError("复制失败，请手动选择文本");
+    }
+  }
   const objective = results.filter((r) => r.question.answer);
   const correctCount = objective.filter((r) => r.correct).length;
   const pct = attempt.max_score ? Math.round(((attempt.score || 0) / attempt.max_score) * 100) : 0;
@@ -76,10 +97,19 @@ export function Result() {
         </div>
       </section>
 
+      {attempt.quiz.agent_session_id && (
+        <div className="sync-badge">
+          结果已写入 <code>{attempt.quiz.agent_session_id}</code>，Agent 可以直接读取这次作答。
+        </div>
+      )}
+
       <div className="result-actions">
         <Link className="btn btn-primary" to="/build">
           再来一组
         </Link>
+        <button className="btn btn-ghost" onClick={copySummary}>
+          {copied ? "已复制" : "复制结果摘要"}
+        </button>
         <Link className="btn btn-ghost" to="/">
           回到今天
         </Link>

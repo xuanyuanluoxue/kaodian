@@ -153,3 +153,63 @@ def test_review_mastery_after_three_correct(client, tmp_path):
     assert row["mastery"] == 1
     assert row["streak"] == 0
     assert row["interval_days"] == 1
+
+def test_agent_session_flow(client):
+    session = client.post("/api/agent/sessions", json={"title": "C 语言 · 循环"}).json()
+
+    quiz = client.post(
+        "/api/quizzes",
+        json={
+            "mode": "practice",
+            "count": 1,
+            "agent_session_id": session["id"],
+            "filters": {"subject_id": "computer", "codes": ["C-08"], "types": ["single"]},
+        },
+    ).json()
+    assert quiz["agent_session_id"] == session["id"]
+
+    attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
+
+    note = client.post(
+        "/api/agent/events",
+        json={"session_id": session["id"], "body": "先做这题，卡住就点「卡住了」。"},
+    )
+    assert note.status_code == 201
+
+    q = quiz["questions"][0]
+    help_res = client.post(
+        "/api/agent/help",
+        json={"attempt_id": attempt["id"], "question_id": q["id"], "body": "while 和 do-while 分不清"},
+    )
+    assert help_res.status_code == 201
+
+    feed = client.get(f"/api/agent/feed?session_id={session['id']}").json()
+    kinds = [e["kind"] for e in feed]
+    assert "started" in kinds
+    assert "note" in kinds
+    assert "help" in kinds
+
+    client.post(
+        f"/api/attempts/{attempt['id']}/submit",
+        json={
+            "active_seconds": 30,
+            "answers": [{"question_id": q["id"], "response": answer_of(q), "time_spent": 25}],
+        },
+    )
+
+    inbox = client.get("/api/agent/inbox").json()
+    assert any(e["kind"] == "submitted" for e in inbox)
+
+
+def test_help_requires_agent_session(client):
+    quiz = client.post(
+        "/api/quizzes",
+        json={"mode": "practice", "count": 1, "filters": {"subject_id": "computer", "types": ["single"]}},
+    ).json()
+    attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
+    q = quiz["questions"][0]
+    res = client.post(
+        "/api/agent/help",
+        json={"attempt_id": attempt["id"], "question_id": q["id"], "body": "卡住了"},
+    )
+    assert res.status_code == 409

@@ -62,6 +62,7 @@ export interface Quiz {
   title: string;
   mode: "practice" | "exam";
   time_limit: number | null;
+  agent_session_id?: string | null;
   created_at: string;
   question_count: number;
   questions: Question[];
@@ -125,3 +126,13 @@ export const TYPE_LABEL: Record<QType, string> = {
 };
 
 export const LETTERS = "ABCDEFGH";
+
+export interface AgentEvent {
+  id: number;
+  session_id: string;
+  kind: "note" | "help" | "submitted" | "started";
+  role: "agent" | "user" | "system";
+  body: string | null;
+  ref: string | null;
+  created_at: string;
+}

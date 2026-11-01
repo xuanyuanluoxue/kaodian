@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api";
 import { MathText } from "../components/MathText";
 import { LETTERS, TYPE_LABEL } from "../types";
-import type { Attempt, Question } from "../types";
+import type { AgentEvent, Attempt, Question } from "../types";
 
 function mmss(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
@@ -66,6 +66,10 @@ export function QuizPage() {
   const [idle, setIdle] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [agentEvents, setAgentEvents] = useState<AgentEvent[]>([]);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpText, setHelpText] = useState("");
+  const [helpSent, setHelpSent] = useState(false);
 
   const activeRef = useRef(0);
   const pausedRef = useRef(false);
@@ -74,6 +78,7 @@ export function QuizPage() {
   const times = useRef<Record<string, number>>({});
   const submitted = useRef(false);
   const submitRef = useRef<() => void>(() => {});
+  const agentCursor = useRef(0);
 
   const paused = manualPause || hidden || idle;
   pausedRef.current = paused;
@@ -150,6 +155,28 @@ export function QuizPage() {
     return () => clearInterval(t);
   }, [attempt]);
 
+  useEffect(() => {
+    const sid = attempt?.quiz.agent_session_id;
+    if (!sid) return;
+    let alive = true;
+    const load = () => {
+      api
+        .agentFeed(sid, agentCursor.current)
+        .then((list) => {
+          if (!alive || !list.length) return;
+          agentCursor.current = list[list.length - 1].id;
+          setAgentEvents((prev) => [...prev, ...list]);
+        })
+        .catch(() => {});
+    };
+    load();
+    const t = setInterval(load, 5000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [attempt?.quiz.agent_session_id]);
+
   const go = useCallback(
     (next: number) => {
       const current = questions[index];
@@ -195,6 +222,22 @@ export function QuizPage() {
     const current = selfGrades[qid] || [];
     const next = current.includes(pointIndex) ? current.filter((x) => x !== pointIndex) : [...current, pointIndex];
     setSelfGrades((prev) => ({ ...prev, [qid]: next }));
+  }
+
+  async function requestHelp() {
+    if (!attempt || !q || !helpText.trim()) return;
+    const spent = times.current[q.id] || 0;
+    try {
+      await api.sendHelp(
+        attempt.id,
+        q.id,
+        `${helpText.trim()}\n\n[${q.outline_code} · ${TYPE_LABEL[q.type]} · 本题已用 ${spent}s]`,
+      );
+      setHelpSent(true);
+      setHelpText("");
+    } catch (e) {
+      setError(e instanceof ApiError ? String(e.message) : String(e));
+    }
   }
 
   const submit = useCallback(async () => {
@@ -266,6 +309,11 @@ export function QuizPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [questions, index, go, responses, revealed, practice]);
 
+  const latestNote = useMemo(
+    () => [...agentEvents].reverse().find((e) => e.kind === "note"),
+    [agentEvents],
+  );
+
   const answeredCount = useMemo(
     () => questions.filter((item) => hasAnswer(item, responses[item.id], selfGrades[item.id])).length,
     [questions, responses, selfGrades],
@@ -298,6 +346,48 @@ export function QuizPage() {
   return (
     <div className="quiz-shell">
       <main className="quiz-main">
+        {attempt.quiz.agent_session_id && (
+          <>
+            <div className="agent-strip">
+              <span className="agent-badge">Agent</span>
+              <p>
+                {latestNote?.body ||
+                  "在对话里让 Agent 出题；需要提示就点右边的「卡住了」。"}
+              </p>
+              <button
+                className="btn btn-ghost agent-help-btn"
+                onClick={() => {
+                  setHelpOpen((v) => !v);
+                  setHelpSent(false);
+                }}
+              >
+                {helpOpen ? "收起" : "卡住了"}
+              </button>
+            </div>
+            {helpOpen && (
+              <div className="help-box">
+                <textarea
+                  value={helpText}
+                  onChange={(e) => setHelpText(e.target.value)}
+                  placeholder="哪一步卡住了？Agent 会看到题目编号、本题用时和你的描述。"
+                  rows={3}
+                />
+                <div className="help-actions">
+                  <span className="muted small">
+                    {helpSent ? "已发送，Agent 会在对话里看到。" : "不会自动重试，发送后继续答下一题即可。"}
+                  </span>
+                  <button
+                    className="btn btn-primary"
+                    onClick={requestHelp}
+                    disabled={!helpText.trim() || helpSent}
+                  >
+                    {helpSent ? "已发送" : "发送给 Agent"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
         <div className="quiz-head">
           <div>
             <p className="eyebrow">
