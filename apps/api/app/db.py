@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator
 
@@ -18,7 +18,8 @@ def db_path() -> Path:
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    # 本地朴素时间：单机应用不需要时区，也避免 SQLite date() 把凌晨算到前一天
+    return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:

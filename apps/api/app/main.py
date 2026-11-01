@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import random
 import sqlite3
 from contextlib import asynccontextmanager
@@ -11,7 +10,7 @@ from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -377,7 +376,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 if f.verified_only:
                     sql += " AND q.verified = 1"
                 if f.exclude_days > 0:
-                    since = (datetime.now().astimezone() - timedelta(days=f.exclude_days)).isoformat(timespec="seconds")
+                    since = (datetime.now() - timedelta(days=f.exclude_days)).isoformat(timespec="seconds")
                     sql += """ AND q.id NOT IN (
                         SELECT a.question_id FROM answer a JOIN attempt t ON t.id = a.attempt_id
                         WHERE t.started_at >= ?)"""
