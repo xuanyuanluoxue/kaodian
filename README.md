@@ -4,7 +4,8 @@
 > 计时和结果自动回传，Agent 接着安排下一组或讲解。
 > 本地优先、无账号、数据在你自己机器上。
 
-**状态：v0.1 纵向切片。** 已跑通「Agent 建会话 → 组卷 → 作答计时 → 卡住求助 → 交卷回传」的完整链路。
+**状态：v0.1 纵向切片 + MCP。** 已跑通「Agent 建会话 → 组卷 → 作答计时 → 卡住求助 → 交卷回传」的完整链路，
+并提供了可被 OpenCode / Claude Desktop 直接调用的 MCP 服务。
 不接 Agent 也能手动组卷，但默认按「对话 + 网页」双屏使用设计。
 
 讲解板块是独立模块，暂未并入本仓库。
@@ -71,6 +72,35 @@ Agent 读 inbox ←────────────────────�
 ```
 
 协议细节、事件字段与 curl 示例见 [`docs/agent-protocol.md`](docs/agent-protocol.md)。
+
+### 在 OpenCode 里接入 MCP
+
+先装依赖：
+
+```bash
+.venv/bin/pip install -r apps/mcp/requirements.txt
+```
+
+注册服务（把路径换成你的仓库位置）：
+
+```bash
+opencode mcp add kaodian --global \
+  --env KAODIAN_API=http://127.0.0.1:8010 \
+  --env KAODIAN_WEB=http://127.0.0.1:8010 \
+  -- /path/to/kaodian/.venv/bin/python /path/to/kaodian/apps/mcp/server.py
+```
+
+接好之后，在对话里说「按 C-08 出 6 道，练习模式」，Agent 会：
+
+1. `list_outline` 确认编号；
+2. `build_quiz` 建会话、组卷；
+3. 把 `http://…/quiz/xxx` 发给你；
+4. 你在网页上答，卡住点「卡住了」；
+5. Agent 用 `read_inbox` 读到求助，用 `send_hint` 推提示；
+6. 交卷后 Agent 用 `get_attempt` 读结果，安排下一组。
+
+可用工具：`list_subjects` / `list_outline` / `create_agent_session` / `build_quiz` /
+`send_hint` / `read_inbox` / `get_attempt` / `get_due_reviews` / `get_stats_today`。
 
 ## 快速开始
 
@@ -213,6 +243,7 @@ python scripts/import_outline.py --src /path/to/你的大纲目录
 ## 目录结构
 
 ```
+apps/mcp/server.py   stdio MCP 服务（HTTP 的薄包装）
 apps/api/app/        FastAPI + SQLite
   main.py            路由
   grading.py         判分与题目校验
@@ -242,7 +273,7 @@ make dev-web       # 前端开发服务器
 
 ## Roadmap
 
-- [ ] MCP 工具（`create_agent_session` / `build_quiz` / `send_hint` / `read_inbox`）
+- [x] MCP 工具（`create_agent_session` / `build_quiz` / `send_hint` / `read_inbox`）
 - [ ] Agent 流式提示（SSE 替换 5 秒轮询）
 - [ ] FSRS 替换当前的掌握度间隔（保留 `review` 表接口）
 - [ ] 讲解板块（独立 app，与刷题通过 `outline_code` + 同一事件流连接）

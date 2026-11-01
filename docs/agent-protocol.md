@@ -91,15 +91,32 @@ curl -s -X POST localhost:8000/api/agent/events \
 curl -s "localhost:8000/api/agent/inbox?after_id=0"
 ```
 
-## 5. MCP 工具映射（下一步）
+## 5. MCP 工具（已实现）
 
-| MCP 工具 | 对应 |
+`apps/mcp/server.py` 把上面的 HTTP 接口包成 stdio MCP 服务，工具名如下：
+
+| MCP 工具 | 对应 HTTP |
 |---|---|
+| `list_subjects` | `GET /api/subjects` |
+| `list_outline` | `GET /api/outline` |
 | `create_agent_session` | `POST /api/agent/sessions` |
 | `build_quiz` | `POST /api/quizzes` |
 | `send_hint` | `POST /api/agent/events` |
 | `read_inbox` | `GET /api/agent/inbox` |
 | `get_attempt` | `GET /api/attempts/{id}` |
+| `get_due_reviews` | `GET /api/reviews/due` |
+| `get_stats_today` | `GET /api/stats/today` |
+
+接入 OpenCode：
+
+```bash
+opencode mcp add kaodian --global \
+  --env KAODIAN_API=http://127.0.0.1:8010 \
+  --env KAODIAN_WEB=http://127.0.0.1:8010 \
+  -- /path/to/kaodian/.venv/bin/python /path/to/kaodian/apps/mcp/server.py
+```
+
+接好后直接说「按 C-08 出 6 道」，Agent 会调用 `build_quiz` 并把链接发回来。
 
 ## 6. 边界
 
