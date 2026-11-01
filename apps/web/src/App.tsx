@@ -5,6 +5,7 @@ import { Build } from "./pages/Build";
 import { QuizPage } from "./pages/Quiz";
 import { Result } from "./pages/Result";
 import { Review } from "./pages/Review";
+import { ThemeToggle } from "./components/ThemeToggle";
 
 function ScrollTop() {
   const { pathname } = useLocation();
@@ -29,7 +30,10 @@ export function App() {
           <NavLink to="/build">组卷</NavLink>
           <NavLink to="/review">复习</NavLink>
         </nav>
-        <span className="topbar-note">本地优先 · v0.1</span>
+        <div className="topbar-actions">
+          <span className="topbar-note">本地优先 · v0.1</span>
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="shell">

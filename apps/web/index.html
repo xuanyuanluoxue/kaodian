@@ -1,11 +1,26 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f7f7f5" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>考点 · 考纲驱动的刷题台</title>
+    <script>
+      // 首屏前定主题，避免闪白
+      (function () {
+        try {
+          var saved = localStorage.getItem("kaodian:theme");
+          if (saved !== "light" && saved !== "dark") {
+            saved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.dataset.theme = saved;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", saved === "dark" ? "#121412" : "#f7f7f5");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
