@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 数据库与导出（本地数据，不入库）
+data/*.db
+data/*.db-*
+data/export/
+
+apps/web/node_modules/
+apps/web/dist/
+
+.DS_Store
+Thumbs.db
+*.log

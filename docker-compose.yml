@@ -1,0 +1,11 @@
+services:
+  kaodian:
+    build: .
+    image: kaodian:latest
+    ports:
+      - "8010:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      KAODIAN_DB: /data/kaodian.db
+    restart: unless-stopped

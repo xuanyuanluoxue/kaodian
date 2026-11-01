@@ -1,0 +1,1370 @@
+{
+  "id": "math",
+  "name": "高等数学",
+  "short": "高数",
+  "exam": {
+    "score": 100,
+    "minutes": 120
+  },
+  "sections": [
+    {
+      "title": "函数与极限",
+      "nodes": [
+        {
+          "code": "M-01",
+          "title": "函数概念、定义域、复合与反函数、基本初等函数",
+          "section": "函数与极限",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 5,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-02",
+          "title": "数列极限与函数极限、左右极限",
+          "section": "函数与极限",
+          "requirement": "理解",
+          "frequency": "必考",
+          "hours": 5,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-03",
+          "title": "极限四则运算、夹逼准则、单调有界准则",
+          "section": "函数与极限",
+          "requirement": "掌握",
+          "frequency": "常考",
+          "hours": 4,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-04",
+          "title": "两个重要极限",
+          "section": "函数与极限",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 4,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-05",
+          "title": "无穷小比较与等价无穷小替换",
+          "section": "函数与极限",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 6,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-06",
+          "title": "洛必达法则（含 0·∞、∞−∞、幂指型）",
+          "section": "函数与极限",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 6,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-07",
+          "title": "连续性与间断点分类",
+          "section": "函数与极限",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 5,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-08",
+          "title": "闭区间连续函数性质（零点/介值/最值）",
+          "section": "函数与极限",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 5,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "导数与微分",
+      "nodes": [
+        {
+          "code": "M-09",
+          "title": "导数定义、几何意义、切线/法线方程",
+          "section": "导数与微分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 6,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-10",
+          "title": "可导与连续的关系",
+          "section": "导数与微分",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 3,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-11",
+          "title": "求导法则（四则/复合/反函数）",
+          "section": "导数与微分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 10,
+          "stage": "P1",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-12",
+          "title": "隐函数、参数方程、高阶导数",
+          "section": "导数与微分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 10,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-13",
+          "title": "微分概念与形式不变性",
+          "section": "导数与微分",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 4,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-14",
+          "title": "分段函数在分界点的可导性",
+          "section": "导数与微分",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 3,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "中值定理与导数应用",
+      "nodes": [
+        {
+          "code": "M-15",
+          "title": "罗尔 / 拉格朗日 / 柯西中值定理",
+          "section": "中值定理与导数应用",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 10,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-16",
+          "title": "单调性、极值（一阶/二阶判别）",
+          "section": "中值定理与导数应用",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 10,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-17",
+          "title": "最大值最小值与应用题",
+          "section": "中值定理与导数应用",
+          "requirement": "掌握",
+          "frequency": "常考",
+          "hours": 4,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-18",
+          "title": "凹凸性、拐点、渐近线",
+          "section": "中值定理与导数应用",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 5,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-19",
+          "title": "不等式证明、方程根的讨论",
+          "section": "中值定理与导数应用",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 5,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "不定积分",
+      "nodes": [
+        {
+          "code": "M-20",
+          "title": "原函数、基本积分表、线性性质",
+          "section": "不定积分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 6,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-21",
+          "title": "凑微分 / 第一换元法",
+          "section": "不定积分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 10,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-22",
+          "title": "第二换元法（根式、三角代换）",
+          "section": "不定积分",
+          "requirement": "掌握",
+          "frequency": "常考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-23",
+          "title": "分部积分法",
+          "section": "不定积分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-24",
+          "title": "有理函数积分",
+          "section": "不定积分",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 2,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "定积分",
+      "nodes": [
+        {
+          "code": "M-25",
+          "title": "定积分概念、性质、几何意义",
+          "section": "定积分",
+          "requirement": "理解",
+          "frequency": "必考",
+          "hours": 5,
+          "stage": "P2",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-26",
+          "title": "牛顿–莱布尼茨公式、变上限积分求导",
+          "section": "定积分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-27",
+          "title": "定积分换元法与分部积分法",
+          "section": "定积分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-28",
+          "title": "反常积分、对称区间奇偶性",
+          "section": "定积分",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 4,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-29",
+          "title": "积分中值定理",
+          "section": "定积分",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 3,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "定积分的应用",
+      "nodes": [
+        {
+          "code": "M-30",
+          "title": "平面图形面积",
+          "section": "定积分的应用",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-31",
+          "title": "旋转体体积",
+          "section": "定积分的应用",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-32",
+          "title": "弧长、物理应用",
+          "section": "定积分的应用",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 4,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "微分方程",
+      "nodes": [
+        {
+          "code": "M-33",
+          "title": "基本概念、可分离变量方程",
+          "section": "微分方程",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 7,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-34",
+          "title": "齐次方程",
+          "section": "微分方程",
+          "requirement": "掌握",
+          "frequency": "常考",
+          "hours": 5,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-35",
+          "title": "一阶线性微分方程（公式法）",
+          "section": "微分方程",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 6,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-36",
+          "title": "二阶常系数齐次线性方程（特征根三种情形）",
+          "section": "微分方程",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 6,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-37",
+          "title": "二阶常系数非齐次（多项式/指数型）",
+          "section": "微分方程",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 2,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "向量代数与空间解析几何",
+      "nodes": [
+        {
+          "code": "M-38",
+          "title": "向量线性运算、点积、叉积、坐标表示",
+          "section": "向量代数与空间解析几何",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 4,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-39",
+          "title": "平面与直线方程、点到平面/直线距离",
+          "section": "向量代数与空间解析几何",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 5,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-40",
+          "title": "曲面与空间曲线方程",
+          "section": "向量代数与空间解析几何",
+          "requirement": "了解",
+          "frequency": "未出现",
+          "hours": 3,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "多元函数微分",
+      "nodes": [
+        {
+          "code": "M-41",
+          "title": "偏导数、全微分",
+          "section": "多元函数微分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-42",
+          "title": "多元复合函数、隐函数求导",
+          "section": "多元函数微分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-43",
+          "title": "多元极值与条件极值",
+          "section": "多元函数微分",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 5,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-44",
+          "title": "方向导数、梯度、切平面",
+          "section": "多元函数微分",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 3,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "重积分",
+      "nodes": [
+        {
+          "code": "M-45",
+          "title": "二重积分概念、直角坐标计算（X 型/Y 型）",
+          "section": "重积分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 10,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-46",
+          "title": "极坐标下的二重积分",
+          "section": "重积分",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-47",
+          "title": "三重积分",
+          "section": "重积分",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 4,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "曲线积分与曲面积分",
+      "nodes": [
+        {
+          "code": "M-48",
+          "title": "第一类/第二类曲线积分",
+          "section": "曲线积分与曲面积分",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 3,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-49",
+          "title": "格林公式",
+          "section": "曲线积分与曲面积分",
+          "requirement": "了解",
+          "frequency": "低频",
+          "hours": 3,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-50",
+          "title": "曲面积分、高斯公式、斯托克斯公式",
+          "section": "曲线积分与曲面积分",
+          "requirement": "了解",
+          "frequency": "未出现",
+          "hours": 2,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    },
+    {
+      "title": "无穷级数",
+      "nodes": [
+        {
+          "code": "M-51",
+          "title": "级数概念、性质、几何级数与 p 级数",
+          "section": "无穷级数",
+          "requirement": "理解",
+          "frequency": "必考",
+          "hours": 5,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-52",
+          "title": "正项级数判别法（比较/比值/根值）",
+          "section": "无穷级数",
+          "requirement": "掌握",
+          "frequency": "必考",
+          "hours": 8,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-53",
+          "title": "交错级数、绝对收敛与条件收敛",
+          "section": "无穷级数",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 4,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        },
+        {
+          "code": "M-54",
+          "title": "幂级数收敛域与展开",
+          "section": "无穷级数",
+          "requirement": "理解",
+          "frequency": "常考",
+          "hours": 7,
+          "stage": "P3",
+          "assessment": null,
+          "kaogang": null,
+          "kind": "point"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "code": "M-01",
+      "title": "函数概念、定义域、复合与反函数、基本初等函数",
+      "section": "函数与极限",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 5,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-02",
+      "title": "数列极限与函数极限、左右极限",
+      "section": "函数与极限",
+      "requirement": "理解",
+      "frequency": "必考",
+      "hours": 5,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-03",
+      "title": "极限四则运算、夹逼准则、单调有界准则",
+      "section": "函数与极限",
+      "requirement": "掌握",
+      "frequency": "常考",
+      "hours": 4,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-04",
+      "title": "两个重要极限",
+      "section": "函数与极限",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 4,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-05",
+      "title": "无穷小比较与等价无穷小替换",
+      "section": "函数与极限",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 6,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-06",
+      "title": "洛必达法则（含 0·∞、∞−∞、幂指型）",
+      "section": "函数与极限",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 6,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-07",
+      "title": "连续性与间断点分类",
+      "section": "函数与极限",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 5,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-08",
+      "title": "闭区间连续函数性质（零点/介值/最值）",
+      "section": "函数与极限",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 5,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-09",
+      "title": "导数定义、几何意义、切线/法线方程",
+      "section": "导数与微分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 6,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-10",
+      "title": "可导与连续的关系",
+      "section": "导数与微分",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 3,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-11",
+      "title": "求导法则（四则/复合/反函数）",
+      "section": "导数与微分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 10,
+      "stage": "P1",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-12",
+      "title": "隐函数、参数方程、高阶导数",
+      "section": "导数与微分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 10,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-13",
+      "title": "微分概念与形式不变性",
+      "section": "导数与微分",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 4,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-14",
+      "title": "分段函数在分界点的可导性",
+      "section": "导数与微分",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 3,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-15",
+      "title": "罗尔 / 拉格朗日 / 柯西中值定理",
+      "section": "中值定理与导数应用",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 10,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-16",
+      "title": "单调性、极值（一阶/二阶判别）",
+      "section": "中值定理与导数应用",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 10,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-17",
+      "title": "最大值最小值与应用题",
+      "section": "中值定理与导数应用",
+      "requirement": "掌握",
+      "frequency": "常考",
+      "hours": 4,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-18",
+      "title": "凹凸性、拐点、渐近线",
+      "section": "中值定理与导数应用",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 5,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-19",
+      "title": "不等式证明、方程根的讨论",
+      "section": "中值定理与导数应用",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 5,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-20",
+      "title": "原函数、基本积分表、线性性质",
+      "section": "不定积分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 6,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-21",
+      "title": "凑微分 / 第一换元法",
+      "section": "不定积分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 10,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-22",
+      "title": "第二换元法（根式、三角代换）",
+      "section": "不定积分",
+      "requirement": "掌握",
+      "frequency": "常考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-23",
+      "title": "分部积分法",
+      "section": "不定积分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-24",
+      "title": "有理函数积分",
+      "section": "不定积分",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 2,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-25",
+      "title": "定积分概念、性质、几何意义",
+      "section": "定积分",
+      "requirement": "理解",
+      "frequency": "必考",
+      "hours": 5,
+      "stage": "P2",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-26",
+      "title": "牛顿–莱布尼茨公式、变上限积分求导",
+      "section": "定积分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-27",
+      "title": "定积分换元法与分部积分法",
+      "section": "定积分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-28",
+      "title": "反常积分、对称区间奇偶性",
+      "section": "定积分",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 4,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-29",
+      "title": "积分中值定理",
+      "section": "定积分",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 3,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-30",
+      "title": "平面图形面积",
+      "section": "定积分的应用",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-31",
+      "title": "旋转体体积",
+      "section": "定积分的应用",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-32",
+      "title": "弧长、物理应用",
+      "section": "定积分的应用",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 4,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-33",
+      "title": "基本概念、可分离变量方程",
+      "section": "微分方程",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 7,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-34",
+      "title": "齐次方程",
+      "section": "微分方程",
+      "requirement": "掌握",
+      "frequency": "常考",
+      "hours": 5,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-35",
+      "title": "一阶线性微分方程（公式法）",
+      "section": "微分方程",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 6,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-36",
+      "title": "二阶常系数齐次线性方程（特征根三种情形）",
+      "section": "微分方程",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 6,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-37",
+      "title": "二阶常系数非齐次（多项式/指数型）",
+      "section": "微分方程",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 2,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-38",
+      "title": "向量线性运算、点积、叉积、坐标表示",
+      "section": "向量代数与空间解析几何",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 4,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-39",
+      "title": "平面与直线方程、点到平面/直线距离",
+      "section": "向量代数与空间解析几何",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 5,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-40",
+      "title": "曲面与空间曲线方程",
+      "section": "向量代数与空间解析几何",
+      "requirement": "了解",
+      "frequency": "未出现",
+      "hours": 3,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-41",
+      "title": "偏导数、全微分",
+      "section": "多元函数微分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-42",
+      "title": "多元复合函数、隐函数求导",
+      "section": "多元函数微分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-43",
+      "title": "多元极值与条件极值",
+      "section": "多元函数微分",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 5,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-44",
+      "title": "方向导数、梯度、切平面",
+      "section": "多元函数微分",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 3,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-45",
+      "title": "二重积分概念、直角坐标计算（X 型/Y 型）",
+      "section": "重积分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 10,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-46",
+      "title": "极坐标下的二重积分",
+      "section": "重积分",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-47",
+      "title": "三重积分",
+      "section": "重积分",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 4,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-48",
+      "title": "第一类/第二类曲线积分",
+      "section": "曲线积分与曲面积分",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 3,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-49",
+      "title": "格林公式",
+      "section": "曲线积分与曲面积分",
+      "requirement": "了解",
+      "frequency": "低频",
+      "hours": 3,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-50",
+      "title": "曲面积分、高斯公式、斯托克斯公式",
+      "section": "曲线积分与曲面积分",
+      "requirement": "了解",
+      "frequency": "未出现",
+      "hours": 2,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-51",
+      "title": "级数概念、性质、几何级数与 p 级数",
+      "section": "无穷级数",
+      "requirement": "理解",
+      "frequency": "必考",
+      "hours": 5,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-52",
+      "title": "正项级数判别法（比较/比值/根值）",
+      "section": "无穷级数",
+      "requirement": "掌握",
+      "frequency": "必考",
+      "hours": 8,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-53",
+      "title": "交错级数、绝对收敛与条件收敛",
+      "section": "无穷级数",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 4,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    },
+    {
+      "code": "M-54",
+      "title": "幂级数收敛域与展开",
+      "section": "无穷级数",
+      "requirement": "理解",
+      "frequency": "常考",
+      "hours": 7,
+      "stage": "P3",
+      "assessment": null,
+      "kaogang": null,
+      "kind": "point"
+    }
+  ],
+  "total_hours": 308
+}
