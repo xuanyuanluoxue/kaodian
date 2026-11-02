@@ -8,7 +8,7 @@
 并提供了可被 OpenCode / Claude Desktop 直接调用的 MCP 服务。
 不接 Agent 也能手动组卷，但默认按「对话 + 网页」双屏使用设计。
 
-讲解板块是独立模块，暂未并入本仓库。
+讲解内容由「控制台」承载：Agent 写入 Markdown 页面，用户在控制台阅读，并可一键「练这一课」。
 
 ---
 
@@ -35,6 +35,7 @@
 | 模块 | v0.1 |
 |---|---|
 | Agent 协作 | 会话、事件流、答题页提示条、卡住求助、交卷自动回传 |
+| 控制台 | Agent 写入的讲义/大纲（Markdown + 表格 + 代码 + 公式），一键生成配套练习 |
 | 大纲 | 4 科 / 161 条考点 / 1236 h，从 Markdown 生成 JSON |
 | 题库 | 23 道示例题（C 语言，含单选/判断/填空/简答/编程） |
 | 组卷 | 科目、考点编号、题型、题量、时限、练习/考试模式 |
@@ -48,6 +49,7 @@
 ### 界面
 
 - `/` 今天：今日时长、到期复习、四科入口
+- `/console` 控制台：左侧页面列表，中间阅读，右侧今日统计与最近练习
 - `/build` 组卷：左侧选范围，右侧看可用题数与时限
 - `/quiz/:id` 作答：左侧题目，右侧计时/进度/题号/交卷
 - `/result/:id` 结果：得分、客观题正确率、薄弱考点、逐题解析
@@ -100,7 +102,10 @@ opencode mcp add kaodian --global \
 6. 交卷后 Agent 用 `get_attempt` 读结果，安排下一组。
 
 可用工具：`list_subjects` / `list_outline` / `create_agent_session` / `build_quiz` /
-`send_hint` / `read_inbox` / `get_attempt` / `get_due_reviews` / `get_stats_today`。
+`send_hint` / `read_inbox` / `get_attempt` / `get_due_reviews` / `get_stats_today` /
+`publish_page` / `update_page` / `list_pages` / `list_quizzes`。
+
+在对话里说「把今天这一节写成讲义并发布」，页面会出现在控制台；说「练这一课」，会按页面关联的考点编号组卷。
 
 ## 快速开始
 
@@ -215,6 +220,9 @@ curl -X POST http://localhost:8000/api/quizzes \
 | GET | `/api/subjects` | 科目与题量 |
 | GET | `/api/outline` | 考点树 |
 | GET | `/api/questions` | 按科目/编号/题型查 |
+| GET/POST | `/api/pages` | 列出 / 发布学习页 |
+| GET/PATCH/DELETE | `/api/pages/{id}` | 读取 / 更新 / 删除 |
+| GET | `/api/quizzes` | 最近的练习单 |
 | POST | `/api/questions/validate` | 只校验 |
 | POST | `/api/questions/batch` | 批量入库（幂等去重） |
 | POST | `/api/quizzes` | 组卷 |
@@ -245,6 +253,7 @@ python scripts/import_outline.py --src /path/to/你的大纲目录
 ```
 apps/mcp/server.py   stdio MCP 服务（HTTP 的薄包装）
 apps/api/app/        FastAPI + SQLite
+  pages              控制台页面（Markdown）
   main.py            路由
   grading.py         判分与题目校验
   review.py         掌握度与复习间隔

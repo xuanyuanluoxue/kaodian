@@ -5,6 +5,7 @@ import { Build } from "./pages/Build";
 import { QuizPage } from "./pages/Quiz";
 import { Result } from "./pages/Result";
 import { Review } from "./pages/Review";
+import { Console } from "./pages/Console";
 import { ThemeToggle } from "./components/ThemeToggle";
 
 function ScrollTop() {
@@ -27,6 +28,7 @@ export function App() {
           <NavLink to="/" end>
             今天
           </NavLink>
+          <NavLink to="/console">控制台</NavLink>
           <NavLink to="/build">组卷</NavLink>
           <NavLink to="/review">复习</NavLink>
         </nav>
@@ -39,6 +41,7 @@ export function App() {
       <main className="shell">
         <Routes>
           <Route path="/" element={<Today />} />
+          <Route path="/console" element={<Console />} />
           <Route path="/build" element={<Build />} />
           <Route path="/quiz/:quizId" element={<QuizPage />} />
           <Route path="/result/:attemptId" element={<Result />} />

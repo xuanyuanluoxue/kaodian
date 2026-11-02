@@ -131,3 +131,20 @@ CREATE TABLE IF NOT EXISTS agent_event (
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_event_session ON agent_event(session_id, id);
+
+
+-- Agent 写入的学习页：大纲、讲义、每日任务
+CREATE TABLE IF NOT EXISTS page (
+    id            TEXT PRIMARY KEY,
+    subject_id    TEXT REFERENCES subject(id) ON DELETE SET NULL,
+    title         TEXT NOT NULL,
+    summary       TEXT,
+    body          TEXT NOT NULL,
+    outline_codes TEXT,
+    kind          TEXT NOT NULL DEFAULT 'lesson',
+    status        TEXT NOT NULL DEFAULT 'published',
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_page_subject ON page(subject_id, created_at);

@@ -27,8 +27,9 @@ mcp = MCPServer(
     version="0.1.0",
     instructions=(
         "考点是 Agent 的作答终端。先用 list_outline 确认考点编号，"
-        "再用 build_quiz 组卷并把 url 发给用户；用户答题时可以用 send_hint 推提示；"
-        "read_inbox 读取求助和交卷结果；get_attempt 看某次作答的逐题详情。"
+        "用 build_quiz 组卷并把 url 发给用户；用 publish_page 写讲解页，用户在控制台阅读；"
+        "用户答题时可以用 send_hint 推提示；read_inbox 读取求助和交卷结果；"
+        "get_attempt 看某次作答的逐题详情。"
     ),
 )
 
@@ -210,6 +211,100 @@ def get_due_reviews(subject_id: str = "") -> list[dict]:
             "due_date": q["due_date"],
         }
         for q in _call("GET", path)
+    ]
+
+
+@mcp.tool()
+def publish_page(
+    title: str,
+    body: str,
+    subject_id: str = "computer",
+    summary: str = "",
+    outline_codes: list[str] | None = None,
+    kind: str = "lesson",
+) -> dict:
+    """在控制台发布一页学习内容（Markdown），返回可直接发给用户的链接。
+
+    Args:
+        title: 页面标题。
+        body: Markdown 正文，支持 `代码`、$公式$、表格、列表、details。
+        subject_id: computer / math / english / politics。
+        summary: 一句话摘要，显示在列表里。
+        outline_codes: 关联的考点编号，如 ["C-01","C-02"]。
+        kind: outline（大纲）/ lesson（讲义）/ daily（每日任务）/ note（笔记）。
+    """
+    page = _call("POST", "/api/pages", json={
+        "title": title,
+        "body": body,
+        "subject_id": subject_id,
+        "summary": summary or None,
+        "outline_codes": outline_codes or [],
+        "kind": kind,
+    })
+    return {
+        "page_id": page["id"],
+        "url": f"{WEB}/console?page={page['id']}",
+        "title": page["title"],
+        "kind": page["kind"],
+    }
+
+
+@mcp.tool()
+def update_page(
+    page_id: str,
+    title: str = "",
+    body: str = "",
+    summary: str = "",
+    outline_codes: list[str] | None = None,
+) -> dict:
+    """更新一页已发布的内容。只传要改的字段，空字符串表示不改。"""
+    payload: dict[str, Any] = {}
+    if title:
+        payload["title"] = title
+    if body:
+        payload["body"] = body
+    if summary:
+        payload["summary"] = summary
+    if outline_codes is not None:
+        payload["outline_codes"] = outline_codes
+    if not payload:
+        raise RuntimeError("没有要更新的字段")
+    page = _call("PATCH", f"/api/pages/{page_id}", json=payload)
+    return {"page_id": page["id"], "url": f"{WEB}/console?page={page['id']}", "title": page["title"]}
+
+
+@mcp.tool()
+def list_pages(subject_id: str = "") -> list[dict]:
+    """列出控制台里已发布的学习页，按时间倒序。"""
+    path = "/api/pages" + (f"?subject_id={subject_id}" if subject_id else "")
+    return [
+        {
+            "page_id": p["id"],
+            "title": p["title"],
+            "summary": p["summary"],
+            "kind": p["kind"],
+            "codes": p["outline_codes"],
+            "created_at": p["created_at"],
+            "url": f"{WEB}/console?page={p['id']}",
+        }
+        for p in _call("GET", path)
+    ]
+
+
+@mcp.tool()
+def list_quizzes(limit: int = 10) -> list[dict]:
+    """列出最近生成的练习单，带链接。"""
+    return [
+        {
+            "quiz_id": q["id"],
+            "title": q["title"],
+            "mode": q["mode"],
+            "question_count": q["question_count"],
+            "time_limit_seconds": q["time_limit"],
+            "created_at": q["created_at"],
+            "url": f"{WEB}/quiz/{q['id']}",
+        }
+        for q in _call("GET", f"/api/quizzes?limit={limit}")
     ]
 
 

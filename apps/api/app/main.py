@@ -103,6 +103,25 @@ class HelpIn(BaseModel):
     body: str = Field(min_length=1, max_length=2000)
 
 
+class PageIn(BaseModel):
+    subject_id: str | None = None
+    title: str = Field(min_length=1, max_length=120)
+    summary: str | None = None
+    body: str = Field(min_length=1)
+    outline_codes: list[str] = Field(default_factory=list)
+    kind: Literal["outline", "lesson", "daily", "note"] = "lesson"
+    status: Literal["draft", "published"] = "published"
+
+
+class PagePatch(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    summary: str | None = None
+    body: str | None = Field(default=None, min_length=1)
+    outline_codes: list[str] | None = None
+    kind: Literal["outline", "lesson", "daily", "note"] | None = None
+    status: Literal["draft", "published"] | None = None
+
+
 # ---------------------------------------------------------------- helpers
 
 def row_to_question(row: sqlite3.Row, reveal: bool = True) -> dict:
@@ -132,6 +151,26 @@ def row_to_question(row: sqlite3.Row, reveal: bool = True) -> dict:
         item["explanation"] = row["explanation"]
         item["reference_answer"] = row["reference_answer"]
         item["rubric"] = load(row["rubric"])
+    return item
+
+
+def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
+    item = {
+        "id": row["id"],
+        "subject_id": row["subject_id"],
+        "title": row["title"],
+        "summary": row["summary"],
+        "outline_codes": json.loads(row["outline_codes"]) if row["outline_codes"] else [],
+        "kind": row["kind"],
+        "status": row["status"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+    if full:
+        item["body"] = row["body"]
+    else:
+        body = row["body"] or ""
+        item["excerpt"] = body[:180].replace("\n", " ")
     return item
 
 
@@ -388,6 +427,16 @@ def create_app(db_file: Path | None = None) -> FastAPI:
 
     # -------- quizzes
 
+    @app.get("/api/quizzes")
+    def list_quizzes(limit: int = Query(20, ge=1, le=100)):
+        with conn() as c:
+            rows = c.execute(
+                """SELECT q.*, (SELECT COUNT(*) FROM quiz_item i WHERE i.quiz_id = q.id) AS question_count
+                   FROM quiz q ORDER BY q.created_at DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
     @app.post("/api/quizzes", status_code=201)
     def create_quiz(body: QuizIn):
         with conn() as c:
@@ -613,6 +662,80 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             "correct": answered["ok"] or 0,
             "by_subject": [dict(r) for r in by_subject],
         }
+
+    # -------- pages（Agent 写入的学习页）
+
+    @app.post("/api/pages", status_code=201)
+    def create_page(body: PageIn):
+        with conn() as c:
+            if body.subject_id and not c.execute(
+                "SELECT 1 FROM subject WHERE id = ?", (body.subject_id,)
+            ).fetchone():
+                raise HTTPException(422, f"subject_id {body.subject_id} 不存在")
+            missing = [code for code in body.outline_codes
+                       if not c.execute("SELECT 1 FROM outline_node WHERE code = ?", (code,)).fetchone()]
+            if missing:
+                raise HTTPException(422, f"考点编号不存在：{', '.join(missing)}")
+            pid = database.new_id("p")
+            now = database.now_iso()
+            c.execute(
+                """INSERT INTO page(id, subject_id, title, summary, body, outline_codes, kind, status, created_at, updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (pid, body.subject_id, body.title, body.summary, body.body,
+                 json.dumps(body.outline_codes, ensure_ascii=False), body.kind, body.status, now, now),
+            )
+            row = c.execute("SELECT * FROM page WHERE id = ?", (pid,)).fetchone()
+            return page_dict(row)
+
+    @app.get("/api/pages")
+    def list_pages(subject_id: str | None = None, status: str = "published",
+                   limit: int = Query(50, ge=1, le=200)):
+        sql = "SELECT * FROM page WHERE status = ?"
+        args: list = [status]
+        if subject_id:
+            sql += " AND subject_id = ?"
+            args.append(subject_id)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        args.append(limit)
+        with conn() as c:
+            return [page_dict(r, full=False) for r in c.execute(sql, args)]
+
+    @app.get("/api/pages/{page_id}")
+    def read_page(page_id: str):
+        with conn() as c:
+            row = c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+            if not row:
+                raise HTTPException(404, "学习页不存在")
+            return page_dict(row)
+
+    @app.delete("/api/pages/{page_id}")
+    def delete_page(page_id: str):
+        with conn() as c:
+            row = c.execute("SELECT 1 FROM page WHERE id = ?", (page_id,)).fetchone()
+            if not row:
+                raise HTTPException(404, "学习页不存在")
+            c.execute("DELETE FROM page WHERE id = ?", (page_id,))
+        return {"ok": True}
+
+    @app.patch("/api/pages/{page_id}")
+    def update_page(page_id: str, body: PagePatch):
+        with conn() as c:
+            row = c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+            if not row:
+                raise HTTPException(404, "学习页不存在")
+            data = body.model_dump(exclude_unset=True)
+            if not data:
+                return page_dict(row)
+            if "outline_codes" in data and data["outline_codes"] is not None:
+                missing = [code for code in data["outline_codes"]
+                           if not c.execute("SELECT 1 FROM outline_node WHERE code = ?", (code,)).fetchone()]
+                if missing:
+                    raise HTTPException(422, f"考点编号不存在：{', '.join(missing)}")
+                data["outline_codes"] = json.dumps(data["outline_codes"], ensure_ascii=False)
+            fields = ", ".join(f"{k} = ?" for k in data)
+            c.execute(f"UPDATE page SET {fields}, updated_at = ? WHERE id = ?",
+                      [*data.values(), database.now_iso(), page_id])
+            return page_dict(c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone())
 
     # -------- agent 协作
 

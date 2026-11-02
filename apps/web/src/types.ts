@@ -136,3 +136,31 @@ export interface AgentEvent {
   ref: string | null;
   created_at: string;
 }
+
+
+export interface PageSummary {
+  id: string;
+  subject_id: string | null;
+  title: string;
+  summary: string | null;
+  outline_codes: string[];
+  kind: "outline" | "lesson" | "daily" | "note";
+  status: "draft" | "published";
+  created_at: string;
+  updated_at: string;
+  excerpt?: string;
+}
+
+export interface PageDetail extends PageSummary {
+  body: string;
+}
+
+export interface QuizSummary {
+  id: string;
+  title: string;
+  mode: "practice" | "exam";
+  time_limit: number | null;
+  agent_session_id: string | null;
+  created_at: string;
+  question_count: number;
+}

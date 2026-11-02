@@ -67,6 +67,9 @@
 | POST | `/api/agent/events` | Agent | 写一条 `note` 提示 |
 | POST | `/api/agent/help` | 网页 | 用户求助 |
 | POST | `/api/attempts/{id}/submit` | 网页 | 交卷（服务端自动写 `submitted`） |
+| POST | `/api/pages` | Agent | 发布一页 Markdown 讲义/大纲 |
+| GET | `/api/pages` | 控制台 | 页面列表 |
+| GET/PATCH/DELETE | `/api/pages/{id}` | Agent/控制台 | 读取 / 更新 / 删除 |
 
 ## 4. 最小示例
 
@@ -106,6 +109,10 @@ curl -s "localhost:8000/api/agent/inbox?after_id=0"
 | `get_attempt` | `GET /api/attempts/{id}` |
 | `get_due_reviews` | `GET /api/reviews/due` |
 | `get_stats_today` | `GET /api/stats/today` |
+| `publish_page` | `POST /api/pages` |
+| `update_page` | `PATCH /api/pages/{id}` |
+| `list_pages` | `GET /api/pages` |
+| `list_quizzes` | `GET /api/quizzes` |
 
 接入 OpenCode：
 

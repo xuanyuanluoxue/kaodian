@@ -1,4 +1,4 @@
-import type { AgentEvent, Attempt, DailyStats, OutlineNode, Question, Quiz, Subject } from "./types";
+import type { AgentEvent, Attempt, DailyStats, OutlineNode, PageDetail, PageSummary, Question, Quiz, QuizSummary, Subject } from "./types";
 
 const BASE = "/api";
 
@@ -35,6 +35,7 @@ export interface BuildQuizBody {
   mode: "practice" | "exam";
   time_limit?: number | null;
   count: number;
+  agent_session_id?: string;
   filters?: {
     subject_id?: string;
     codes?: string[];
@@ -68,6 +69,15 @@ export const api = {
   due: (subjectId?: string) =>
     request<Question[]>(`/reviews/due${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   today: () => request<DailyStats>("/stats/today"),
+  pages: (subjectId?: string) =>
+    request<PageSummary[]>(`/pages${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
+  page: (pageId: string) => request<PageDetail>(`/pages/${pageId}`),
+  quizzes: (limit = 10) => request<QuizSummary[]>(`/quizzes?limit=${limit}`),
+  createAgentSession: (title: string) =>
+    request<{ id: string; title: string }>("/agent/sessions", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    }),
   agentFeed: (sessionId: string, afterId = 0) =>
     request<AgentEvent[]>(`/agent/feed?session_id=${encodeURIComponent(sessionId)}&after_id=${afterId}`),
   sendHelp: (attemptId: string, questionId: string, body: string) =>
