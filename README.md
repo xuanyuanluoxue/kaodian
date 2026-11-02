@@ -218,6 +218,32 @@ curl -X POST http://localhost:8000/api/quizzes \
 
 校验规则（节选）：编号必须存在且与科目匹配、单选唯一答案、多选至少两个、评分点总分一致、解析至少 10 字、题干去重。
 
+### 提前缓存下几章（子 Agent 流水线）
+
+课程不需要等学到才写。主 Agent 可以提前派子 Agent 生成后面几章：
+
+```text
+主 Agent 派发子 Agent（每章一个）
+  → 子 Agent 写讲义 .md
+  → POST /api/pages   status=draft, lesson_key=L05
+  → POST /api/questions/batch   status=pending（8–10 题）
+  → 子 Agent 报告 page_id + question ids
+
+主 Agent 验收
+  → 读讲义，校对概念与例题
+  → list_pending_questions 逐题验算
+  → review_questions approve/reject
+  → PATCH /api/pages/{id}  status=published
+  → 控制台路径出现新节点
+```
+
+两条纪律：
+
+1. **子 Agent 不许发布、不许审题、不许组卷**——它们只产出草稿和待审题。
+2. **主 Agent 必须逐题验算**，不能把「格式校验通过」当成「内容正确」。
+
+`lesson_key` 决定路径顺序（L01…L12），与创建时间无关。
+
 ### 题库流水线：生成 → 审查 → 上架
 
 AI 生成的题**不会直接进入组卷**：

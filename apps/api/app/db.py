@@ -70,6 +70,10 @@ def migrate(conn: sqlite3.Connection) -> None:
         if name not in a_cols:
             conn.execute(f"ALTER TABLE answer ADD COLUMN {name} {ddl}")
 
+    p_cols = {row["name"] for row in conn.execute("PRAGMA table_info(page)")}
+    if "lesson_key" not in p_cols:
+        conn.execute("ALTER TABLE page ADD COLUMN lesson_key TEXT")
+
     t_cols = {row["name"] for row in conn.execute("PRAGMA table_info(attempt)")}
     if "grading_status" not in t_cols:
         conn.execute("ALTER TABLE attempt ADD COLUMN grading_status TEXT NOT NULL DEFAULT 'none'")

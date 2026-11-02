@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS page (
     title         TEXT NOT NULL,
     summary       TEXT,
     body          TEXT NOT NULL,
+    lesson_key    TEXT,
     outline_codes TEXT,
     kind          TEXT NOT NULL DEFAULT 'lesson',
     status        TEXT NOT NULL DEFAULT 'published',

@@ -118,6 +118,7 @@ class GradeIn(BaseModel):
 
 class PageIn(BaseModel):
     subject_id: str | None = None
+    lesson_key: str | None = Field(default=None, max_length=20)
     title: str = Field(min_length=1, max_length=120)
     summary: str | None = None
     body: str = Field(min_length=1)
@@ -127,6 +128,7 @@ class PageIn(BaseModel):
 
 
 class PagePatch(BaseModel):
+    lesson_key: str | None = Field(default=None, max_length=20)
     title: str | None = Field(default=None, min_length=1, max_length=120)
     summary: str | None = None
     body: str | None = Field(default=None, min_length=1)
@@ -176,6 +178,7 @@ def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
         "subject_id": row["subject_id"],
         "title": row["title"],
         "summary": row["summary"],
+        "lesson_key": row["lesson_key"] if "lesson_key" in row.keys() else None,
         "outline_codes": json.loads(row["outline_codes"]) if row["outline_codes"] else [],
         "kind": row["kind"],
         "status": row["status"],
@@ -864,9 +867,9 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             pid = database.new_id("p")
             now = database.now_iso()
             c.execute(
-                """INSERT INTO page(id, subject_id, title, summary, body, outline_codes, kind, status, created_at, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                (pid, body.subject_id, body.title, body.summary, body.body,
+                """INSERT INTO page(id, subject_id, lesson_key, title, summary, body, outline_codes, kind, status, created_at, updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (pid, body.subject_id, body.lesson_key, body.title, body.summary, body.body,
                  json.dumps(body.outline_codes, ensure_ascii=False), body.kind, body.status, now, now),
             )
             row = c.execute("SELECT * FROM page WHERE id = ?", (pid,)).fetchone()
@@ -882,7 +885,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         if subject_id:
             sql += " AND p.subject_id = ?"
             args.append(subject_id)
-        sql += " ORDER BY p.created_at ASC LIMIT ?"
+        sql += " ORDER BY COALESCE(p.lesson_key, 'ZZZ') ASC, p.created_at ASC LIMIT ?"
         args.append(limit)
         with conn() as c:
             return [page_dict(r, full=False) for r in c.execute(sql, args)]

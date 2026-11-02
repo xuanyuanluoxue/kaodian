@@ -289,6 +289,8 @@ def publish_page(
     summary: str = "",
     outline_codes: list[str] | None = None,
     kind: str = "lesson",
+    lesson_key: str = "",
+    status: str = "published",
 ) -> dict:
     """在控制台发布一页学习内容（Markdown），返回可直接发给用户的链接。
 
@@ -299,6 +301,8 @@ def publish_page(
         summary: 一句话摘要，显示在列表里。
         outline_codes: 关联的考点编号，如 ["C-01","C-02"]。
         kind: outline（大纲）/ lesson（讲义）/ daily（每日任务）/ note（笔记）。
+        lesson_key: 章节号，如 L03；用来把草稿和课程路径绑定。
+        status: published（直接发布）或 draft（缓存待审）。
     """
     page = _call("POST", "/api/pages", json={
         "title": title,
@@ -307,6 +311,8 @@ def publish_page(
         "summary": summary or None,
         "outline_codes": outline_codes or [],
         "kind": kind,
+        "lesson_key": lesson_key or None,
+        "status": status,
     })
     return {
         "page_id": page["id"],
@@ -323,6 +329,7 @@ def update_page(
     body: str = "",
     summary: str = "",
     outline_codes: list[str] | None = None,
+    status: str = "",
 ) -> dict:
     """更新一页已发布的内容。只传要改的字段，空字符串表示不改。"""
     payload: dict[str, Any] = {}
@@ -334,6 +341,8 @@ def update_page(
         payload["summary"] = summary
     if outline_codes is not None:
         payload["outline_codes"] = outline_codes
+    if status:
+        payload["status"] = status
     if not payload:
         raise RuntimeError("没有要更新的字段")
     page = _call("PATCH", f"/api/pages/{page_id}", json=payload)
@@ -350,6 +359,8 @@ def list_pages(subject_id: str = "") -> list[dict]:
             "title": p["title"],
             "summary": p["summary"],
             "kind": p["kind"],
+            "lesson_key": p.get("lesson_key"),
+            "status": p["status"],
             "codes": p["outline_codes"],
             "created_at": p["created_at"],
             "url": f"{WEB}/console?page={p['id']}",
