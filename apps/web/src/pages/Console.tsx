@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api";
 import { Markdown } from "../components/Markdown";
-import { formatDuration, percent } from "../lib/format";
-import type { DailyStats, PageDetail, PageSummary, QuizSummary, Subject } from "../types";
+import type { PageDetail, PageSummary, Progress, QuizSummary, Subject } from "../types";
 
 const KIND_LABEL: Record<string, string> = {
   outline: "大纲",
@@ -16,67 +15,93 @@ function dateLabel(iso: string): string {
   return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
+function weekday(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("zh-CN", { weekday: "narrow" });
+}
+
+function GoalRing({ value, total }: { value: number; total: number }) {
+  const pct = total > 0 ? Math.min(1, value / total) : 0;
+  const c = 2 * Math.PI * 15.5;
+  return (
+    <svg className="goal-ring" viewBox="0 0 36 36" role="img" aria-label={`今日目标 ${Math.round(pct * 100)}%`}>
+      <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--line)" strokeWidth="3" />
+      <circle
+        cx="18"
+        cy="18"
+        r="15.5"
+        fill="none"
+        stroke="var(--accent-solid)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray={`${c * pct} ${c}`}
+        transform="rotate(-90 18 18)"
+      />
+      <text x="18" y="20.5" textAnchor="middle" className="goal-text">
+        {Math.round(pct * 100)}
+      </text>
+    </svg>
+  );
+}
+
 export function Console() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const [pages, setPages] = useState<PageSummary[]>([]);
   const [page, setPage] = useState<PageDetail | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
-  const [stats, setStats] = useState<DailyStats | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   const selectedId = params.get("page");
+  const reading = !!selectedId;
 
   useEffect(() => {
-    Promise.all([api.pages(), api.quizzes(8), api.today(), api.subjects()])
-      .then(([p, q, s, subs]) => {
+    Promise.all([api.pages(), api.progress(), api.quizzes(6), api.subjects()])
+      .then(([p, prog, q, subs]) => {
         setPages(p);
+        setProgress(prog);
         setQuizzes(q);
-        setStats(s);
         setSubjects(subs);
       })
       .catch((e) => setError(String(e)));
   }, []);
 
   useEffect(() => {
-    const id = selectedId || pages[0]?.id;
-    if (!id) return;
+    if (!selectedId) {
+      setPage(null);
+      return;
+    }
     let alive = true;
     api
-      .page(id)
+      .page(selectedId)
       .then((p) => alive && setPage(p))
       .catch((e) => alive && setError(e instanceof ApiError ? String(e.message) : String(e)));
     return () => {
       alive = false;
     };
-  }, [selectedId, pages]);
+  }, [selectedId]);
 
-  const subject = useMemo(
-    () => subjects.find((s) => s.id === page?.subject_id),
-    [subjects, page],
-  );
+  const outlinePage = pages.find((p) => p.kind === "outline");
+  const lessons = useMemo(() => pages.filter((p) => p.kind !== "outline"), [pages]);
+  const nextLesson = lessons.find((p) => !p.completed) || lessons[lessons.length - 1];
+  const subject = useMemo(() => subjects.find((s) => s.id === page?.subject_id), [subjects, page]);
 
-  function select(id: string) {
-    setParams({ page: id });
-  }
-
-  async function practice() {
-    if (!page) return;
+  async function practice(target?: PageDetail | PageSummary) {
+    const p = target || page;
+    if (!p) return;
     setBusy(true);
     setError("");
     try {
-      const session = await api.createAgentSession(`控制台 · ${page.title}`);
+      const session = await api.createAgentSession(`控制台 · ${p.title}`);
       const quiz = await api.buildQuiz({
-        title: `${page.title} · 练习`,
+        title: `${p.title} · 练习`,
         mode: "practice",
         count: 6,
         agent_session_id: session.id,
-        filters: {
-          subject_id: page.subject_id || "computer",
-          codes: page.outline_codes,
-        },
+        filters: { subject_id: p.subject_id || "computer", codes: p.outline_codes },
       });
       navigate(`/quiz/${quiz.id}`);
     } catch (e) {
@@ -85,32 +110,163 @@ export function Console() {
     }
   }
 
-  const answered = stats?.answered ?? 0;
-  const correct = stats?.correct ?? 0;
+  async function complete() {
+    if (!page) return;
+    setCompleting(true);
+    try {
+      const res = await api.completePage(page.id);
+      const [fresh, prog] = await Promise.all([api.page(page.id), api.progress()]);
+      setPage(fresh);
+      setProgress(prog);
+      setPages((prev) => prev.map((p) => (p.id === page.id ? { ...p, completed: true, xp: res.xp } : p)));
+    } catch (e) {
+      setError(e instanceof ApiError ? String(e.message) : String(e));
+    } finally {
+      setCompleting(false);
+    }
+  }
+
+  const goal = progress?.daily_goal_minutes ?? 30;
+  const todayMinutes = progress?.today_minutes ?? 0;
+
+  /* ---------------- 学习路径 ---------------- */
+
+  if (!reading) {
+    return (
+      <div className="path-page">
+        <main className="path-main">
+          <header className="path-head">
+            <div>
+              <p className="eyebrow">学习路径</p>
+              <h1>{outlinePage?.title || "第一部分 · C 语言基础语法"}</h1>
+              <p className="lede">学完一个节点亮一个；答题和讲义都算进度。</p>
+            </div>
+            <div className="streak-pill">
+              <span aria-hidden="true">🔥</span>
+              <b>{progress?.streak ?? 0}</b>
+              <span>天连续</span>
+            </div>
+          </header>
+
+          <section className="goal-row">
+            <GoalRing value={todayMinutes} total={goal} />
+            <div className="goal-copy">
+              <b>
+                今日 {todayMinutes} / {goal} 分钟
+              </b>
+              <span className="muted small">
+                {progress?.today_done ? "今天已经达标，可以再加一组" : `还差 ${Math.max(0, goal - todayMinutes)} 分钟`}
+              </span>
+            </div>
+            <div className="xp-pill">
+              <span aria-hidden="true">★</span> {progress?.xp ?? 0} XP
+            </div>
+          </section>
+
+          {error && <div className="alert">{error}</div>}
+
+          {outlinePage && (
+            <Link className="path-outline" to={`/console?page=${outlinePage.id}`}>
+              <span className="kind-badge kind-outline">大纲</span>
+              <b>{outlinePage.title}</b>
+              <span className="muted small">{outlinePage.outline_codes.length} 个考点 · 先看全局</span>
+            </Link>
+          )}
+
+          <div className="path">
+            {lessons.map((item, index) => (
+              <button
+                key={item.id}
+                className={`path-node ${item.completed ? "done" : ""} ${item.id === nextLesson?.id ? "current" : ""}`}
+                onClick={() => setParams({ page: item.id })}
+              >
+                <span className="path-dot">{item.completed ? "✓" : index + 1}</span>
+                <span className="path-card">
+                  <b>{item.title}</b>
+                  <small>
+                    {item.outline_codes.join(" · ") || "无关联考点"}
+                    {" · "}
+                    {item.completed ? "已完成" : "+10 XP"}
+                  </small>
+                </span>
+              </button>
+            ))}
+            {!lessons.length && (
+              <div className="empty-state">
+                <p>还没有课程。</p>
+                <p className="muted small">在对话里让 Agent 写第一课。</p>
+              </div>
+            )}
+          </div>
+
+          {nextLesson && (
+            <button className="btn btn-primary continue-btn" onClick={() => setParams({ page: nextLesson.id })}>
+              {nextLesson.completed ? "复习最后一课" : `继续学习：${nextLesson.title}`}
+            </button>
+          )}
+        </main>
+
+        <aside className="console-rail">
+          <div className="card">
+            <div className="card-kicker">本周</div>
+            <WeekDots days={progress?.days ?? []} />
+            <p className="muted small">
+              {progress?.completed_pages ?? 0} / {progress?.total_pages ?? lessons.length} 节课完成
+            </p>
+          </div>
+
+          <div className="card">
+            <div className="card-kicker">最近出的题</div>
+            <div className="quiz-mini-list">
+              {quizzes.map((q) => (
+                <Link key={q.id} className="quiz-mini" to={`/quiz/${q.id}`}>
+                  <b>{q.title}</b>
+                  <span className="muted small">
+                    {q.question_count} 题 · {q.mode === "exam" ? "考试" : "练习"}
+                    {q.time_limit ? ` · ${Math.round(q.time_limit / 60)} 分钟` : ""}
+                  </span>
+                </Link>
+              ))}
+              {!quizzes.length && <p className="muted small">还没有练习单。</p>}
+            </div>
+            <Link className="btn btn-ghost btn-block" to="/build">
+              手动组一套
+            </Link>
+          </div>
+
+          <p className="hint">在对话里说「把这一节写成讲义」，新节点会出现在路径上。</p>
+        </aside>
+      </div>
+    );
+  }
+
+  /* ---------------- 阅读 ---------------- */
 
   return (
     <div className="console-page">
       <aside className="console-side">
+        <Link to="/console" className="back-link">
+          ← 学习路径
+        </Link>
         <div className="console-side-head">
-          <h1>控制台</h1>
-          <span className="muted small">{pages.length} 页</span>
+          <h1>课程</h1>
+          <span className="muted small">{lessons.length} 节</span>
         </div>
-        <p className="hint">Agent 写入的讲解与任务，按时间倒序。</p>
         <div className="console-list">
-          {pages.map((item) => (
+          {lessons.map((item) => (
             <button
               key={item.id}
               className={`console-item ${page?.id === item.id ? "on" : ""}`}
-              onClick={() => select(item.id)}
+              onClick={() => setParams({ page: item.id })}
             >
               <span className={`kind-badge kind-${item.kind}`}>{KIND_LABEL[item.kind] || item.kind}</span>
               <b>{item.title}</b>
               <span className="muted small">
-                {item.outline_codes.join(" · ") || "无关联考点"} · {dateLabel(item.created_at)}
+                {item.outline_codes.join(" · ")} · {dateLabel(item.created_at)}
+                {item.completed ? " · ✓" : ""}
               </span>
             </button>
           ))}
-          {!pages.length && <p className="muted small">还没有内容。在对话里让 Agent 写一页。</p>}
         </div>
       </aside>
 
@@ -124,6 +280,7 @@ export function Console() {
                 <span className="muted small">{subject?.short || page.subject_id || "通用"}</span>
                 <span className="muted small">{KIND_LABEL[page.kind] || page.kind}</span>
                 <span className="muted small">{dateLabel(page.created_at)}</span>
+                {page.completed && <span className="done-chip">✓ 已完成 · +{page.xp} XP</span>}
               </div>
               <h1>{page.title}</h1>
               {page.summary && <p className="lede">{page.summary}</p>}
@@ -141,8 +298,17 @@ export function Console() {
             <Markdown>{page.body}</Markdown>
 
             <footer className="lesson-actions">
-              <button className="btn btn-primary" onClick={practice} disabled={busy}>
-                {busy ? "正在组卷…" : `练这一课${page.outline_codes.length ? `（${page.outline_codes.slice(0, 4).join(" / ")}${page.outline_codes.length > 4 ? "…" : ""}）` : ""}`}
+              {!page.completed ? (
+                <button className="btn btn-primary" onClick={complete} disabled={completing}>
+                  {completing ? "记录中…" : "完成本课 +10 XP"}
+                </button>
+              ) : (
+                <Link className="btn btn-primary" to="/console">
+                  回到路径
+                </Link>
+              )}
+              <button className="btn btn-ghost" onClick={() => practice()} disabled={busy}>
+                {busy ? "正在组卷…" : "练这一课"}
               </button>
               <Link className="btn btn-ghost" to="/build">
                 手动组卷
@@ -152,36 +318,32 @@ export function Console() {
           </article>
         ) : (
           <div className="empty-state">
-            <p>控制台还没有页面。</p>
-            <p className="muted small">在对话里说「把今天的内容写成讲义并发布」，Agent 会出现在这里。</p>
+            <p>正在读取课程…</p>
           </div>
         )}
       </main>
 
       <aside className="console-rail">
         <div className="card">
-          <div className="card-kicker">今天</div>
-          <div className="console-stat">
-            <b>{formatDuration(stats?.active_seconds ?? 0)}</b>
-            <span>学习时长</span>
+          <div className="card-kicker">本课</div>
+          <dl className="summary-list">
+            <div>
+              <dt>考点</dt>
+              <dd>{page?.outline_codes.join(" ") || "—"}</dd>
+            </div>
+            <div>
+              <dt>状态</dt>
+              <dd>{page?.completed ? "已完成" : "未完成"}</dd>
+            </div>
+            <div>
+              <dt>XP</dt>
+              <dd>{page?.completed ? `+${page.xp}` : "+10"}</dd>
+            </div>
+          </dl>
+          <div className="mini-goal">
+            <span className="muted small">今日 {todayMinutes} / {goal} 分钟</span>
+            <span className="muted small">★ {progress?.xp ?? 0} XP</span>
           </div>
-          <div className="console-stat-row">
-            <div>
-              <b>{answered}</b>
-              <span>已答</span>
-            </div>
-            <div>
-              <b>{percent(correct, answered)}</b>
-              <span>正确率</span>
-            </div>
-            <div>
-              <b>{quizzes.length}</b>
-              <span>练习单</span>
-            </div>
-          </div>
-          <Link className="link-btn" to="/review">
-            看看到期复习 →
-          </Link>
         </div>
 
         <div className="card">
@@ -192,21 +354,27 @@ export function Console() {
                 <b>{q.title}</b>
                 <span className="muted small">
                   {q.question_count} 题 · {q.mode === "exam" ? "考试" : "练习"}
-                  {q.time_limit ? ` · ${Math.round(q.time_limit / 60)} 分钟` : ""}
                 </span>
               </Link>
             ))}
-            {!quizzes.length && <p className="muted small">还没有练习单。</p>}
           </div>
-          <Link className="btn btn-ghost btn-block" to="/build">
-            手动组一套
-          </Link>
         </div>
 
-        <p className="hint">
-          在对话里说「按 C-08 出 6 道」或「把这一节写成讲义」，我会直接更新这个控制台。
-        </p>
+        <p className="hint">卡住就点答题页的「卡住了」，我会看到题目编号和本题用时。</p>
       </aside>
+    </div>
+  );
+}
+
+function WeekDots({ days }: { days: Progress["days"] }) {
+  return (
+    <div className="week-dots">
+      {days.map((d) => (
+        <div key={d.date} className="week-dot">
+          <span className={`dot-day ${d.done ? "done" : ""}`}>{d.done ? "✓" : ""}</span>
+          <small>{weekday(d.date)}</small>
+        </div>
+      ))}
     </div>
   );
 }

@@ -148,3 +148,10 @@ CREATE TABLE IF NOT EXISTS page (
 );
 
 CREATE INDEX IF NOT EXISTS idx_page_subject ON page(subject_id, created_at);
+
+
+CREATE TABLE IF NOT EXISTS page_progress (
+    page_id      TEXT PRIMARY KEY REFERENCES page(id) ON DELETE CASCADE,
+    completed_at TEXT NOT NULL,
+    xp           INTEGER NOT NULL DEFAULT 10
+);

@@ -149,6 +149,9 @@ export interface PageSummary {
   created_at: string;
   updated_at: string;
   excerpt?: string;
+  completed: boolean;
+  completed_at: string | null;
+  xp: number;
 }
 
 export interface PageDetail extends PageSummary {
@@ -163,4 +166,16 @@ export interface QuizSummary {
   agent_session_id: string | null;
   created_at: string;
   question_count: number;
+}
+
+
+export interface Progress {
+  streak: number;
+  today_done: boolean;
+  today_minutes: number;
+  daily_goal_minutes: number;
+  xp: number;
+  completed_pages: number;
+  total_pages: number;
+  days: { date: string; minutes: number; done: boolean }[];
 }

@@ -35,7 +35,7 @@
 | 模块 | v0.1 |
 |---|---|
 | Agent 协作 | 会话、事件流、答题页提示条、卡住求助、交卷自动回传 |
-| 控制台 | Agent 写入的讲义/大纲（Markdown + 表格 + 代码 + 公式），一键生成配套练习 |
+| 控制台 | 多邻国式学习路径：节点、连续天数、每日目标、XP；Agent 写入的 Markdown 讲义；一键配套练习 |
 | 大纲 | 4 科 / 161 条考点 / 1236 h，从 Markdown 生成 JSON |
 | 题库 | 23 道示例题（C 语言，含单选/判断/填空/简答/编程） |
 | 组卷 | 科目、考点编号、题型、题量、时限、练习/考试模式 |
@@ -49,7 +49,8 @@
 ### 界面
 
 - `/` 今天：今日时长、到期复习、四科入口
-- `/console` 控制台：左侧页面列表，中间阅读，右侧今日统计与最近练习
+- `/console` 学习路径：节点式课程、连续天数、每日目标进度环；点节点进入阅读
+- `/console?page=…` 阅读页：Markdown 讲义 + 「完成本课 +10 XP」+「练这一课」
 - `/build` 组卷：左侧选范围，右侧看可用题数与时限
 - `/quiz/:id` 作答：左侧题目，右侧计时/进度/题号/交卷
 - `/result/:id` 结果：得分、客观题正确率、薄弱考点、逐题解析
@@ -103,7 +104,7 @@ opencode mcp add kaodian --global \
 
 可用工具：`list_subjects` / `list_outline` / `create_agent_session` / `build_quiz` /
 `send_hint` / `read_inbox` / `get_attempt` / `get_due_reviews` / `get_stats_today` /
-`publish_page` / `update_page` / `list_pages` / `list_quizzes`。
+`get_progress` / `publish_page` / `update_page` / `list_pages` / `list_quizzes`。
 
 在对话里说「把今天这一节写成讲义并发布」，页面会出现在控制台；说「练这一课」，会按页面关联的考点编号组卷。
 
@@ -147,6 +148,7 @@ cd apps/api && ../../.venv/bin/uvicorn app.main:app --port 8000
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `KAODIAN_DB` | `data/kaodian.db` | SQLite 路径 |
+| `KAODIAN_DAILY_GOAL_MINUTES` | `30` | 每日目标分钟数 |
 
 ## AI 出题接口
 
@@ -223,6 +225,8 @@ curl -X POST http://localhost:8000/api/quizzes \
 | GET/POST | `/api/pages` | 列出 / 发布学习页 |
 | GET/PATCH/DELETE | `/api/pages/{id}` | 读取 / 更新 / 删除 |
 | GET | `/api/quizzes` | 最近的练习单 |
+| GET | `/api/progress` | 连续天数、每日目标、XP、完成课数 |
+| POST | `/api/pages/{id}/complete` | 标记一课完成（+10 XP） |
 | POST | `/api/questions/validate` | 只校验 |
 | POST | `/api/questions/batch` | 批量入库（幂等去重） |
 | POST | `/api/quizzes` | 组卷 |

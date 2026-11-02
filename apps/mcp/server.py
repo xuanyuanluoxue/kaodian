@@ -314,5 +314,11 @@ def get_stats_today() -> dict:
     return _call("GET", "/api/stats/today")
 
 
+@mcp.tool()
+def get_progress() -> dict:
+    """学习路径进度：连续天数、今日目标、XP、完成课数、最近 7 天。"""
+    return _call("GET", "/api/progress")
+
+
 if __name__ == "__main__":
     mcp.run("stdio")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import sqlite3
 from contextlib import asynccontextmanager
@@ -165,6 +166,9 @@ def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
         "status": row["status"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
+        "completed": row["completed_at"] is not None if "completed_at" in row.keys() else False,
+        "completed_at": row["completed_at"] if "completed_at" in row.keys() else None,
+        "xp": row["xp"] if "xp" in row.keys() else 0,
     }
     if full:
         item["body"] = row["body"]
@@ -690,12 +694,14 @@ def create_app(db_file: Path | None = None) -> FastAPI:
     @app.get("/api/pages")
     def list_pages(subject_id: str | None = None, status: str = "published",
                    limit: int = Query(50, ge=1, le=200)):
-        sql = "SELECT * FROM page WHERE status = ?"
+        sql = """SELECT p.*, pp.completed_at, COALESCE(pp.xp, 0) AS xp
+                 FROM page p LEFT JOIN page_progress pp ON pp.page_id = p.id
+                 WHERE p.status = ?"""
         args: list = [status]
         if subject_id:
-            sql += " AND subject_id = ?"
+            sql += " AND p.subject_id = ?"
             args.append(subject_id)
-        sql += " ORDER BY created_at DESC LIMIT ?"
+        sql += " ORDER BY p.created_at ASC LIMIT ?"
         args.append(limit)
         with conn() as c:
             return [page_dict(r, full=False) for r in c.execute(sql, args)]
@@ -703,7 +709,12 @@ def create_app(db_file: Path | None = None) -> FastAPI:
     @app.get("/api/pages/{page_id}")
     def read_page(page_id: str):
         with conn() as c:
-            row = c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+            row = c.execute(
+                """SELECT p.*, pp.completed_at, COALESCE(pp.xp, 0) AS xp
+                   FROM page p LEFT JOIN page_progress pp ON pp.page_id = p.id
+                   WHERE p.id = ?""",
+                (page_id,),
+            ).fetchone()
             if not row:
                 raise HTTPException(404, "学习页不存在")
             return page_dict(row)
@@ -736,6 +747,65 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             c.execute(f"UPDATE page SET {fields}, updated_at = ? WHERE id = ?",
                       [*data.values(), database.now_iso(), page_id])
             return page_dict(c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone())
+
+    @app.post("/api/pages/{page_id}/complete")
+    def complete_page(page_id: str, xp: int = 10):
+        with conn() as c:
+            if not c.execute("SELECT 1 FROM page WHERE id = ?", (page_id,)).fetchone():
+                raise HTTPException(404, "学习页不存在")
+            existing = c.execute("SELECT * FROM page_progress WHERE page_id = ?", (page_id,)).fetchone()
+            if existing:
+                return {"completed_at": existing["completed_at"], "xp": existing["xp"], "already": True}
+            now = database.now_iso()
+            c.execute("INSERT INTO page_progress(page_id, completed_at, xp) VALUES (?,?,?)",
+                      (page_id, now, max(1, min(xp, 100))))
+            return {"completed_at": now, "xp": max(1, min(xp, 100)), "already": False}
+
+    @app.get("/api/progress")
+    def progress():
+        today = date.today()
+        with conn() as c:
+            attempts = {r["d"]: r["seconds"] for r in c.execute(
+                """SELECT date(started_at) AS d, COALESCE(SUM(active_seconds), 0) AS seconds
+                   FROM attempt WHERE status = 'submitted' GROUP BY date(started_at)"""
+            )}
+            completed = [r["d"] for r in c.execute(
+                "SELECT date(completed_at) AS d FROM page_progress"
+            )]
+            active = set(attempts) | set(completed)
+            today_minutes = round(attempts.get(today.isoformat(), 0) / 60)
+            goal = int(os.environ.get("KAODIAN_DAILY_GOAL_MINUTES", "30"))
+
+            cursor = today
+            if cursor.isoformat() not in active:
+                cursor = today - timedelta(days=1)
+            streak = 0
+            while cursor.isoformat() in active:
+                streak += 1
+                cursor -= timedelta(days=1)
+
+            days = []
+            for offset in range(6, -1, -1):
+                d = today - timedelta(days=offset)
+                minutes = round(attempts.get(d.isoformat(), 0) / 60)
+                done = bool(minutes) or d.isoformat() in completed
+                days.append({"date": d.isoformat(), "minutes": minutes, "done": done})
+
+            xp_pages = c.execute("SELECT COALESCE(SUM(xp), 0) AS n FROM page_progress").fetchone()["n"]
+            xp_answers = c.execute("SELECT COUNT(*) AS n FROM answer WHERE correct = 1").fetchone()["n"]
+            pages_total = c.execute("SELECT COUNT(*) AS n FROM page WHERE status = 'published'").fetchone()["n"]
+            pages_done = c.execute("SELECT COUNT(*) AS n FROM page_progress").fetchone()["n"]
+
+        return {
+            "streak": streak,
+            "today_done": today.isoformat() in active,
+            "today_minutes": today_minutes,
+            "daily_goal_minutes": goal,
+            "xp": xp_pages + xp_answers * 2,
+            "completed_pages": pages_done,
+            "total_pages": pages_total,
+            "days": days,
+        }
 
     # -------- agent 协作
 

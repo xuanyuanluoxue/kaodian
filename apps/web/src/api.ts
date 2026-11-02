@@ -1,4 +1,4 @@
-import type { AgentEvent, Attempt, DailyStats, OutlineNode, PageDetail, PageSummary, Question, Quiz, QuizSummary, Subject } from "./types";
+import type { AgentEvent, Attempt, DailyStats, OutlineNode, PageDetail, PageSummary, Progress, Question, Quiz, QuizSummary, Subject } from "./types";
 
 const BASE = "/api";
 
@@ -72,6 +72,11 @@ export const api = {
   pages: (subjectId?: string) =>
     request<PageSummary[]>(`/pages${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   page: (pageId: string) => request<PageDetail>(`/pages/${pageId}`),
+  completePage: (pageId: string) =>
+    request<{ completed_at: string; xp: number; already: boolean }>(`/pages/${pageId}/complete`, {
+      method: "POST",
+    }),
+  progress: () => request<Progress>("/progress"),
   quizzes: (limit = 10) => request<QuizSummary[]>(`/quizzes?limit=${limit}`),
   createAgentSession: (title: string) =>
     request<{ id: string; title: string }>("/agent/sessions", {

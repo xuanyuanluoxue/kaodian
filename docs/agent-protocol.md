@@ -70,6 +70,8 @@
 | POST | `/api/pages` | Agent | 发布一页 Markdown 讲义/大纲 |
 | GET | `/api/pages` | 控制台 | 页面列表 |
 | GET/PATCH/DELETE | `/api/pages/{id}` | Agent/控制台 | 读取 / 更新 / 删除 |
+| POST | `/api/pages/{id}/complete` | 控制台 | 标记一课完成（+10 XP） |
+| GET | `/api/progress` | 控制台/Agent | 连续天数、目标、XP |
 
 ## 4. 最小示例
 
@@ -113,6 +115,7 @@ curl -s "localhost:8000/api/agent/inbox?after_id=0"
 | `update_page` | `PATCH /api/pages/{id}` |
 | `list_pages` | `GET /api/pages` |
 | `list_quizzes` | `GET /api/quizzes` |
+| `get_progress` | `GET /api/progress` |
 
 接入 OpenCode：
 
