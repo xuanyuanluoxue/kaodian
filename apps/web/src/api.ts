@@ -1,4 +1,4 @@
-import type { AgentEvent, Attempt, DailyStats, OutlineNode, PageDetail, PageSummary, Progress, Question, Quiz, QuizSummary, Subject } from "./types";
+import type { AgentEvent, Attempt, DailyStats, LibraryStats, OutlineNode, PageDetail, PageSummary, Progress, Question, Quiz, QuizSummary, Subject } from "./types";
 
 const BASE = "/api";
 
@@ -77,6 +77,7 @@ export const api = {
       method: "POST",
     }),
   progress: () => request<Progress>("/progress"),
+  library: () => request<LibraryStats>("/stats/library"),
   quizzes: (limit = 10) => request<QuizSummary[]>(`/quizzes?limit=${limit}`),
   createAgentSession: (title: string) =>
     request<{ id: string; title: string }>("/agent/sessions", {

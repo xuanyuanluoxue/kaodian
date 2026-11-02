@@ -691,6 +691,50 @@ p { margin: 0; }
 
 .check-btn { margin-top: 16px; }
 
+.answer-box { margin-top: 22px; display: grid; gap: 8px; }
+.answer-box label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.answer-box textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.7;
+  background: var(--surface);
+  color: var(--ink);
+}
+.answer-box textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+.grading-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+  border-radius: 12px;
+}
+.grading-banner b { font-size: 14px; }
+.grading-banner p { margin-top: 2px; }
+.answer-text {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.agent-feedback {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+}
+
 .self-grade {
   margin-top: 24px;
   border: 1px solid var(--line);

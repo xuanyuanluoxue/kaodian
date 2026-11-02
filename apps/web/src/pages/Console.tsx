@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api";
 import { Markdown } from "../components/Markdown";
-import type { PageDetail, PageSummary, Progress, QuizSummary, Subject } from "../types";
+import type { LibraryStats, PageDetail, PageSummary, Progress, QuizSummary, Subject } from "../types";
 
 const KIND_LABEL: Record<string, string> = {
   outline: "大纲",
@@ -49,6 +49,7 @@ export function Console() {
   const [pages, setPages] = useState<PageSummary[]>([]);
   const [page, setPage] = useState<PageDetail | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [library, setLibrary] = useState<LibraryStats | null>(null);
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [error, setError] = useState("");
@@ -59,12 +60,13 @@ export function Console() {
   const reading = !!selectedId;
 
   useEffect(() => {
-    Promise.all([api.pages(), api.progress(), api.quizzes(6), api.subjects()])
-      .then(([p, prog, q, subs]) => {
+    Promise.all([api.pages(), api.progress(), api.quizzes(6), api.subjects(), api.library()])
+      .then(([p, prog, q, subs, lib]) => {
         setPages(p);
         setProgress(prog);
         setQuizzes(q);
         setSubjects(subs);
+        setLibrary(lib);
       })
       .catch((e) => setError(String(e)));
   }, []);
@@ -213,6 +215,25 @@ export function Console() {
             <p className="muted small">
               {progress?.completed_pages ?? 0} / {progress?.total_pages ?? lessons.length} 节课完成
             </p>
+          </div>
+
+          <div className="card">
+            <div className="card-kicker">题库</div>
+            <div className="console-stat-row">
+              <div>
+                <b>{library?.approved ?? 0}</b>
+                <span>已上架</span>
+              </div>
+              <div>
+                <b>{library?.pending ?? 0}</b>
+                <span>待审</span>
+              </div>
+              <div>
+                <b>{library?.rejected ?? 0}</b>
+                <span>已拒</span>
+              </div>
+            </div>
+            <p className="muted small">AI 生成先入库待审；Agent 审查通过后才进入组卷。</p>
           </div>
 
           <div className="card">

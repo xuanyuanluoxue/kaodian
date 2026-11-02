@@ -134,3 +134,58 @@ opencode mcp add kaodian --global \
 - 网页只轮询**新**事件（`after_id`），不做已读回执；v0.1 够用。
 - Agent 的 `note` 不区分「提示」和「讲解」，由 Agent 自己在正文里组织。
 - 事件不存敏感信息：只有题目编号、用时、用户自己写的描述。
+
+## 7. 题库与评分流水线
+
+### 生成 → 审查 → 上架
+
+```
+AI 生成题目
+  → POST /api/questions/batch
+     入库 status = pending（格式校验已过）
+  → GET /api/questions?status=pending
+     交给 Agent 做语义审查
+  → POST /api/questions/review { ids, decision: approve|reject, note }
+     approve → status=approved，verified=1
+     reject  → status=rejected，永不组卷
+  → POST /api/quizzes
+     只抽取 status = approved
+```
+
+审查要点：
+
+1. `outline_code` 是否真的是这道题考的考点；
+2. 客观题答案是否唯一、是否正确；
+3. 解析是否能推出答案，而不是复述题干；
+4. 主观题评分点是否可操作、总分是否等于满分；
+5. 与已有题是否重复。
+
+### 主观题评分
+
+```
+学生交卷
+  → answer.response 写入
+  → answer.score = NULL
+  → attempt.grading_status = pending
+
+Agent:
+  GET  /api/grading/queue
+  POST /api/grading/{attempt_id}/{question_id}
+       { score, feedback }
+  → answer.score / correct / graded_by='agent' / feedback 写回
+  → attempt.score 重算；没有待评题时 grading_status=done
+  → 结果页每 5 秒轮询刷新
+```
+
+评分依据是 `question.rubric` + `question.reference_answer` + `answer.response`。
+学生自评 `self_grade` 只作为参考，不作为最终分。
+
+### 新增 MCP 工具
+
+| 工具 | 用途 |
+|---|---|
+| `create_questions` | 批量生成，入库待审 |
+| `list_pending_questions` | 拉待审题（含答案/解析/评分点） |
+| `review_questions` | 批量 approve / reject |
+| `get_grading_queue` | 拉主观题待评分队列 |
+| `grade_answer` | 写入分数与评语 |

@@ -43,9 +43,9 @@ function localCorrect(q: Question, response: unknown): boolean | null {
   return null;
 }
 
-function hasAnswer(q: Question, response: unknown, selfGrade: number[] | undefined): boolean {
+function hasAnswer(q: Question, response: unknown): boolean {
   if (q.type === "short" || q.type === "calc" || q.type === "code" || q.type === "essay") {
-    return !!selfGrade && selfGrade.length > 0;
+    return typeof response === "string" && response.trim().length > 0;
   }
   if (q.type === "fill") return typeof response === "string" && response.trim().length > 0;
   return Array.isArray(response) && response.length > 0;
@@ -242,7 +242,7 @@ export function QuizPage() {
 
   const submit = useCallback(async () => {
     if (!attempt || submitting || submitted.current) return;
-    const unanswered = questions.filter((item) => !hasAnswer(item, responses[item.id], selfGrades[item.id])).length;
+    const unanswered = questions.filter((item) => !hasAnswer(item, responses[item.id])).length;
     if (unanswered > 0 && !window.confirm(`还有 ${unanswered} 题没有作答，确定交卷？`)) return;
 
     setSubmitting(true);
@@ -315,7 +315,7 @@ export function QuizPage() {
   );
 
   const answeredCount = useMemo(
-    () => questions.filter((item) => hasAnswer(item, responses[item.id], selfGrades[item.id])).length,
+    () => questions.filter((item) => hasAnswer(item, responses[item.id])).length,
     [questions, responses, selfGrades],
   );
 
@@ -477,10 +477,29 @@ export function QuizPage() {
           )}
 
           {subjective && (
-            <div className="self-grade">
+            <>
+              <div className="answer-box">
+                <label htmlFor={`ans-${q.id}`}>
+                  你的解答 <span className="muted small">· Agent 会读这段来评分</span>
+                </label>
+                <textarea
+                  id={`ans-${q.id}`}
+                  rows={5}
+                  value={typeof responses[q.id] === "string" ? (responses[q.id] as string) : ""}
+                  onChange={(e) => setResponse(q.id, e.target.value)}
+                  placeholder={
+                    q.type === "code"
+                      ? "贴出你的代码；写清思路和边界情况。"
+                      : q.type === "calc"
+                        ? "写出关键步骤和最终结果，公式可以用 $...$。"
+                        : "分点写：定义 / 要点 / 结论。"
+                  }
+                />
+              </div>
+              <div className="self-grade">
               <div className="self-grade-head">
                 <b>自评</b>
-                <span className="muted small">做完再勾，别提前看答案</span>
+                <span className="muted small">可选，供 Agent 参考</span>
                 <span className="self-score">
                   {selfScore} / {q.score}
                 </span>
@@ -504,7 +523,8 @@ export function QuizPage() {
                 <summary>参考答案</summary>
                 <pre className="reference">{q.reference_answer}</pre>
               </details>
-            </div>
+              </div>
+            </>
           )}
 
           {practice && isRevealed && (
@@ -565,7 +585,7 @@ export function QuizPage() {
             <button
               key={item.id}
               className={`q-cell ${i === index ? "current" : ""} ${
-                hasAnswer(item, responses[item.id], selfGrades[item.id]) ? "done" : ""
+                hasAnswer(item, responses[item.id]) ? "done" : ""
               } ${flagged[item.id] ? "flagged" : ""}`}
               onClick={() => go(i)}
             >

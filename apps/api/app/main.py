@@ -104,6 +104,18 @@ class HelpIn(BaseModel):
     body: str = Field(min_length=1, max_length=2000)
 
 
+class QuestionReviewIn(BaseModel):
+    ids: list[str]
+    decision: Literal["approve", "reject"]
+    note: str | None = None
+
+
+class GradeIn(BaseModel):
+    score: float = Field(ge=0)
+    feedback: str = ""
+    correct: bool | None = None
+
+
 class PageIn(BaseModel):
     subject_id: str | None = None
     title: str = Field(min_length=1, max_length=120)
@@ -145,6 +157,9 @@ def row_to_question(row: sqlite3.Row, reveal: bool = True) -> dict:
         "difficulty": row["difficulty"],
         "tags": load(row["tags"]) or [],
         "verified": bool(row["verified"]),
+        "status": row["status"] if "status" in row.keys() else "approved",
+        "reviewed_at": row["reviewed_at"] if "reviewed_at" in row.keys() else None,
+        "review_note": row["review_note"] if "review_note" in row.keys() else None,
         "source": load(row["source"]),
     }
     if reveal:
@@ -213,6 +228,8 @@ def get_attempt(conn: sqlite3.Connection, attempt_id: str, reveal: bool = True) 
             "time_spent": a["time_spent"],
             "flagged": bool(a["flagged"]),
             "self_grade": json.loads(a["self_grade"]) if a["self_grade"] else None,
+            "graded_by": a["graded_by"] if "graded_by" in a.keys() else None,
+            "feedback": a["feedback"] if "feedback" in a.keys() else None,
         }
     return {
         "id": row["id"],
@@ -223,6 +240,7 @@ def get_attempt(conn: sqlite3.Connection, attempt_id: str, reveal: bool = True) 
         "status": row["status"],
         "score": row["score"],
         "max_score": row["max_score"],
+        "grading_status": row["grading_status"] if "grading_status" in row.keys() else "none",
         "quiz": quiz if reveal or row["status"] == "submitted" else {
             **quiz, "questions": [{k: v for k, v in q.items() if k in
                                    {"id", "subject_id", "outline_code", "type", "stem", "options", "score", "difficulty", "tags"}}
@@ -254,6 +272,8 @@ def results_for(conn: sqlite3.Connection, attempt_id: str) -> list[dict]:
             "max_score": q["score"],
             "time_spent": a["time_spent"] if a else 0,
             "flagged": bool(a["flagged"]) if a else False,
+            "graded_by": a["graded_by"] if a and "graded_by" in a.keys() else None,
+            "feedback": a["feedback"] if a and "feedback" in a.keys() else None,
         })
     return out
 
@@ -365,10 +385,14 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         subject_id: str | None = None,
         code: str | None = None,
         type: str | None = None,
+        status: str = "approved",
         limit: int = Query(50, ge=1, le=200),
     ):
         sql = "SELECT * FROM question WHERE 1=1"
         args: list = []
+        if status != "all":
+            sql += " AND status = ?"
+            args.append(status)
         for column, value in (("subject_id", subject_id), ("outline_code", code), ("type", type)):
             if value:
                 sql += f" AND {column} = ?"
@@ -409,8 +433,8 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                     c.execute(
                         """INSERT INTO question
                            (id, subject_id, outline_code, type, stem, options, answer, explanation,
-                            reference_answer, rubric, score, difficulty, source, tags, verified, fingerprint, created_at)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            reference_answer, rubric, score, difficulty, source, tags, verified, status, fingerprint, created_at)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (
                             qid, subject_id, q.outline_code, q.type, q.stem,
                             json.dumps(q.options, ensure_ascii=False) if q.options is not None else None,
@@ -420,7 +444,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                             q.score, q.difficulty,
                             json.dumps(q.source or {"kind": "ai"}, ensure_ascii=False),
                             json.dumps(q.tags, ensure_ascii=False),
-                            1 if q.verified else 0, fp, database.now_iso(),
+                            1 if q.verified else 0, "pending", fp, database.now_iso(),
                         ),
                     )
                     created.append(qid)
@@ -428,6 +452,43 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                     skipped.append(q.stem[:40])
             log_event(c, None, "questions.created", {"created": len(created), "skipped": len(skipped)})
         return {"created": len(created), "skipped": len(skipped), "ids": created}
+
+
+    @app.post("/api/questions/review")
+    def review_questions(body: QuestionReviewIn):
+        if not body.ids:
+            raise HTTPException(422, "ids 不能为空")
+        status = "approved" if body.decision == "approve" else "rejected"
+        with conn() as c:
+            placeholders = ",".join("?" * len(body.ids))
+            found = {r["id"] for r in c.execute(
+                f"SELECT id FROM question WHERE id IN ({placeholders})", body.ids)}
+            missing = [i for i in body.ids if i not in found]
+            if missing:
+                raise HTTPException(404, f"题目不存在：{', '.join(missing)}")
+            c.execute(
+                f"""UPDATE question SET status = ?, verified = ?, reviewed_at = ?, review_note = ?
+                    WHERE id IN ({placeholders})""",
+                [status, 1 if status == "approved" else 0, database.now_iso(), body.note, *body.ids],
+            )
+            log_event(c, None, "questions.reviewed", {"ids": body.ids, "status": status})
+        return {"updated": len(body.ids), "status": status, "ids": body.ids}
+
+    @app.get("/api/stats/library")
+    def library_stats():
+        with conn() as c:
+            rows = c.execute("SELECT status, COUNT(*) AS n FROM question GROUP BY status").fetchall()
+            by_type = c.execute(
+                "SELECT type, COUNT(*) AS n FROM question WHERE status = 'approved' GROUP BY type"
+            ).fetchall()
+        counts = {r["status"]: r["n"] for r in rows}
+        return {
+            "total": sum(counts.values()),
+            "approved": counts.get("approved", 0),
+            "pending": counts.get("pending", 0),
+            "rejected": counts.get("rejected", 0),
+            "by_type": [dict(r) for r in by_type],
+        }
 
     # -------- quizzes
 
@@ -446,11 +507,14 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         with conn() as c:
             if body.question_ids:
                 placeholders = ",".join("?" * len(body.question_ids))
-                rows = c.execute(f"SELECT * FROM question WHERE id IN ({placeholders})", body.question_ids).fetchall()
+                rows = c.execute(
+                    f"SELECT * FROM question WHERE id IN ({placeholders}) AND status = 'approved'",
+                    body.question_ids,
+                ).fetchall()
                 by_id = {r["id"]: r for r in rows}
                 rows = [by_id[i] for i in body.question_ids if i in by_id]
             else:
-                sql = "SELECT q.* FROM question q WHERE 1=1"
+                sql = "SELECT q.* FROM question q WHERE q.status = 'approved'"
                 args: list = []
                 f = body.filters
                 if f.subject_id:
@@ -559,20 +623,32 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             ).fetchall()
             total = 0.0
             max_total = 0.0
+            pending_grading = 0
             results = []
             for q in items:
                 a = c.execute("SELECT * FROM answer WHERE attempt_id = ? AND question_id = ?",
                               (attempt_id, q["id"])).fetchone()
                 response = json.loads(a["response"]) if a and a["response"] else None
                 self_grade = json.loads(a["self_grade"]) if a and a["self_grade"] else None
-                g = grade(dict(q), response, self_grade)
-                if response is None and self_grade is None:
-                    g = {"correct": None, "score": 0.0, "max_score": g["max_score"]}
-                total += g["score"]
+                subjective = q["type"] in {"short", "calc", "code", "essay"}
+                answered = (isinstance(response, str) and response.strip() != "") or bool(self_grade)
+
+                if subjective and answered:
+                    g = {"correct": None, "score": None, "max_score": float(q["score"])}
+                    pending_grading += 1
+                elif subjective:
+                    g = {"correct": None, "score": 0.0, "max_score": float(q["score"])}
+                else:
+                    g = grade(dict(q), response, self_grade)
+                    if response is None and self_grade is None:
+                        g = {"correct": None, "score": 0.0, "max_score": g["max_score"]}
+
+                if g["score"] is not None:
+                    total += g["score"]
                 max_total += g["max_score"]
                 c.execute("UPDATE answer SET correct = ?, score = ? WHERE attempt_id = ? AND question_id = ?",
                           (None if g["correct"] is None else 1 if g["correct"] else 0, g["score"], attempt_id, q["id"]))
-                if response is not None or self_grade is not None:
+                if g["correct"] is not None and (response is not None or self_grade is not None):
                     apply_result(c, q["id"], g["correct"])
                 results.append({
                     "question": row_to_question(q, reveal=True),
@@ -581,14 +657,17 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                     "correct": g["correct"],
                     "score": g["score"],
                     "max_score": g["max_score"],
+                    "pending": subjective and answered,
                     "time_spent": a["time_spent"] if a else 0,
                     "flagged": bool(a["flagged"]) if a else False,
                 })
 
             active = max(body.active_seconds, attempt["active_seconds"] or 0)
+            grading_status = "pending" if pending_grading else "done"
             c.execute(
-                "UPDATE attempt SET ended_at = ?, active_seconds = ?, status='submitted', score=?, max_score=? WHERE id = ?",
-                (database.now_iso(), active, round(total, 2), round(max_total, 2), attempt_id),
+                """UPDATE attempt SET ended_at = ?, active_seconds = ?, status='submitted',
+                   score=?, max_score=?, grading_status=? WHERE id = ?""",
+                (database.now_iso(), active, round(total, 2), round(max_total, 2), grading_status, attempt_id),
             )
             log_event(c, attempt_id, "attempt.submitted", {"score": total, "max": max_total})
             quiz_row = c.execute("SELECT agent_session_id FROM quiz WHERE id = ?", (attempt["quiz_id"],)).fetchone()
@@ -596,7 +675,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 c, quiz_row["agent_session_id"] if quiz_row else None, "submitted", "system",
                 json.dumps(
                     {"attempt_id": attempt_id, "score": round(total, 2), "max_score": round(max_total, 2),
-                     "question_count": len(items)},
+                     "question_count": len(items), "pending_grading": pending_grading},
                     ensure_ascii=False,
                 ),
                 attempt_id,
@@ -665,6 +744,108 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             "answered": answered["n"] or 0,
             "correct": answered["ok"] or 0,
             "by_subject": [dict(r) for r in by_subject],
+        }
+
+
+    # -------- 主观题评分（Agent 读库评分）
+
+    @app.get("/api/grading/queue")
+    def grading_queue(limit: int = Query(20, ge=1, le=100)):
+        with conn() as c:
+            rows = c.execute(
+                """SELECT a.attempt_id, a.question_id, a.response, a.self_grade, a.time_spent,
+                          q.type, q.stem, q.rubric, q.reference_answer, q.score AS q_score,
+                          q.outline_code, q.tags, z.title AS quiz_title, t.ended_at
+                   FROM answer a
+                   JOIN attempt t ON t.id = a.attempt_id
+                   JOIN question q ON q.id = a.question_id
+                   LEFT JOIN quiz z ON z.id = t.quiz_id
+                   WHERE t.status = 'submitted'
+                     AND q.type IN ('short', 'calc', 'code', 'essay')
+                     AND a.score IS NULL
+                     AND a.response IS NOT NULL AND a.response != ''
+                   ORDER BY t.ended_at ASC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+
+        def load(value, fallback=None):
+            if not value:
+                return fallback
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return value
+
+        return [{
+            "attempt_id": r["attempt_id"],
+            "question_id": r["question_id"],
+            "quiz_title": r["quiz_title"],
+            "ended_at": r["ended_at"],
+            "response": load(r["response"], ""),
+            "self_grade": load(r["self_grade"], None),
+            "time_spent": r["time_spent"],
+            "question": {
+                "stem": r["stem"],
+                "type": r["type"],
+                "outline_code": r["outline_code"],
+                "score": r["q_score"],
+                "rubric": load(r["rubric"], []),
+                "reference_answer": r["reference_answer"],
+                "tags": load(r["tags"], []),
+            },
+        } for r in rows]
+
+    @app.post("/api/grading/{attempt_id}/{question_id}")
+    def grade_answer(attempt_id: str, question_id: str, body: GradeIn):
+        with conn() as c:
+            row = c.execute(
+                """SELECT a.*, q.type, q.score AS q_score, q.outline_code
+                   FROM answer a JOIN question q ON q.id = a.question_id
+                   JOIN attempt t ON t.id = a.attempt_id
+                   WHERE a.attempt_id = ? AND a.question_id = ?""",
+                (attempt_id, question_id),
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "作答记录不存在")
+            if row["type"] not in {"short", "calc", "code", "essay"}:
+                raise HTTPException(422, "只有主观题需要 Agent 评分")
+            max_score = float(row["q_score"])
+            if body.score > max_score:
+                raise HTTPException(422, f"分数不能超过 {max_score}")
+            correct = body.correct if body.correct is not None else body.score >= max_score * 0.6
+            first_grade = row["graded_by"] is None
+            c.execute(
+                """UPDATE answer SET score = ?, correct = ?, graded_by = 'agent', feedback = ?
+                   WHERE attempt_id = ? AND question_id = ?""",
+                (round(body.score, 2), 1 if correct else 0, body.feedback, attempt_id, question_id),
+            )
+            if first_grade:
+                apply_result(c, question_id, correct)
+
+            pending = c.execute(
+                """SELECT COUNT(*) AS n FROM answer a JOIN question q ON q.id = a.question_id
+                   WHERE a.attempt_id = ? AND q.type IN ('short', 'calc', 'code', 'essay')
+                     AND a.score IS NULL AND a.response IS NOT NULL AND a.response != ''""",
+                (attempt_id,),
+            ).fetchone()["n"]
+            total = c.execute(
+                "SELECT COALESCE(SUM(score), 0) AS s FROM answer WHERE attempt_id = ?", (attempt_id,)
+            ).fetchone()["s"]
+            status = "pending" if pending else "done"
+            c.execute("UPDATE attempt SET score = ?, grading_status = ? WHERE id = ?",
+                      (round(float(total), 2), status, attempt_id))
+            log_event(c, attempt_id, "answer.graded", {
+                "question_id": question_id, "score": body.score, "correct": correct,
+            })
+
+        return {
+            "attempt_id": attempt_id,
+            "question_id": question_id,
+            "score": round(body.score, 2),
+            "max_score": max_score,
+            "correct": correct,
+            "attempt_score": round(float(total), 2),
+            "grading_status": status,
         }
 
     # -------- pages（Agent 写入的学习页）

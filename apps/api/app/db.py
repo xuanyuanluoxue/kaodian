@@ -52,9 +52,27 @@ def init_db(path: Path | None = None) -> None:
 
 
 def migrate(conn: sqlite3.Connection) -> None:
-    cols = {row["name"] for row in conn.execute("PRAGMA table_info(quiz)")}
-    if "agent_session_id" not in cols:
+    quiz_cols = {row["name"] for row in conn.execute("PRAGMA table_info(quiz)")}
+    if "agent_session_id" not in quiz_cols:
         conn.execute("ALTER TABLE quiz ADD COLUMN agent_session_id TEXT")
+
+    q_cols = {row["name"] for row in conn.execute("PRAGMA table_info(question)")}
+    for name, ddl in (
+        ("status", "TEXT NOT NULL DEFAULT 'approved'"),
+        ("reviewed_at", "TEXT"),
+        ("review_note", "TEXT"),
+    ):
+        if name not in q_cols:
+            conn.execute(f"ALTER TABLE question ADD COLUMN {name} {ddl}")
+
+    a_cols = {row["name"] for row in conn.execute("PRAGMA table_info(answer)")}
+    for name, ddl in (("graded_by", "TEXT"), ("feedback", "TEXT")):
+        if name not in a_cols:
+            conn.execute(f"ALTER TABLE answer ADD COLUMN {name} {ddl}")
+
+    t_cols = {row["name"] for row in conn.execute("PRAGMA table_info(attempt)")}
+    if "grading_status" not in t_cols:
+        conn.execute("ALTER TABLE attempt ADD COLUMN grading_status TEXT NOT NULL DEFAULT 'none'")
 
 
 def seed_subjects(conn: sqlite3.Connection) -> None:

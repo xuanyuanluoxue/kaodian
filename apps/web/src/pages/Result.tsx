@@ -42,6 +42,14 @@ export function Result() {
       .catch((e) => setError(String(e)));
   }, [attemptId]);
 
+  useEffect(() => {
+    if (!attemptId || attempt?.grading_status !== "pending") return;
+    const t = setInterval(() => {
+      api.attempt(attemptId).then(setAttempt).catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
+  }, [attemptId, attempt?.grading_status]);
+
   if (error) return <div className="page"><div className="alert">{error}</div></div>;
   if (!attempt) return <div className="page"><p className="muted">正在读取结果…</p></div>;
 
@@ -97,6 +105,20 @@ export function Result() {
         </div>
       </section>
 
+      {attempt.grading_status === "pending" && (
+        <div className="grading-banner">
+          <div>
+            <b>主观题待 Agent 评分</b>
+            <p className="muted small">
+              你的答案已经写入数据库，我会读取并写回分数；页面每 5 秒自动刷新一次。
+            </p>
+          </div>
+          <button className="btn btn-ghost" onClick={() => api.attempt(attemptId!).then(setAttempt)}>
+            刷新评分
+          </button>
+        </div>
+      )}
+
       {attempt.quiz.agent_session_id && (
         <div className="sync-badge">
           结果已写入 <code>{attempt.quiz.agent_session_id}</code>，Agent 可以直接读取这次作答。
@@ -143,13 +165,13 @@ export function Result() {
               <summary>
                 <span className="result-index">{i + 1}</span>
                 <span className={`result-mark ${ok === true ? "ok" : ok === false ? "bad" : "self"}`}>
-                  {ok === true ? "✓" : ok === false ? "×" : "自评"}
+                  {item.score === null ? "待评" : ok === true ? "✓" : ok === false ? "×" : "自评"}
                 </span>
                 <span className="result-stem">
                   <MathText text={q.stem} />
                 </span>
                 <span className="result-score">
-                  {item.score} / {item.max_score}
+                  {item.score === null ? "待评分" : `${item.score} / ${item.max_score}`}
                 </span>
               </summary>
               <div className="result-body">
@@ -161,7 +183,11 @@ export function Result() {
                 <div className="answer-compare">
                   <div>
                     <span className="muted small">你的答案</span>
-                    <b>{answerText(item)}</b>
+                    {["short", "calc", "code", "essay"].includes(q.type) ? (
+                      <pre className="answer-text">{answerText(item)}</pre>
+                    ) : (
+                      <b>{answerText(item)}</b>
+                    )}
                   </div>
                   <div>
                     <span className="muted small">正确答案</span>
@@ -180,6 +206,12 @@ export function Result() {
                     </div>
                   )}
                 </div>
+                {item.feedback && (
+                  <div className="explain agent-feedback">
+                    <span className="muted small">Agent 评分意见</span>
+                    <p>{item.feedback}</p>
+                  </div>
+                )}
                 {q.explanation && (
                   <div className="explain">
                     <span className="muted small">解析</span>

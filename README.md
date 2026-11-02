@@ -37,7 +37,8 @@
 | Agent 协作 | 会话、事件流、答题页提示条、卡住求助、交卷自动回传 |
 | 控制台 | 多邻国式学习路径：节点、连续天数、每日目标、XP；Agent 写入的 Markdown 讲义；一键配套练习 |
 | 大纲 | 4 科 / 161 条考点 / 1236 h，从 Markdown 生成 JSON |
-| 题库 | 23 道示例题（C 语言，含单选/判断/填空/简答/编程） |
+| 题库 | 24 道示例题；AI 生成先入库待审，审查通过才上架 |
+| 评分 | 客观题自动判；主观题交卷后由 Agent 读库评分并写回 |
 | 组卷 | 科目、考点编号、题型、题量、时限、练习/考试模式 |
 | 作答 | 单题一屏、键盘操作、题号网格、标记 |
 | 计时 | 切走自动暂停、90 秒无操作暂停、15 秒心跳、每题独立计时 |
@@ -104,7 +105,9 @@ opencode mcp add kaodian --global \
 
 可用工具：`list_subjects` / `list_outline` / `create_agent_session` / `build_quiz` /
 `send_hint` / `read_inbox` / `get_attempt` / `get_due_reviews` / `get_stats_today` /
-`get_progress` / `publish_page` / `update_page` / `list_pages` / `list_quizzes`。
+`get_progress` / `publish_page` / `update_page` / `list_pages` / `list_quizzes` /
+`create_questions` / `list_pending_questions` / `review_questions` /
+`get_grading_queue` / `grade_answer`。
 
 在对话里说「把今天这一节写成讲义并发布」，页面会出现在控制台；说「练这一课」，会按页面关联的考点编号组卷。
 
@@ -215,6 +218,38 @@ curl -X POST http://localhost:8000/api/quizzes \
 
 校验规则（节选）：编号必须存在且与科目匹配、单选唯一答案、多选至少两个、评分点总分一致、解析至少 10 字、题干去重。
 
+### 题库流水线：生成 → 审查 → 上架
+
+AI 生成的题**不会直接进入组卷**：
+
+```text
+create_questions / POST /api/questions/batch
+        ↓  status = pending（格式已校验）
+list_pending_questions / GET /api/questions?status=pending
+        ↓  Agent 逐题审查：编号、答案、解析、评分点
+review_questions / POST /api/questions/review  {approve | reject}
+        ↓  只有 status = approved 的题
+build_quiz / POST /api/quizzes
+```
+
+审查要点：答案是否唯一且正确、解析是否真的支持答案、主观题评分点是否可操作、题干是否和已有题重复。`reject` 的题留在库里但永不组卷。
+
+### 主观题：Agent 读库评分
+
+```text
+学生交卷
+  → 客观题立即判分
+  → 主观题 response 写入 answer，score = NULL
+  → attempt.grading_status = pending
+Agent:
+  GET  /api/grading/queue
+  POST /api/grading/{attempt_id}/{question_id}  { score, feedback }
+  → 写回 score/correct/feedback，重算本次得分
+  → 结果页 5 秒轮询，自动显示分数和评语
+```
+
+评分依据是题目的 `rubric` + `reference_answer` + 学生 `response`，不是自评。自评只作为参考。
+
 ### API 一览
 
 | 方法 | 路径 | 作用 |
@@ -228,7 +263,9 @@ curl -X POST http://localhost:8000/api/quizzes \
 | GET | `/api/progress` | 连续天数、每日目标、XP、完成课数 |
 | POST | `/api/pages/{id}/complete` | 标记一课完成（+10 XP） |
 | POST | `/api/questions/validate` | 只校验 |
-| POST | `/api/questions/batch` | 批量入库（幂等去重） |
+| POST | `/api/questions/batch` | 批量入库（默认 `pending`，幂等去重） |
+| POST | `/api/questions/review` | 审查：approve / reject |
+| GET | `/api/stats/library` | 题库状态统计 |
 | POST | `/api/quizzes` | 组卷 |
 | POST | `/api/attempts` | 开始作答 |
 | PATCH | `/api/attempts/{id}` | 心跳 / 存答案 |
@@ -241,6 +278,8 @@ curl -X POST http://localhost:8000/api/quizzes \
 | GET | `/api/agent/feed` | 网页拉新事件 |
 | GET | `/api/agent/inbox` | Agent 拉求助/交卷 |
 | POST | `/api/agent/help` | 网页求助 |
+| GET | `/api/grading/queue` | 主观题待评分队列 |
+| POST | `/api/grading/{attempt_id}/{question_id}` | 写入主观题分数与评语 |
 
 ## 大纲配置
 

@@ -27,9 +27,10 @@ mcp = MCPServer(
     version="0.1.0",
     instructions=(
         "考点是 Agent 的作答终端。先用 list_outline 确认考点编号，"
+        "题库是实时生成的：create_questions 入库存为 pending，review_questions 审查后才可组卷；"
         "用 build_quiz 组卷并把 url 发给用户；用 publish_page 写讲解页，用户在控制台阅读；"
         "用户答题时可以用 send_hint 推提示；read_inbox 读取求助和交卷结果；"
-        "get_attempt 看某次作答的逐题详情。"
+        "主观题交卷后进 get_grading_queue，读答案后用 grade_answer 写回分数。"
     ),
 )
 
@@ -92,6 +93,72 @@ def create_agent_session(title: str) -> dict:
     """新建一个 Agent 学习会话。build_quiz 不传 session_id 时会自动建。"""
     return _call("POST", "/api/agent/sessions", json={"title": title})
 
+
+
+
+@mcp.tool()
+def create_questions(questions: list[dict]) -> dict:
+    """批量生成题目并入库为「待审」。生成后必须用 review_questions 审查才能组卷。
+
+    每道题至少包含：outline_code、type、stem、explanation、difficulty、score；
+    客观题还要 options 和 answer，主观题还要 reference_answer 和 rubric。
+        """
+    return _call("POST", "/api/questions/batch", json={"questions": questions})
+
+
+@mcp.tool()
+def list_pending_questions(subject_id: str = "", code: str = "", limit: int = 20) -> list[dict]:
+    """列出待审题目，带完整题干、答案、解析和评分点，供审查。"""
+    params = [f"status=pending", f"limit={limit}"]
+    if subject_id:
+        params.append(f"subject_id={subject_id}")
+    if code:
+        params.append(f"code={code}")
+    items = _call("GET", "/api/questions?" + "&".join(params))
+    return [
+        {
+            "id": q["id"],
+            "outline_code": q["outline_code"],
+            "type": q["type"],
+            "stem": q["stem"],
+            "options": q.get("options"),
+            "answer": q.get("answer"),
+            "explanation": q.get("explanation"),
+            "reference_answer": q.get("reference_answer"),
+            "rubric": q.get("rubric"),
+            "difficulty": q["difficulty"],
+            "score": q["score"],
+        }
+        for q in items
+    ]
+
+
+@mcp.tool()
+def review_questions(ids: list[str], decision: str, note: str = "") -> dict:
+    """审查题目：decision=approve 上架，decision=reject 拒绝。
+
+    审查要点：编号是否匹配、答案是否正确、解析是否支持答案、主观题评分点是否可操作。
+    """
+    if decision not in {"approve", "reject"}:
+        raise RuntimeError("decision 只能是 approve 或 reject")
+    return _call("POST", "/api/questions/review",
+                 json={"ids": ids, "decision": decision, "note": note or None})
+
+
+@mcp.tool()
+def get_grading_queue(limit: int = 20) -> list[dict]:
+    """主观题待评分队列：用户已交卷、答案已入库、等待 Agent 评分。"""
+    return _call("GET", f"/api/grading/queue?limit={limit}")
+
+
+@mcp.tool()
+def grade_answer(attempt_id: str, question_id: str, score: float, feedback: str = "") -> dict:
+    """给一道主观题打分并写回数据库。
+
+    评分依据：题目 rubric、reference_answer 和用户 response；feedback 会显示在结果页。
+    """
+    return _call("POST", f"/api/grading/{attempt_id}/{question_id}",
+                 json={"score": score, "feedback": feedback})
 
 @mcp.tool()
 def build_quiz(

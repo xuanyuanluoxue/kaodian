@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS question (
     source           TEXT,
     tags             TEXT,
     verified         INTEGER NOT NULL DEFAULT 0,
+    status           TEXT NOT NULL DEFAULT 'approved',
+    reviewed_at      TEXT,
+    review_note      TEXT,
     fingerprint      TEXT UNIQUE,
     created_at       TEXT NOT NULL
 );
@@ -72,6 +75,7 @@ CREATE TABLE IF NOT EXISTS attempt (
     status         TEXT NOT NULL DEFAULT 'active',
     score          REAL,
     max_score      REAL,
+    grading_status TEXT NOT NULL DEFAULT 'none',
     meta           TEXT
 );
 
@@ -86,6 +90,8 @@ CREATE TABLE IF NOT EXISTS answer (
     time_spent   INTEGER NOT NULL DEFAULT 0,
     flagged      INTEGER NOT NULL DEFAULT 0,
     self_grade   TEXT,
+    graded_by    TEXT,
+    feedback     TEXT,
     PRIMARY KEY (attempt_id, question_id)
 );
 

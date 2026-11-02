@@ -82,8 +82,11 @@ export interface ResultItem {
   response: unknown;
   self_grade: number[] | null;
   correct: boolean | null;
-  score: number;
+  score: number | null;
   max_score: number;
+  pending?: boolean;
+  graded_by?: string | null;
+  feedback?: string | null;
   time_spent?: number;
   flagged?: boolean;
 }
@@ -97,6 +100,7 @@ export interface Attempt {
   status: "active" | "submitted";
   score: number | null;
   max_score: number | null;
+  grading_status?: "none" | "pending" | "done";
   quiz: Quiz;
   answers: Record<string, AnswerState>;
   results?: ResultItem[];
@@ -178,4 +182,13 @@ export interface Progress {
   completed_pages: number;
   total_pages: number;
   days: { date: string; minutes: number; done: boolean }[];
+}
+
+
+export interface LibraryStats {
+  total: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  by_type: { type: string; n: number }[];
 }

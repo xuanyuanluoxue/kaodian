@@ -114,7 +114,7 @@ def test_exam_hides_answers(client):
     assert all("answer" not in q for q in attempt["quiz"]["questions"])
 
 
-def test_subjective_self_grade(client):
+def test_subjective_goes_to_agent_grading(client):
     q = client.get("/api/questions?code=C-11&limit=50").json()
     short = next(x for x in q if x["type"] == "short")
     quiz = client.post(
@@ -126,11 +126,64 @@ def test_subjective_self_grade(client):
         f"/api/attempts/{attempt['id']}/submit",
         json={
             "active_seconds": 120,
-            "answers": [{"question_id": short["id"], "self_grade": [0, 1, 2], "time_spent": 100}],
+            "answers": [{
+                "question_id": short["id"],
+                "response": "字符数组是 char 数组；输入用 scanf，输出用 printf。",
+                "time_spent": 100,
+            }],
         },
     ).json()
-    assert result["score"] == 10
-    assert result["results"][0]["correct"] is True
+    assert result["grading_status"] == "pending"
+    assert result["score"] == 0
+    assert result["results"][0]["score"] is None
+
+    queue = client.get("/api/grading/queue").json()
+    assert any(x["question_id"] == short["id"] for x in queue)
+
+    graded = client.post(
+        f"/api/grading/{attempt['id']}/{short['id']}",
+        json={"score": 10, "feedback": "定义与输入输出都写到了。"},
+    ).json()
+    assert graded["grading_status"] == "done"
+    assert graded["correct"] is True
+
+    fetched = client.get(f"/api/attempts/{attempt['id']}").json()
+    assert fetched["score"] == 10
+    assert fetched["grading_status"] == "done"
+
+
+def test_generated_question_needs_review(client):
+    item = {
+        "outline_code": "C-04",
+        "type": "single",
+        "stem": "十进制数 12 转换成二进制是（ ）",
+        "options": ["1010", "1100", "1001", "1110"],
+        "answer": ["B"],
+        "explanation": "12 = 8 + 4，对应二进制 1100。",
+        "difficulty": 1,
+        "score": 3,
+    }
+    created = client.post("/api/questions/batch", json={"questions": [item]}).json()
+    qid = created["ids"][0]
+
+    pending = client.get("/api/questions?status=pending&code=C-04").json()
+    assert any(q["id"] == qid for q in pending)
+
+    before = client.post("/api/quizzes", json={"mode": "practice", "question_ids": [qid]})
+    assert before.status_code == 422
+
+    client.post("/api/questions/review", json={"ids": [qid], "decision": "approve", "note": "答案正确"})
+    after = client.post("/api/quizzes", json={"mode": "practice", "question_ids": [qid]})
+    assert after.status_code == 201
+    assert after.json()["question_count"] == 1
+
+    rejected = client.post("/api/questions/batch", json={"questions": [{
+        **item, "stem": "十进制数 13 转换成二进制是（ ）", "answer": ["B"],
+        "explanation": "13 = 8 + 4 + 1，对应二进制 1101。",
+        "options": ["1101", "1100", "1011", "1110"],
+    }]}).json()["ids"][0]
+    client.post("/api/questions/review", json={"ids": [rejected], "decision": "reject"})
+    assert client.post("/api/quizzes", json={"mode": "practice", "question_ids": [rejected]}).status_code == 422
 
 
 def test_review_mastery_after_three_correct(client, tmp_path):
