@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" width="760" height="340" role="img" aria-label="单分支、双分支、多分支三条路径的流程图">
+  <style>
+    .bg { fill: #f6f5f1; }
+    .box { fill: #ffffff; stroke: #1b1b18; stroke-width: 1.5; }
+    .dia { fill: #e8f1ee; stroke: #1d6b5c; stroke-width: 1.5; }
+    .term { fill: #1d6b5c; }
+    .flow { stroke: #1b1b18; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .ink { fill: #1b1b18; }
+    .muted { fill: #6d6a60; }
+    .accent { fill: #1d6b5c; }
+    .true { fill: #1d6b5c; font-size: 12px; font-weight: 700; }
+    .false { fill: #b0563a; font-size: 12px; font-weight: 700; }
+    .ui { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .title { font-size: 16px; font-weight: 700; }
+    .code { font-size: 12.5px; }
+    .lab { font-size: 12.5px; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1d1a; }
+      .box { fill: #232720; stroke: #eae8e1; }
+      .dia { fill: #1c322c; stroke: #7cc9b4; }
+      .term { fill: #7cc9b4; }
+      .flow { stroke: #eae8e1; }
+      .ink { fill: #eae8e1; }
+      .muted { fill: #a3a095; }
+      .accent { fill: #7cc9b4; }
+      .true { fill: #7cc9b4; }
+      .false { fill: #e0a283; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1b1b18"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="760" height="340" rx="16"/>
+  <text class="ui title ink" x="30" y="36">分支的三条路：条件真了走哪，假了走哪</text>
+
+  <!-- ============ 单分支 if ============ -->
+  <text class="ui code muted" x="30" y="66">单分支：真才做，假就跳过</text>
+  <rect class="term" x="112" y="86" width="66" height="26" rx="13"/>
+  <text class="ui lab" x="145" y="103" text-anchor="middle" fill="#f6f5f1">入口</text>
+  <line class="flow" x1="145" y1="112" x2="145" y2="140"/>
+  <polygon class="dia" points="145,142 195,175 145,208 95,175"/>
+  <text class="ui lab ink" x="145" y="180" text-anchor="middle">a%2==1 ?</text>
+  <line class="flow" x1="195" y1="175" x2="255" y2="175"/>
+  <text class="ui true" x="215" y="167" text-anchor="middle">真</text>
+  <rect class="box" x="257" y="159" width="88" height="32" rx="8"/>
+  <text class="mono code ink" x="301" y="180" text-anchor="middle">printf("奇")</text>
+  <line class="flow" x1="145" y1="208" x2="145" y2="262"/>
+  <text class="ui false" x="163" y="240">假</text>
+  <rect class="term" x="112" y="264" width="66" height="26" rx="13"/>
+  <text class="ui lab" x="145" y="281" text-anchor="middle" fill="#f6f5f1">出口</text>
+  <path class="flow" d="M 345 175 L 375 175 L 375 277 L 180 277"/>
+
+  <!-- ============ 双分支 if-else ============ -->
+  <text class="ui code muted" x="30" y="66"/>
+  <text class="ui code muted" x="420" y="66">双分支：二选一，必走一条</text>
+  <rect class="term" x="472" y="86" width="66" height="26" rx="13"/>
+  <text class="ui lab" x="505" y="103" text-anchor="middle" fill="#f6f5f1">入口</text>
+  <line class="flow" x1="505" y1="112" x2="505" y2="140"/>
+  <polygon class="dia" points="505,142 555,175 505,208 455,175"/>
+  <text class="ui lab ink" x="505" y="180" text-anchor="middle">a>b ?</text>
+  <line class="flow" x1="555" y1="175" x2="612" y2="175"/>
+  <text class="ui true" x="578" y="167" text-anchor="middle">真</text>
+  <rect class="box" x="614" y="159" width="112" height="32" rx="8"/>
+  <text class="mono code ink" x="670" y="180" text-anchor="middle">max = a;</text>
+  <line class="flow" x1="455" y1="175" x2="405" y2="175"/>
+  <text class="ui false" x="428" y="167" text-anchor="middle">假</text>
+  <rect class="box" x="300" y="159" width="103" height="32" rx="8"/>
+  <text class="mono code ink" x="351" y="180" text-anchor="middle">max = b;</text>
+  <path class="flow" d="M 351 191 L 351 277 L 472 277"/>
+  <path class="flow" d="M 670 191 L 670 277 L 540 277"/>
+  <rect class="term" x="472" y="264" width="66" height="26" rx="13"/>
+  <text class="ui lab" x="505" y="281" text-anchor="middle" fill="#f6f5f1">出口</text>
+
+  <!-- ============ 多分支 else-if ============ -->
+  <text class="ui code muted" x="30" y="322" font-weight="700">多分支 else-if 链：从上往下查，命中一条就跳过剩下全部——三条路不会走重。</text>
+</svg>

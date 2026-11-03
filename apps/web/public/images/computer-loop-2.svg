@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" width="760" height="340" role="img" aria-label="嵌套循环的行走路径：外层 i 走一步，内层 j 走完一圈">
+  <style>
+    .bg { fill: #f6f5f1; }
+    .box { fill: #ffffff; stroke: #e5e2d9; stroke-width: 1.5; }
+    .cell { fill: #e8f1ee; stroke: #cfe3dc; }
+    .hot { fill: #cde6de; stroke: #1d6b5c; stroke-width: 1.5; }
+    .rowpath { stroke: #b0563a; stroke-width: 2.5; fill: none; marker-end: url(#nloop); }
+    .step { stroke: #1d6b5c; stroke-width: 2; fill: none; marker-end: url(#nloop2); }
+    .ink { fill: #1b1b18; }
+    .muted { fill: #6d6a60; }
+    .accent { fill: #1d6b5c; }
+    .warn { fill: #b0563a; }
+    .ui { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .title { font-size: 16px; font-weight: 700; }
+    .code { font-size: 12.5px; }
+    .lab { font-size: 13px; }
+    .small { font-size: 11.5px; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1d1a; }
+      .box { fill: #232720; stroke: #3b413b; }
+      .cell { fill: #1c322c; stroke: #2f5147; }
+      .hot { fill: #1c322c; stroke: #7cc9b4; stroke-width: 1.5; }
+      .rowpath { stroke: #e0a283; }
+      .step { stroke: #7cc9b4; }
+      .ink { fill: #eae8e1; }
+      .muted { fill: #a3a095; }
+      .accent { fill: #7cc9b4; }
+      .warn { fill: #e0a283; }
+    }
+  </style>
+  <defs>
+    <marker id="nloop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b0563a"/>
+    </marker>
+    <marker id="nloop2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1d6b5c"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="760" height="340" rx="16"/>
+  <text class="ui title ink" x="30" y="34">九九乘法表：外层 i 走一步，内层 j 走完一圈</text>
+  <text class="mono code muted" x="30" y="54">for (i=1; i&lt;=4; i++)  {  for (j=1; j&lt;=i; j++) 打印 i*j;  换行;  }</text>
+
+  <!-- 行标签（外层） -->
+  <g>
+    <text class="mono code accent" x="30" y="106">i=1:</text>
+    <text class="mono code accent" x="30" y="146">i=2:</text>
+    <text class="mono code accent" x="30" y="186">i=3:</text>
+    <text class="mono code accent" x="30" y="226">i=4:</text>
+  </g>
+
+  <!-- 单元格：第 i 行 i 个格子 -->
+  <g>
+    <rect class="hot" x="90" y="88" width="80" height="30" rx="6"/>
+    <rect class="cell" x="90"  y="128" width="80" height="30" rx="6"/>
+    <rect class="cell" x="178" y="128" width="80" height="30" rx="6"/>
+    <rect class="cell" x="90"  y="168" width="80" height="30" rx="6"/>
+    <rect class="cell" x="178" y="168" width="80" height="30" rx="6"/>
+    <rect class="cell" x="266" y="168" width="80" height="30" rx="6"/>
+    <rect class="cell" x="90"  y="208" width="80" height="30" rx="6"/>
+    <rect class="cell" x="178" y="208" width="80" height="30" rx="6"/>
+    <rect class="cell" x="266" y="208" width="80" height="30" rx="6"/>
+    <rect class="cell" x="354" y="208" width="80" height="30" rx="6"/>
+  </g>
+  <g>
+    <text class="mono small ink" x="130" y="107" text-anchor="middle">1*1=1</text>
+    <text class="mono small ink" x="130" y="147" text-anchor="middle">1*2=2</text>
+    <text class="mono small ink" x="218" y="147" text-anchor="middle">2*2=4</text>
+    <text class="mono small ink" x="130" y="187" text-anchor="middle">1*3=3</text>
+    <text class="mono small ink" x="218" y="187" text-anchor="middle">2*3=6</text>
+    <text class="mono small ink" x="306" y="187" text-anchor="middle">3*3=9</text>
+    <text class="mono small ink" x="130" y="227" text-anchor="middle">1*4=4</text>
+    <text class="mono small ink" x="218" y="227" text-anchor="middle">2*4=8</text>
+    <text class="mono small ink" x="306" y="227" text-anchor="middle">3*4=12</text>
+    <text class="mono small ink" x="394" y="227" text-anchor="middle">4*4=16</text>
+  </g>
+
+  <!-- 第 3 行的行走路径（示例外层走到 i=3） -->
+  <path class="rowpath" d="M 92 183 L 470 183"/>
+  <g>
+    <line class="step" x1="132" y1="162" x2="132" y2="146"/>
+    <line class="step" x1="220" y1="162" x2="220" y2="146"/>
+    <line class="step" x1="308" y1="162" x2="308" y2="146"/>
+  </g>
+
+  <!-- 内层圈注释 -->
+  <text class="ui code warn" x="500" y="110" font-weight="700">内层一圈：j 从 1 走到 i</text>
+  <text class="ui small ink" x="500" y="132">第 3 行：j=1,2,3 共 3 个格子</text>
+  <text class="ui code accent" x="500" y="170" font-weight="700">外层一步：i 变 4 后</text>
+  <text class="ui small ink" x="500" y="192">内层 j 重新从 1 开始</text>
+  <text class="ui small ink" x="500" y="210">不是接着 4 往下走</text>
+
+  <text class="ui small ink" x="30" y="278" font-weight="700">总次数 = 各行格子数相加：1+2+3+4 = 10；到 i=9 时是 1+2+…+9 = 45。</text>
+  <text class="ui small ink" x="30" y="298">橙色箭头是第 3 行内层的行走方向；红色长箭头是外层「走一步」的方向。</text>
+  <text class="ui small ink" x="30" y="318">break 在内层只跳内层那一圈，外层照常走下一步。</text>
+</svg>

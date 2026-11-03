@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="340" viewBox="0 0 760 340" role="img" aria-label="可导与连续的分界：左图 y=|x| 连续但不可导，右图 y=x² 光滑可导">
+  <style>
+    .bg { fill: #ffffff; }
+    .txt { fill: #1b1b18; font-family: "Noto Sans SC", sans-serif; }
+    .axis { stroke: #1b1b18; stroke-width: 1.5; }
+    .curve { stroke: #1d6b5c; stroke-width: 2.5; fill: none; }
+    .ptF { fill: #a85a1f; }
+    .ptT { fill: #1d6b5c; }
+    .lbl { fill: #1b1b18; font-size: 14px; font-family: "Noto Sans SC", sans-serif; }
+    .lblT { fill: #1b1b18; font-size: 16px; font-weight: bold; font-family: "Noto Sans SC", sans-serif; }
+    .lblA { fill: #a85a1f; font-size: 13px; font-family: "Noto Sans SC", sans-serif; }
+    .lblG { fill: #1d6b5c; font-size: 13px; font-family: "Noto Sans SC", sans-serif; }
+    .slope { stroke: #a85a1f; stroke-width: 1.6; stroke-dasharray: 5 4; fill: none; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1d1a; }
+      .txt { fill: #eae8e1; }
+      .axis { stroke: #eae8e1; }
+      .curve { stroke: #7cc9b4; }
+      .ptF, .lblA { fill: #e0a56f; }
+      .ptT, .lblG { fill: #7cc9b4; }
+      .lbl, .lblT { fill: #eae8e1; }
+      .slope { stroke: #e0a56f; }
+    }
+  </style>
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="ptT" stroke="none"/>
+    </marker>
+  </defs>
+  <rect width="760" height="340" class="bg"/>
+  <text x="190" y="28" text-anchor="middle" class="lblT">y = |x|：连续但不可导</text>
+  <text x="570" y="28" text-anchor="middle" class="lblT">y = x²：光滑可导</text>
+
+  <!-- ===== left panel: |x|, x[-2.2,2.2] px 40..330, f=0 at py 262.9 ===== -->
+  <line class="axis" x1="40" y1="262.9" x2="340" y2="262.9" marker-end="url(#arr2)"/>
+  <line class="axis" x1="185" y1="315" x2="185" y2="45" marker-end="url(#arr2)"/>
+  <text x="348" y="268" class="lbl">x</text>
+  <text x="172" y="42" class="lbl">y</text>
+  <!-- slopes at 0: left -1, right +1 (short dashed guide rays) -->
+  <line class="slope" x1="150" y1="228" x2="185" y2="262.9"/>
+  <line class="slope" x1="185" y1="262.9" x2="220" y2="228"/>
+  <!-- |x| polyline, x=-2..2 step 0.25 (17 real points) -->
+  <polyline class="curve" points="53.2,77.1 69.7,100.4 86.1,123.6 102.6,146.8 119.1,170 135.6,193.2 152,216.4 168.5,239.6 185,262.9 201.5,239.6 218,216.4 234.4,193.2 250.9,170 267.4,146.8 283.9,123.6 300.3,100.4 316.8,77.1"/>
+  <circle class="ptF" cx="185" cy="262.9" r="5.5"/>
+  <text x="196" y="288" class="lblA">左斜率 −1，右斜率 +1</text>
+  <text x="196" y="308" class="lblA">不相等 ⇒ f′(0) 不存在</text>
+  <text x="60" y="90" class="lblG">曲线连续，但有“尖角”</text>
+
+  <!-- ===== right panel: x², x[-2.2,2.2] px 430..720, f=0 at py 279.2 ===== -->
+  <line class="axis" x1="430" y1="279.2" x2="730" y2="279.2" marker-end="url(#arr2)"/>
+  <line class="axis" x1="575" y1="315" x2="575" y2="45" marker-end="url(#arr2)"/>
+  <text x="738" y="284" class="lbl">x</text>
+  <text x="562" y="42" class="lbl">y</text>
+  <!-- x² polyline, x=-2..2 step 0.25 (17 real points) -->
+  <polyline class="curve" points="443.2,71.2 459.7,119.9 476.1,162.2 492.6,198 509.1,227.2 525.6,249.9 542,266.2 558.5,275.9 575,279.2 591.5,275.9 608,266.2 624.4,249.9 640.9,227.2 657.4,198 673.9,162.2 690.3,119.9 706.8,71.2"/>
+  <circle class="ptT" cx="575" cy="279.2" r="5.5"/>
+  <text x="586" y="300" class="lblG">左右斜率都是 0</text>
+  <text x="586" y="318" class="lblG">⇒ f′(0) = 0，切线水平</text>
+  <text x="450" y="95" class="lblG">处处光滑，没有尖角</text>
+
+  <text x="380" y="336" text-anchor="middle" class="lbl">连续只是“不断”，可导还要求“不折”——尖角处左右斜率对不上</text>
+</svg>
