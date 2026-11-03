@@ -145,6 +145,7 @@ export interface AgentEvent {
 export interface PageSummary {
   id: string;
   subject_id: string | null;
+  lesson_key?: string | null;
   title: string;
   summary: string | null;
   outline_codes: string[];

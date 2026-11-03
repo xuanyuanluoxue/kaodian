@@ -168,7 +168,7 @@ p { margin: 0; }
 .shell {
   flex: 1;
   width: 100%;
-  max-width: 1180px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 36px 24px 72px;
 }
@@ -1537,4 +1537,164 @@ kbd {
   .xp-pill { margin-left: 0; }
   .path-card { min-width: 0; width: 100%; }
   .path-page .console-rail { grid-template-columns: 1fr; }
+}
+
+
+/* ---------- 阅读页：左侧练习终端 ---------- */
+
+.console-page.reading {
+  grid-template-columns: 340px minmax(0, 1fr) 260px;
+  max-width: 1580px;
+  gap: 24px;
+}
+
+.console-page.reading .lesson { padding: 30px 34px; }
+.console-page.reading .prose { max-width: 920px; }
+
+.lesson-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.lesson-toolbar .back-link { margin-bottom: 0; }
+
+.lesson-select {
+  max-width: 62%;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.code-panel {
+  position: sticky;
+  top: 84px;
+  height: calc(100vh - 108px);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.code-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.code-head b { font-size: 14px; }
+
+.run-state {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+}
+
+.run-state.ok { color: var(--ok); border-color: var(--ok-line); background: var(--ok-soft); }
+.run-state.error { color: var(--danger); border-color: var(--danger-line); background: var(--danger-soft); }
+.run-state.running { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+
+.code-disabled {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--warn);
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.code-editor,
+.stdin-box textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--code-bg);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 4;
+}
+
+.code-editor { flex: 1; min-height: 170px; resize: none; }
+.code-editor:focus,
+.stdin-box textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+.stdin-box summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+.stdin-box textarea { height: 62px; margin-top: 6px; resize: vertical; font-size: 12.5px; }
+
+.code-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.code-run, .code-reset { padding: 6px 12px; font-size: 13px; }
+
+.code-output {
+  flex: 0 0 auto;
+  height: 190px;
+  background: #14171a;
+  border: 1px solid #2a2f33;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.out-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #1c2125;
+  color: #9aa3a8;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.code-output pre {
+  flex: 1;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  color: #d7e0dd;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1400px) {
+  .console-page.reading { grid-template-columns: 320px minmax(0, 1fr); }
+  .console-page.reading .console-rail { display: none; }
+}
+
+@media (max-width: 1080px) {
+  .console-page.reading { grid-template-columns: 1fr; }
+  .console-page.reading .code-panel {
+    grid-column: 1 / -1;
+    order: -1;
+    position: static;
+    height: 440px;
+  }
+  .console-page.reading .console-main { grid-column: 1; }
+}
+
+@media (max-width: 860px) {
+  .console-page.reading { display: block; }
+  .console-page.reading .code-panel { height: 430px; margin-bottom: 16px; }
+  .lesson-select { max-width: 100%; }
+  .lesson-toolbar { flex-wrap: wrap; }
 }

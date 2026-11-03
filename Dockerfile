@@ -13,6 +13,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     KAODIAN_DB=/data/kaodian.db
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libc6-dev bubblewrap \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY apps/api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 

@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 import os
 import random
+import shutil
 import sqlite3
+import subprocess
+import tempfile
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -114,6 +117,11 @@ class GradeIn(BaseModel):
     score: float = Field(ge=0)
     feedback: str = ""
     correct: bool | None = None
+
+
+class CodeRunIn(BaseModel):
+    code: str = Field(min_length=1, max_length=20000)
+    stdin: str = Field(default="", max_length=10000)
 
 
 class PageIn(BaseModel):
@@ -1055,6 +1063,90 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             eid = add_agent_event(c, row["agent_session_id"], "help", "user", body.body,
                                   body.question_id or body.attempt_id)
         return {"id": eid}
+
+
+    # -------- 代码练习（gcc + bubblewrap 沙箱，默认关闭）
+
+    def code_run_enabled() -> bool:
+        return os.environ.get("KAODIAN_ALLOW_CODE_RUN") == "1"
+
+    @app.get("/api/code/status")
+    def code_status():
+        return {
+            "enabled": code_run_enabled(),
+            "compiler": "gcc",
+            "sandbox": "bubblewrap",
+            "network": False,
+        }
+
+    @app.post("/api/code/run")
+    def run_code(body: CodeRunIn):
+        if not code_run_enabled():
+            raise HTTPException(403, "代码运行未启用；启动时设置 KAODIAN_ALLOW_CODE_RUN=1")
+        if not shutil.which("gcc") or not shutil.which("bwrap"):
+            raise HTTPException(503, "服务器缺少 gcc 或 bubblewrap")
+
+        work = Path(tempfile.mkdtemp(prefix="kaodian-run-", dir="/tmp/opencode"))
+        try:
+            (work / "main.c").write_text(body.code, encoding="utf-8")
+            bwrap = [
+                "bwrap",
+                "--ro-bind", "/usr", "/usr",
+                "--ro-bind-try", "/lib", "/lib",
+                "--ro-bind-try", "/lib64", "/lib64",
+                "--ro-bind-try", "/etc/ld.so.cache", "/etc/ld.so.cache",
+                "--dev", "/dev",
+                "--proc", "/proc",
+                "--tmpfs", "/tmp",
+                "--bind", str(work), "/work",
+                "--unshare-net",
+                "--unshare-pid",
+                "--die-with-parent",
+                "--new-session",
+                "--chdir", "/work",
+            ]
+            started = __import__("time").monotonic()
+            try:
+                compile_proc = subprocess.run(
+                    [*bwrap, "gcc", "main.c", "-o", "main", "-std=c11", "-O0"],
+                    capture_output=True, text=True, timeout=20,
+                )
+            except subprocess.TimeoutExpired:
+                return {"ok": False, "stage": "compile", "output": "编译超时（20 秒）", "exit_code": None}
+
+            compile_output = (compile_proc.stdout + compile_proc.stderr)[-8000:]
+            if compile_proc.returncode != 0:
+                return {
+                    "ok": False, "stage": "compile", "output": compile_output,
+                    "exit_code": compile_proc.returncode,
+                }
+
+            try:
+                run_proc = subprocess.run(
+                    [*bwrap, "bash", "-c", "ulimit -v 262144 -u 64 -t 3 -f 1024 2>/dev/null; exec ./main"],
+                    input=body.stdin, capture_output=True, text=True, timeout=6,
+                )
+            except subprocess.TimeoutExpired:
+                return {
+                    "ok": False, "stage": "run", "output": "运行超时（3 秒 CPU / 6 秒墙钟），检查是否有死循环。",
+                    "exit_code": None,
+                }
+
+            output = run_proc.stdout + run_proc.stderr
+            if run_proc.returncode in (124, 137) or run_proc.returncode < 0:
+                output += "\n[进程被终止：可能是死循环、CPU 超时或内存超限]"
+            output = output[:65536]
+            duration = int((__import__("time").monotonic() - started) * 1000)
+            return {
+                "ok": run_proc.returncode == 0,
+                "stage": "run",
+                "output": output,
+                "exit_code": run_proc.returncode,
+                "compile_output": compile_output,
+                "duration_ms": duration,
+            }
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
 
     # -------- static (production build)
 

@@ -37,6 +37,7 @@
 | Agent 协作 | 会话、事件流、答题页提示条、卡住求助、交卷自动回传 |
 | 控制台 | 多邻国式学习路径：节点、连续天数、每日目标、XP；Agent 写入的 Markdown 讲义（含 Mermaid 流程图/时序图）；一键配套练习 |
 | 可视化 | `/visuals/hello-anatomy.html` 代码解剖台；`/visuals/c-basics.html` 程序生命周期、变量盒子、整数除法 |
+| 代码练习 | 讲义左侧 gcc 编辑器 + 终端，Ctrl+Enter 运行；bubblewrap 断网沙箱，默认关闭 |
 | 大纲 | 4 科 / 161 条考点 / 1236 h，从 Markdown 生成 JSON |
 | 题库 | 24 道示例题；AI 生成先入库待审，审查通过才上架 |
 | 评分 | 客观题自动判；主观题交卷后由 Agent 读库评分并写回 |
@@ -53,6 +54,7 @@
 - `/` 今天：今日时长、到期复习、四科入口
 - `/console` 学习路径：节点式课程、连续天数、每日目标进度环；点节点进入阅读
 - `/console?page=…` 阅读页：Markdown 讲义 + 「完成本课 +10 XP」+「练这一课」
+- 阅读页左侧：练习终端（gcc 编译、终端输出、标准输入、每课示例）
 - `/visuals/hello-anatomy.html` hello.c 解剖台：点代码、拨开关、看编译/运行结果
 - `/visuals/c-basics.html` C 基础实验室：三个可动手的小实验
 - `/build` 组卷：左侧选范围，右侧看可用题数与时限
@@ -155,6 +157,7 @@ cd apps/api && ../../.venv/bin/uvicorn app.main:app --port 8000
 |---|---|---|
 | `KAODIAN_DB` | `data/kaodian.db` | SQLite 路径 |
 | `KAODIAN_DAILY_GOAL_MINUTES` | `30` | 每日目标分钟数 |
+| `KAODIAN_ALLOW_CODE_RUN` | `0` | 设为 `1` 才启用代码练习终端 |
 
 ## AI 出题接口
 
@@ -309,6 +312,8 @@ Agent:
 | POST | `/api/agent/help` | 网页求助 |
 | GET | `/api/grading/queue` | 主观题待评分队列 |
 | POST | `/api/grading/{attempt_id}/{question_id}` | 写入主观题分数与评语 |
+| GET | `/api/code/status` | 代码运行是否启用 |
+| POST | `/api/code/run` | 编译并运行一段 C（沙箱） |
 
 ## 大纲配置
 
@@ -345,6 +350,20 @@ make build         # 前端构建
 make dev-api       # 后端热重载
 make dev-web       # 前端开发服务器
 ```
+
+## 代码练习（可选）
+
+讲义左侧的练习终端需要显式开启：
+
+```bash
+KAODIAN_ALLOW_CODE_RUN=1 \
+  uvicorn app.main:app --app-dir apps/api --port 8010
+```
+
+- 用 `gcc -std=c11` 真编译，不是模拟器
+- 用 `bubblewrap` 隔离：断网、只读系统、独立临时目录
+- `ulimit` 限制 CPU 3 秒、内存 256 MB、进程数 64，输出截断到 64 KB
+- 默认**关闭**。不要把启用后的实例暴露到公网；Docker 部署请确认容器的用户命名空间允许 `bwrap`
 
 ## 数据与隐私
 

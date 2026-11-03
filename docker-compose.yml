@@ -3,9 +3,10 @@ services:
     build: .
     image: kaodian:latest
     ports:
-      - "8010:8000"
+      - "127.0.0.1:8010:8000"
     volumes:
       - ./data:/data
     environment:
       KAODIAN_DB: /data/kaodian.db
+      KAODIAN_ALLOW_CODE_RUN: "0"
     restart: unless-stopped

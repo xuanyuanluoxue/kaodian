@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import sqlite3
 
 import pytest
@@ -266,3 +267,24 @@ def test_help_requires_agent_session(client):
         json={"attempt_id": attempt["id"], "question_id": q["id"], "body": "卡住了"},
     )
     assert res.status_code == 409
+
+
+def test_code_run_disabled_by_default(client, monkeypatch):
+    monkeypatch.delenv("KAODIAN_ALLOW_CODE_RUN", raising=False)
+    assert client.get("/api/code/status").json()["enabled"] is False
+    res = client.post("/api/code/run", json={"code": "int main(){return 0;}"})
+    assert res.status_code == 403
+
+
+def test_code_run_in_sandbox(client, monkeypatch):
+    if not shutil.which("gcc") or not shutil.which("bwrap"):
+        pytest.skip("需要 gcc 和 bubblewrap")
+    monkeypatch.setenv("KAODIAN_ALLOW_CODE_RUN", "1")
+    res = client.post(
+        "/api/code/run",
+        json={"code": '#include <stdio.h>\nint main(){printf("hi\\n");return 0;}', "stdin": ""},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["ok"] is True
+    assert "hi" in data["output"]

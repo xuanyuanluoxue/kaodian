@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api";
 import { Markdown } from "../components/Markdown";
+import { CodeTerminal } from "../components/CodeTerminal";
 import type { LibraryStats, PageDetail, PageSummary, Progress, QuizSummary, Subject } from "../types";
 
 const KIND_LABEL: Record<string, string> = {
@@ -264,34 +265,30 @@ export function Console() {
   /* ---------------- 阅读 ---------------- */
 
   return (
-    <div className="console-page">
-      <aside className="console-side">
-        <Link to="/console" className="back-link">
-          ← 学习路径
-        </Link>
-        <div className="console-side-head">
-          <h1>课程</h1>
-          <span className="muted small">{lessons.length} 节</span>
-        </div>
-        <div className="console-list">
-          {lessons.map((item) => (
-            <button
-              key={item.id}
-              className={`console-item ${page?.id === item.id ? "on" : ""}`}
-              onClick={() => setParams({ page: item.id })}
-            >
-              <span className={`kind-badge kind-${item.kind}`}>{KIND_LABEL[item.kind] || item.kind}</span>
-              <b>{item.title}</b>
-              <span className="muted small">
-                {item.outline_codes.join(" · ")} · {dateLabel(item.created_at)}
-                {item.completed ? " · ✓" : ""}
-              </span>
-            </button>
-          ))}
-        </div>
-      </aside>
+    <div className="console-page reading">
+      {page && (
+        <CodeTerminal key={page.lesson_key || page.id} lessonKey={page.lesson_key || "L01"} />
+      )}
 
       <main className="console-main">
+        <div className="lesson-toolbar">
+          <Link to="/console" className="back-link">
+            ← 学习路径
+          </Link>
+          <select
+            className="lesson-select"
+            value={page?.id || ""}
+            onChange={(e) => setParams({ page: e.target.value })}
+            aria-label="切换课程"
+          >
+            {lessons.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.title}
+                {item.completed ? " ✓" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
         {error && <div className="alert">{error}</div>}
         {page ? (
           <article className="lesson">
