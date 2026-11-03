@@ -1237,6 +1237,31 @@ kbd {
   white-space: pre;
 }
 
+.mermaid-block {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow-x: auto;
+  text-align: center;
+}
+
+.mermaid-block svg { max-width: 100%; height: auto; }
+
+.mermaid-fallback {
+  text-align: left;
+  margin: 0;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
 .prose table {
   width: 100%;
   border-collapse: collapse;

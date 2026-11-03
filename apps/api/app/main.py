@@ -346,6 +346,18 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def cache_policy(request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path.startswith("/assets/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     def conn() -> sqlite3.Connection:
         c = database.connect(app.state.db_file)
         c.execute("PRAGMA foreign_keys = ON")
