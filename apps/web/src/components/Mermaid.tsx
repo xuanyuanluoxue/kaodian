@@ -34,9 +34,11 @@ export function Mermaid({ chart }: { chart: string }) {
           startOnLoad: false,
           securityLevel: "strict",
           theme: theme === "dark" ? "dark" : "default",
+          // Mermaid 12：htmlLabels 必须放根级，放 flowchart 里会被忽略
+          htmlLabels: false,
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif',
-          flowchart: { useMaxWidth: true, htmlLabels: false },
+          flowchart: { useMaxWidth: true, wrappingWidth: 300, htmlLabels: false },
         });
         const id = `mmd-${uid}-${theme}-${Math.random().toString(36).slice(2, 7)}`;
         return mermaid.render(id, chart).then(({ svg }) => {
