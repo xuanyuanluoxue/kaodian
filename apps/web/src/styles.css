@@ -1012,6 +1012,19 @@ kbd {
   color: var(--muted);
 }
 
+/* 未知科目：链接里 subject 参数不合法（如复制时带上中文括号） */
+.subject-error {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  padding: 40px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+
+.subject-error-title { color: var(--danger); font-weight: 700; }
+
 [data-theme="dark"] .dot-computer { background: #6fc3aa; }
 [data-theme="dark"] .dot-math { background: #7ea9d6; }
 [data-theme="dark"] .dot-english { background: #d6ae6a; }

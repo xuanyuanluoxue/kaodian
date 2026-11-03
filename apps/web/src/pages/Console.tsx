@@ -131,6 +131,7 @@ export function Console() {
   const [library, setLibrary] = useState<LibraryStats | null>(null);
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectsLoaded, setSubjectsLoaded] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -148,6 +149,7 @@ export function Console() {
         setQuizzes(q);
         setSubjects(subs);
         setLibrary(lib);
+        setSubjectsLoaded(true);
       })
       .catch((e) => setError(String(e)));
   }, []);
@@ -181,6 +183,10 @@ export function Console() {
   );
   const subject = useMemo(() => subjects.find((s) => s.id === page?.subject_id), [subjects, page]);
   const pathSubject = subjects.find((s) => s.id === subjectId);
+  // subjects 加载完成前不判定“未知科目”，避免加载中被误报
+  const unknownSubject =
+    subjectsLoaded && subjects.length > 0 && !subjects.some((s) => s.id === subjectId);
+  const computerLabel = subjects.find((s) => s.id === "computer")?.short || "计算机";
 
   async function practice(target?: PageDetail | PageSummary) {
     const p = target || page;
@@ -225,6 +231,41 @@ export function Console() {
   /* ---------------- 学习路径 ---------------- */
 
   if (!reading) {
+    if (unknownSubject) {
+      return (
+        <div className="path-page">
+          <main className="path-main">
+            <div className="subject-tabs" role="tablist" aria-label="选择科目">
+              {subjects.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={s.id === subjectId}
+                  className={`subject-tab ${s.id === subjectId ? "active" : ""}`}
+                  onClick={() => setParams({ subject: s.id })}
+                >
+                  {s.short || s.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="subject-error">
+              <p className="subject-error-title">没有这个科目：{subjectId}</p>
+              <p>链接可能复制时带上了多余的中文或括号。</p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setParams({ subject: "computer" })}
+              >
+                回到 {computerLabel} 路径
+              </button>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
     return (
       <div className="path-page">
         <main className="path-main">
