@@ -9,7 +9,7 @@ const MERMAID_BLOCK = /```mermaid[ \t]*\n([\s\S]*?)```/g;
 const components: Components = {
   img: ({ src, alt, title }) => (
     <span className="md-figure">
-      <img src={typeof src === "string" ? src : undefined} alt={alt ?? ""} title={title} loading="lazy" />
+      <img src={typeof src === "string" ? src : undefined} alt={alt ?? ""} title={title} />
       {alt ? <span className="md-caption">{alt}</span> : null}
     </span>
   ),

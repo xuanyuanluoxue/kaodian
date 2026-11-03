@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" width="760" height="340" role="img" aria-label="图 2：函数 y 等于 |x| 除以 x 的图像，x 大于 0 时 y 恒为 1，x 小于 0 时 y 恒为 -1，x 等于 0 无定义；左极限 -1、右极限 1，左右极限都存在但不相等，所以极限不存在">
+  <style>
+    .bg { fill: #ffffff; }
+    .ink { fill: #1b1b18; }
+    .muted { fill: #6d6a60; }
+    .axis { stroke: #55534a; stroke-width: 1.6; }
+    .tick { stroke: #55534a; stroke-width: 1.6; }
+    .curve { stroke: #1d6b5c; stroke-width: 3.5; stroke-linecap: round; }
+    .hollow { fill: #ffffff; stroke: #1d6b5c; stroke-width: 2.6; }
+    .head { fill: #55534a; }
+    .headA { fill: #1d6b5c; }
+    .ui { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .title { font-size: 17px; font-weight: 700; }
+    .sub { font-size: 12px; }
+    .lbl { font-size: 13px; }
+    .lblA { fill: #1d6b5c; font-size: 13px; }
+    .val { fill: #1b1b18; font-size: 14px; font-weight: 700; }
+    .num { font-size: 12.5px; }
+    .cap { font-size: 12.5px; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1d1a; }
+      .ink { fill: #eae8e1; }
+      .muted { fill: #a3a095; }
+      .axis { stroke: #b8b5aa; }
+      .tick { stroke: #b8b5aa; }
+      .curve { stroke: #7cc9b4; }
+      .hollow { fill: #1a1d1a; stroke: #7cc9b4; }
+      .head { fill: #b8b5aa; }
+      .headA { fill: #7cc9b4; }
+      .lblA { fill: #7cc9b4; }
+      .val { fill: #eae8e1; }
+    }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L10 5 L0 10 Z" class="head"/>
+    </marker>
+    <marker id="ahA" viewBox="0 0 10 10" markerWidth="11" markerHeight="11" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L10 5 L0 10 Z" class="headA"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="760" height="340" rx="16"/>
+  <text class="ui title ink" x="36" y="36">y = |x| / x：左右极限不相等</text>
+  <text class="ui sub muted" x="36" y="58">x &gt; 0 时 y = 1；x &lt; 0 时 y = -1；x = 0 无定义</text>
+
+  <!-- 坐标系 -->
+  <line class="axis" x1="85" y1="185" x2="710" y2="185" marker-end="url(#ah)"/>
+  <text class="ui num ink" x="718" y="190">x</text>
+  <line class="axis" x1="380" y1="302" x2="380" y2="84" marker-end="url(#ah)"/>
+  <text class="ui num ink" x="392" y="88">y</text>
+  <line class="tick" x1="110" y1="181" x2="110" y2="189"/>
+  <line class="tick" x1="200" y1="181" x2="200" y2="189"/>
+  <line class="tick" x1="290" y1="181" x2="290" y2="189"/>
+  <line class="tick" x1="470" y1="181" x2="470" y2="189"/>
+  <line class="tick" x1="560" y1="181" x2="560" y2="189"/>
+  <line class="tick" x1="650" y1="181" x2="650" y2="189"/>
+  <text class="ui num ink" x="110" y="207" text-anchor="middle">-3</text>
+  <text class="ui num ink" x="200" y="207" text-anchor="middle">-2</text>
+  <text class="ui num ink" x="290" y="207" text-anchor="middle">-1</text>
+  <text class="ui num ink" x="367" y="207" text-anchor="middle">0</text>
+  <text class="ui num ink" x="470" y="207" text-anchor="middle">1</text>
+  <text class="ui num ink" x="560" y="207" text-anchor="middle">2</text>
+  <text class="ui num ink" x="650" y="207" text-anchor="middle">3</text>
+  <line class="tick" x1="376" y1="115" x2="384" y2="115"/>
+  <line class="tick" x1="376" y1="255" x2="384" y2="255"/>
+  <text class="ui num ink" x="370" y="119" text-anchor="end">1</text>
+  <text class="ui num ink" x="370" y="259" text-anchor="end">-1</text>
+
+  <!-- 两支：右支 y=1，左支 y=-1，箭头指向 x=0 的趋近方向 -->
+  <line class="curve" x1="645" y1="115" x2="395" y2="115" marker-end="url(#ahA)"/>
+  <line class="curve" x1="115" y1="255" x2="365" y2="255" marker-end="url(#ahA)"/>
+  <circle class="hollow" cx="380" cy="115" r="6.5"/>
+  <circle class="hollow" cx="380" cy="255" r="6.5"/>
+
+  <!-- 标注 -->
+  <text class="ui val" x="415" y="97">右极限 = 1</text>
+  <text class="ui lblA" x="415" y="141">x → 0<tspan dy="-5" font-size="10">+</tspan></text>
+  <text class="ui lblA" x="330" y="231" text-anchor="end">x → 0<tspan dy="-5" font-size="10">-</tspan></text>
+  <text class="ui val" x="330" y="281" text-anchor="end">左极限 = -1</text>
+  <text class="ui num muted" x="640" y="109" text-anchor="end">y = 1</text>
+  <text class="ui num muted" x="120" y="271">y = -1</text>
+
+  <text class="ui cap muted" x="380" y="326" text-anchor="middle">图 2：左右极限存在但不相等，极限不存在</text>
+</svg>
