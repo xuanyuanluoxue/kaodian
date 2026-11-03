@@ -91,6 +91,12 @@ class SubmitIn(BaseModel):
     answers: list[AnswerIn] = Field(default_factory=list)
 
 
+class ActivityIn(BaseModel):
+    page_id: str | None = None
+    seconds: int = Field(ge=1, le=600)
+    source: Literal["page", "code"] = "page"
+
+
 class AgentSessionIn(BaseModel):
     title: str = Field(default="未命名会话", max_length=100)
 
@@ -808,14 +814,45 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             return [{**row_to_question(r), "due_date": r["due_date"], "mastery": r["mastery"],
                      "interval_days": r["interval_days"]} for r in c.execute(sql, args)]
 
+    def today_seconds(c: sqlite3.Connection) -> int:
+        """今日总投入 = 所有作答（含进行中）的 active_seconds + 阅读/终端 study_time。"""
+        row = c.execute(
+            """SELECT
+                 (SELECT COALESCE(SUM(active_seconds),0) FROM attempt
+                   WHERE date(started_at) = date('now','localtime'))
+               + (SELECT COALESCE(SUM(seconds),0) FROM study_time
+                   WHERE day = date('now','localtime')) AS n"""
+        ).fetchone()
+        return int(row["n"] or 0)
+
+    @app.post("/api/activity")
+    def record_activity(body: ActivityIn):
+        """阅读 / 代码终端的计时增量。前端每 15 秒（或离开页面时）上报一次。"""
+        with conn() as c:
+            c.execute(
+                """INSERT INTO study_time(day, source, ref, seconds, updated_at)
+                   VALUES (date('now','localtime'), ?, ?, ?, ?)
+                   ON CONFLICT(day, source, ref) DO UPDATE SET
+                     seconds = seconds + excluded.seconds,
+                     updated_at = excluded.updated_at""",
+                (body.source, body.page_id or "", body.seconds, database.now_iso()),
+            )
+            total = today_seconds(c)
+        return {"ok": True, "today_seconds": total}
+
     @app.get("/api/stats/today")
     def stats_today():
         with conn() as c:
             row = c.execute(
                 """SELECT COALESCE(SUM(active_seconds),0) AS seconds,
-                          COUNT(*) AS attempts, COALESCE(SUM(score),0) AS score,
-                          COALESCE(SUM(max_score),0) AS max_score
-                   FROM attempt WHERE date(started_at) = date('now','localtime') AND status='submitted'"""
+                          COUNT(*) AS attempts,
+                          COALESCE(SUM(CASE WHEN status='submitted' THEN score ELSE 0 END),0) AS score,
+                          COALESCE(SUM(CASE WHEN status='submitted' THEN max_score ELSE 0 END),0) AS max_score
+                   FROM attempt WHERE date(started_at) = date('now','localtime')"""
+            ).fetchone()
+            reading = c.execute(
+                """SELECT COALESCE(SUM(seconds),0) AS seconds FROM study_time
+                   WHERE day = date('now','localtime')"""
             ).fetchone()
             answered = c.execute(
                 """SELECT COUNT(*) AS n, SUM(CASE WHEN a.correct=1 THEN 1 ELSE 0 END) AS ok
@@ -831,7 +868,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             ).fetchall()
         return {
             "date": date.today().isoformat(),
-            "active_seconds": row["seconds"],
+            "active_seconds": row["seconds"] + reading["seconds"],
             "attempts": row["attempts"],
             "score": row["score"],
             "max_score": row["max_score"],
@@ -1042,13 +1079,21 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         with conn() as c:
             attempts = {r["d"]: r["seconds"] for r in c.execute(
                 """SELECT date(started_at) AS d, COALESCE(SUM(active_seconds), 0) AS seconds
-                   FROM attempt WHERE status = 'submitted' GROUP BY date(started_at)"""
+                   FROM attempt GROUP BY date(started_at)"""
             )}
+            reading = {r["d"]: r["seconds"] for r in c.execute(
+                """SELECT day AS d, COALESCE(SUM(seconds), 0) AS seconds
+                   FROM study_time GROUP BY day"""
+            )}
+            seconds_by_day = {
+                d: attempts.get(d, 0) + reading.get(d, 0)
+                for d in set(attempts) | set(reading)
+            }
             completed = [r["d"] for r in c.execute(
                 "SELECT date(completed_at) AS d FROM page_progress"
             )]
-            active = set(attempts) | set(completed)
-            today_minutes = round(attempts.get(today.isoformat(), 0) / 60)
+            active = set(seconds_by_day) | set(completed)
+            today_minutes = round(seconds_by_day.get(today.isoformat(), 0) / 60)
             goal = int(os.environ.get("KAODIAN_DAILY_GOAL_MINUTES", "30"))
 
             cursor = today
@@ -1062,7 +1107,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             days = []
             for offset in range(6, -1, -1):
                 d = today - timedelta(days=offset)
-                minutes = round(attempts.get(d.isoformat(), 0) / 60)
+                minutes = round(seconds_by_day.get(d.isoformat(), 0) / 60)
                 done = bool(minutes) or d.isoformat() in completed
                 days.append({"date": d.isoformat(), "minutes": minutes, "done": done})
 

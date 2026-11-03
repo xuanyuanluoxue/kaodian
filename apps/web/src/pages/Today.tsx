@@ -18,13 +18,34 @@ export function Today() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([api.today(), api.subjects(), api.due()])
-      .then(([s, subs, d]) => {
-        setStats(s);
+    Promise.all([api.subjects(), api.due()])
+      .then(([subs, d]) => {
         setSubjects(subs);
         setDue(d);
       })
       .catch((e) => setError(String(e)));
+  }, []);
+
+  // 今日统计：20 秒轮询 + 回到前台立刻刷新（阅读和答题都可能在其他页面产生时间）
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      api
+        .today()
+        .then((s) => alive && setStats(s))
+        .catch((e) => alive && setError(String(e)));
+    };
+    load();
+    const timer = setInterval(load, 20_000);
+    const onVisibility = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   async function startReview() {
@@ -62,7 +83,7 @@ export function Today() {
         </div>
         <div className="hero-stats">
           <div className="stat">
-            <b>{formatDuration(stats?.active_seconds ?? 0)}</b>
+            <b>{stats?.active_seconds ? formatDuration(stats.active_seconds) : "0 分钟"}</b>
             <span>今日投入</span>
           </div>
           <div className="stat">

@@ -269,6 +269,38 @@ def test_help_requires_agent_session(client):
     assert res.status_code == 409
 
 
+def test_study_time_counts(client):
+    res = client.post("/api/activity", json={"page_id": "p_lesson", "seconds": 120, "source": "page"})
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+    assert res.json()["today_seconds"] >= 120
+
+    stats = client.get("/api/stats/today").json()
+    assert stats["active_seconds"] >= 120
+
+    progress = client.get("/api/progress").json()
+    assert progress["today_minutes"] >= 2
+    assert progress["today_done"] is True
+
+
+def test_active_attempt_counts_in_stats(client):
+    quiz = client.post(
+        "/api/quizzes",
+        json={
+            "mode": "practice",
+            "count": 1,
+            "filters": {"subject_id": "computer", "types": ["single"]},
+        },
+    ).json()
+    attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
+    client.patch(f"/api/attempts/{attempt['id']}", json={"active_seconds": 60})
+
+    # 还没交卷，但进行中的作答时间也要算进今日投入
+    stats = client.get("/api/stats/today").json()
+    assert stats["active_seconds"] >= 60
+    assert stats["attempts"] >= 1
+
+
 def test_code_run_disabled_by_default(client, monkeypatch):
     monkeypatch.delenv("KAODIAN_ALLOW_CODE_RUN", raising=False)
     assert client.get("/api/code/status").json()["enabled"] is False

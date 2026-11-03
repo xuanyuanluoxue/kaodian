@@ -162,3 +162,14 @@ CREATE TABLE IF NOT EXISTS page_progress (
     completed_at TEXT NOT NULL,
     xp           INTEGER NOT NULL DEFAULT 10
 );
+
+
+-- 阅读/代码终端的投入时间。按天 + 来源 + 对象累加，和 attempt.active_seconds 分开记。
+CREATE TABLE IF NOT EXISTS study_time (
+    day        TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    ref        TEXT NOT NULL DEFAULT '',
+    seconds    INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (day, source, ref)
+);
