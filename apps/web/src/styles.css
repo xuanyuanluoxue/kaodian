@@ -1349,6 +1349,36 @@ kbd {
 
 .path-main { min-width: 0; }
 
+/* 学科切换 chips */
+.subject-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.subject-tab {
+  padding: 7px 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.subject-tab:hover { border-color: var(--accent); color: var(--ink); }
+
+.subject-tab.active {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
 .path-head {
   display: flex;
   align-items: flex-end;
@@ -1572,6 +1602,11 @@ kbd {
 .console-page.reading .lesson { padding: 30px 34px; }
 .console-page.reading .prose { max-width: 920px; }
 
+/* 无终端科目（高数/英语/政治）：讲义区占满第一栏，右栏为进度 */
+.console-page.reading.no-code {
+  grid-template-columns: minmax(0, 1fr) 260px;
+}
+
 .lesson-toolbar {
   display: flex;
   align-items: center;
@@ -1734,6 +1769,7 @@ kbd {
 @media (max-width: 1400px) {
   .console-page.reading { grid-template-columns: 320px minmax(0, 1fr); }
   .console-page.reading .console-rail { display: none; }
+  .console-page.reading.no-code { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 1080px) {
@@ -1745,6 +1781,7 @@ kbd {
     height: 440px;
   }
   .console-page.reading .console-main { grid-column: 1; }
+  .console-page.reading.no-code { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 860px) {

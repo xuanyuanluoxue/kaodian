@@ -136,6 +136,7 @@ export function Console() {
   const [completing, setCompleting] = useState(false);
 
   const selectedId = params.get("page");
+  const subjectId = params.get("subject") || "computer";
   const reading = !!selectedId;
   useReadingTimer(selectedId);
 
@@ -166,10 +167,20 @@ export function Console() {
     };
   }, [selectedId]);
 
-  const outlinePage = pages.find((p) => p.kind === "outline");
-  const lessons = useMemo(() => pages.filter((p) => p.kind !== "outline"), [pages]);
+  const subjectPages = useMemo(
+    () => pages.filter((p) => (p.subject_id || "computer") === subjectId),
+    [pages, subjectId],
+  );
+  const outlinePage = subjectPages.find((p) => p.kind === "outline");
+  const lessons = useMemo(() => subjectPages.filter((p) => p.kind !== "outline"), [subjectPages]);
   const nextLesson = lessons.find((p) => !p.completed) || lessons[lessons.length - 1];
+  const pageSubject = page?.subject_id || "computer";
+  const readingLessons = useMemo(
+    () => pages.filter((p) => p.kind !== "outline" && (p.subject_id || "computer") === pageSubject),
+    [pages, pageSubject],
+  );
   const subject = useMemo(() => subjects.find((s) => s.id === page?.subject_id), [subjects, page]);
+  const pathSubject = subjects.find((s) => s.id === subjectId);
 
   async function practice(target?: PageDetail | PageSummary) {
     const p = target || page;
@@ -217,10 +228,25 @@ export function Console() {
     return (
       <div className="path-page">
         <main className="path-main">
+          <div className="subject-tabs" role="tablist" aria-label="选择科目">
+            {subjects.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                role="tab"
+                aria-selected={s.id === subjectId}
+                className={`subject-tab ${s.id === subjectId ? "active" : ""}`}
+                onClick={() => setParams({ subject: s.id })}
+              >
+                {s.short || s.name}
+              </button>
+            ))}
+          </div>
+
           <header className="path-head">
             <div>
               <p className="eyebrow">学习路径</p>
-              <h1>{outlinePage?.title || "第一部分 · C 语言基础语法"}</h1>
+              <h1>{outlinePage?.title || `${pathSubject?.short || subjectId} · 学习路径`}</h1>
               <p className="lede">学完一个节点亮一个；答题和讲义都算进度。</p>
             </div>
             <div className="streak-pill">
@@ -248,7 +274,7 @@ export function Console() {
           {error && <div className="alert">{error}</div>}
 
           {outlinePage && (
-            <Link className="path-outline" to={`/console?page=${outlinePage.id}`}>
+            <Link className="path-outline" to={`/console?subject=${subjectId}&page=${outlinePage.id}`}>
               <span className="kind-badge kind-outline">大纲</span>
               <b>{outlinePage.title}</b>
               <span className="muted small">{outlinePage.outline_codes.length} 个考点 · 先看全局</span>
@@ -260,7 +286,7 @@ export function Console() {
               <button
                 key={item.id}
                 className={`path-node ${item.completed ? "done" : ""} ${item.id === nextLesson?.id ? "current" : ""}`}
-                onClick={() => setParams({ page: item.id })}
+                onClick={() => setParams({ subject: subjectId, page: item.id })}
               >
                 <span className="path-dot">{item.completed ? "✓" : index + 1}</span>
                 <span className="path-card">
@@ -275,14 +301,17 @@ export function Console() {
             ))}
             {!lessons.length && (
               <div className="empty-state">
-                <p>还没有课程。</p>
+                <p>这一科目还没有课程。</p>
                 <p className="muted small">在对话里让 Agent 写第一课。</p>
               </div>
             )}
           </div>
 
           {nextLesson && (
-            <button className="btn btn-primary continue-btn" onClick={() => setParams({ page: nextLesson.id })}>
+            <button
+              className="btn btn-primary continue-btn"
+              onClick={() => setParams({ subject: subjectId, page: nextLesson.id })}
+            >
               {nextLesson.completed ? "复习最后一课" : `继续学习：${nextLesson.title}`}
             </button>
           )}
@@ -344,23 +373,23 @@ export function Console() {
   /* ---------------- 阅读 ---------------- */
 
   return (
-    <div className="console-page reading">
-      {page && (
+    <div className={`console-page reading${pageSubject === "computer" ? "" : " no-code"}`}>
+      {pageSubject === "computer" && page && (
         <CodeTerminal key={page.lesson_key || page.id} lessonKey={page.lesson_key || "L01"} />
       )}
 
       <main className="console-main">
         <div className="lesson-toolbar">
-          <Link to="/console" className="back-link">
+          <Link to={`/console?subject=${pageSubject}`} className="back-link">
             ← 学习路径
           </Link>
           <select
             className="lesson-select"
             value={page?.id || ""}
-            onChange={(e) => setParams({ page: e.target.value })}
+            onChange={(e) => setParams({ subject: pageSubject, page: e.target.value })}
             aria-label="切换课程"
           >
-            {lessons.map((item) => (
+            {readingLessons.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.title}
                 {item.completed ? " ✓" : ""}
@@ -400,7 +429,7 @@ export function Console() {
                   {completing ? "记录中…" : "完成本课 +10 XP"}
                 </button>
               ) : (
-                <Link className="btn btn-primary" to="/console">
+                <Link className="btn btn-primary" to={`/console?subject=${pageSubject}`}>
                   回到路径
                 </Link>
               )}
