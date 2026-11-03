@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -261,6 +262,76 @@ def get_attempt(conn: sqlite3.Connection, attempt_id: str, reveal: bool = True) 
     }
 
 
+
+
+def _diagnose(msg: str) -> tuple[str, str]:
+    """把常见 gcc 诊断翻成「为什么错 / 怎么改」。"""
+    if "invalid preprocessing directive" in msg:
+        m = re.search(r"directive (#\w+)", msg)
+        directive = m.group(1) if m else "这个指令"
+        low = directive.lower()
+        if "did you mean #include" in msg.lower() or (low.startswith("#incl") and low != "#include"):
+            return (
+                f"{directive} 不是合法的预处理指令，你是不是想写 #include？",
+                "改成 #include <stdio.h>（拼写是 i-n-c-l-u-d-e）。",
+            )
+        return (
+            f"{directive} 不是合法的预处理指令。",
+            "常见指令只有 #include、#define、#if / #ifdef / #endif。",
+        )
+    if "expected" in msg and ";" in msg:
+        return ("上一条语句少了分号，gcc 通常把错误指到下一行。", "在报错位置的上一行末尾补 ;。")
+    if "implicit declaration of function" in msg:
+        m = re.search(r"function ['‘]?(\w+)", msg)
+        fn = m.group(1) if m else "该函数"
+        if fn in {"printf", "scanf", "puts", "gets", "fgets"}:
+            return (f"{fn} 没有声明：缺少 <stdio.h>。", "在文件开头加 #include <stdio.h>。")
+        return (f"{fn} 在使用前没有声明。", "先定义函数，或包含对应头文件。")
+    if "unknown type name" in msg:
+        return ("类型名不认识。", "检查拼写（int/float/double/char），或包含定义它的头文件。")
+    if "undeclared" in msg:
+        return ("变量/函数没有声明就用了。", "检查拼写和大小写；变量要先定义。")
+    if "expected declaration or statement at end of input" in msg:
+        return ("括号没有闭合，通常是少了右花括号 }。", "数一数 { 和 } 是否成对。")
+    if "missing terminating" in msg or "stray" in msg:
+        return ("字符串或字符没有闭合，或混入了中文标点。", "检查引号是否成对，标点用英文半角。")
+    if "format" in msg and "expects argument" in msg:
+        return ("printf 的格式符和参数类型不匹配。", "int 用 %d，double 用 %f/%lf，char 用 %c。")
+    if "too few arguments" in msg:
+        return ("格式符比参数多。", "检查 printf 中 % 的数量与后面的变量是否一一对应。")
+    if "undefined reference to" in msg:
+        m = re.search(r"undefined reference to ['‘]?(\w+)", msg)
+        fn = m.group(1) if m else "符号"
+        if fn == "main":
+            return ("链接器找不到 main 函数。", "检查是不是把 main 写成了 mian，或大小写不对。")
+        return (f"链接器找不到 {fn} 的定义。", "检查函数是否只声明没定义，或缺少链接库。")
+    if "expected expression" in msg:
+        return ("表达式不完整。", "检查运算符两边是否都有值，括号是否成对。")
+    return ("编译器在这一行发现了语法问题。", "对照报错行和上一行，检查分号、括号、引号、拼写。")
+
+
+def explain_diagnostics(text: str) -> list[dict]:
+    hints: list[dict] = []
+    seen: set[tuple[int, str]] = set()
+    for line in text.splitlines():
+        m = re.match(r"main\.c:(\d+):(\d+): (error|warning): (.+)", line)
+        if not m:
+            continue
+        line_no, col, kind, msg = int(m.group(1)), int(m.group(2)), m.group(3), m.group(4)
+        key = (line_no, msg)
+        if key in seen:
+            continue
+        seen.add(key)
+        reason, fix = _diagnose(msg)
+        hints.append({
+            "line": line_no, "column": col, "kind": kind,
+            "message": msg, "reason": reason, "fix": fix,
+        })
+        if len(hints) >= 8:
+            break
+    # 编译失败时只解释 error；warning 通常是被 error 连带出来的
+    errors = [h for h in hints if h["kind"] == "error"]
+    return (errors or hints)[:5]
 
 def results_for(conn: sqlite3.Connection, attempt_id: str) -> list[dict]:
     items = conn.execute(
@@ -1119,6 +1190,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 return {
                     "ok": False, "stage": "compile", "output": compile_output,
                     "exit_code": compile_proc.returncode,
+                    "hints": explain_diagnostics(compile_output),
                 }
 
             try:
@@ -1133,8 +1205,18 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 }
 
             output = run_proc.stdout + run_proc.stderr
+            runtime_hints: list[dict] = []
             if run_proc.returncode in (124, 137) or run_proc.returncode < 0:
                 output += "\n[进程被终止：可能是死循环、CPU 超时或内存超限]"
+                runtime_hints = [{"line": None, "kind": "runtime", "message": "timeout",
+                                  "reason": "程序 3 秒内没有结束，通常是死循环。", "fix": "检查 while/for 的退出条件。"}]
+            elif run_proc.returncode in (139, -11):
+                runtime_hints = [{"line": None, "kind": "runtime", "message": "segmentation fault",
+                                  "reason": "段错误：访问了不该访问的内存。",
+                                  "fix": "常见原因：数组越界、scanf 漏 &、使用未初始化的指针。"}]
+            elif run_proc.returncode in (136, -8):
+                runtime_hints = [{"line": None, "kind": "runtime", "message": "floating point exception",
+                                  "reason": "整数除以 0（或对 0 取余）。", "fix": "在除法前检查除数是否为 0。"}]
             output = output[:65536]
             duration = int((__import__("time").monotonic() - started) * 1000)
             return {
@@ -1143,6 +1225,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 "output": output,
                 "exit_code": run_proc.returncode,
                 "compile_output": compile_output,
+                "hints": explain_diagnostics(compile_output) + runtime_hints,
                 "duration_ms": duration,
             }
         finally:

@@ -39,6 +39,14 @@ int main() {
 }`,
 };
 
+interface RunHint {
+  line: number | null;
+  kind: string;
+  message: string;
+  reason: string;
+  fix: string;
+}
+
 interface RunResult {
   ok: boolean;
   stage: "compile" | "run";
@@ -46,6 +54,7 @@ interface RunResult {
   exit_code: number | null;
   compile_output?: string;
   duration_ms?: number;
+  hints?: RunHint[];
 }
 
 export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
@@ -58,6 +67,7 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
   const [status, setStatus] = useState<"idle" | "running" | "ok" | "error">("idle");
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
+  const [hints, setHints] = useState<RunHint[]>([]);
   const outRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -84,6 +94,7 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
     setStatus("running");
     setOutput("");
     setDuration(null);
+    setHints([]);
     try {
       const res = await fetch("/api/code/run", {
         method: "POST",
@@ -93,6 +104,7 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
       const data = (await res.json()) as RunResult & { detail?: unknown };
       if (!res.ok) {
         setStatus("error");
+        setHints([]);
         setOutput(
           typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail ?? "运行失败"),
         );
@@ -103,9 +115,11 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
         .join("\n");
       setOutput(text || "（程序没有输出）");
       setDuration(data.duration_ms ?? null);
+      setHints(data.hints ?? []);
       setStatus(data.ok ? "ok" : "error");
     } catch (e) {
       setStatus("error");
+      setHints([]);
       setOutput(`请求失败：${String(e)}`);
     }
   }
@@ -115,6 +129,7 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
     setOutput("");
     setStatus("idle");
     setDuration(null);
+    setHints([]);
   }
 
   const statusLabel =
@@ -175,6 +190,22 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
         </button>
         <span className="muted small">Ctrl+Enter</span>
       </div>
+
+      {hints.length > 0 && (
+        <div className="code-hints">
+          <div className="hints-head">为什么错</div>
+          {hints.map((h, i) => (
+            <div className="code-hint" key={`${h.line ?? "run"}-${i}`}>
+              <span className="hint-where">
+                {h.line == null ? "运行错误" : `第 ${h.line} 行`}
+                {h.kind === "warning" && <span className="hint-kind">警告</span>}
+              </span>
+              <span className="hint-reason">{h.reason}</span>
+              {h.fix && <span className="hint-fix">怎么改：{h.fix}</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="code-output">
         <div className="out-head">

@@ -1664,6 +1664,40 @@ kbd {
 .code-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .code-run, .code-reset { padding: 6px 12px; font-size: 13px; }
 
+.code-hints {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 150px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  background: var(--warn-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.code-hints .hints-head {
+  color: var(--warn);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.code-hint { display: flex; flex-direction: column; gap: 2px; }
+.code-hint + .code-hint { margin-top: 6px; }
+.code-hint .hint-where { color: var(--warn); font-weight: 600; }
+.code-hint .hint-kind {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 400;
+}
+.code-hint .hint-reason { color: var(--ink); }
+.code-hint .hint-fix { color: var(--accent-ink); }
+
 .code-output {
   flex: 0 0 auto;
   height: 190px;

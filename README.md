@@ -372,6 +372,7 @@ KAODIAN_ALLOW_CODE_RUN=1 \
 - 用 `gcc -std=c11` 真编译，不是模拟器
 - 用 `bubblewrap` 隔离：断网、只读系统、独立临时目录
 - `ulimit` 限制 CPU 3 秒、内存 256 MB、进程数 64，输出截断到 64 KB
+- 编译错误不只回 gcc 原文，还会给「为什么错 / 怎么改」；`#inclaude` 这类拼写会直接提示 `#include`
 - 默认**关闭**。不要把启用后的实例暴露到公网；Docker 部署请确认容器的用户命名空间允许 `bwrap`
 
 ## 数据与隐私

@@ -288,3 +288,23 @@ def test_code_run_in_sandbox(client, monkeypatch):
     data = res.json()
     assert data["ok"] is True
     assert "hi" in data["output"]
+
+
+def test_code_run_explains_typo(client, monkeypatch):
+    if not shutil.which("gcc") or not shutil.which("bwrap"):
+        pytest.skip("需要 gcc 和 bubblewrap")
+    monkeypatch.setenv("KAODIAN_ALLOW_CODE_RUN", "1")
+    res = client.post(
+        "/api/code/run",
+        json={"code": '#inclaude <stdio.h>\n\nint main(){printf("hi");return 0;}', "stdin": ""},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["ok"] is False
+    hints = data["hints"]
+    assert hints
+    first = hints[0]
+    assert first["line"] == 1
+    assert "#inclaude" in first["reason"]
+    assert "#include" in first["reason"]
+    assert "#include" in first["fix"]
