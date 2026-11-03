@@ -36,7 +36,7 @@
 |---|---|
 | Agent 协作 | 会话、事件流、答题页提示条、卡住求助、交卷自动回传 |
 | 控制台 | 多邻国式学习路径：节点、连续天数、每日目标、XP；Agent 写入的 Markdown 讲义（含 Mermaid 流程图/时序图）；一键配套练习 |
-| 可视化 | `/visuals/hello-anatomy.html` 代码解剖台；`/visuals/c-basics.html` 程序生命周期、变量盒子、整数除法 |
+| 内容格式 | 正文只用 Markdown：GFM 表格、Mermaid 结构图、SVG 图片；不内嵌 HTML/iframe |
 | 代码练习 | 讲义左侧 gcc 编辑器 + 终端，Ctrl+Enter 运行；bubblewrap 断网沙箱，默认关闭 |
 | 大纲 | 4 科 / 161 条考点 / 1236 h，从 Markdown 生成 JSON |
 | 题库 | 24 道示例题；AI 生成先入库待审，审查通过才上架 |
@@ -55,8 +55,7 @@
 - `/console` 学习路径：节点式课程、连续天数、每日目标进度环；点节点进入阅读
 - `/console?page=…` 阅读页：Markdown 讲义 + 「完成本课 +10 XP」+「练这一课」
 - 阅读页左侧：练习终端（gcc 编译、终端输出、标准输入、每课示例）
-- `/visuals/hello-anatomy.html` hello.c 解剖台：点代码、拨开关、看编译/运行结果
-- `/visuals/c-basics.html` C 基础实验室：三个可动手的小实验
+- 阅读页正文：Markdown + Mermaid + 图片（图片用 `![说明](/images/x.svg)`，说明即图注）
 - `/build` 组卷：左侧选范围，右侧看可用题数与时限
 - `/quiz/:id` 作答：左侧题目，右侧计时/进度/题号/交卷
 - `/result/:id` 结果：得分、客观题正确率、薄弱考点、逐题解析
@@ -350,6 +349,16 @@ make build         # 前端构建
 make dev-api       # 后端热重载
 make dev-web       # 前端开发服务器
 ```
+
+### 内容格式
+
+讲义正文是纯 Markdown，渲染时只做三件事：
+
+- ` ```mermaid ` → 结构图（流程图/时序图）
+- GFM 表格 → 直接渲染
+- `![图 1：说明](/images/x.svg)` → 图片 + 图注
+
+不写内嵌 HTML、iframe 或脚本；需要动手的部分放左侧练习终端。
 
 ## 代码练习（可选）
 
