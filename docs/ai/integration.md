@@ -83,10 +83,41 @@ Claude Desktop 的等价配置：
 | 讲义 | `publish_page` `update_page` |
 | 网页编辑 | `get_page_draft` `save_page_draft` `publish_page_draft` `validate_content` |
 
+工具总数仍为 27；画像相关只扩展了 `update_profile` 的参数。
+
+### 画像补全
+
+`get_profile()` 返回 `{static, dynamic, completeness, missing, next_questions}`：
+
+- `completeness`：必填 8 项完成比例；
+- `missing`：按必填顺序列出未填字段；
+- `next_questions`：建议接下来问的中文问题（必填优先，最多 6 条）。
+
+`update_profile(...)` 支持：
+
+- 升学目标：`target_school` `target_major` `target_region` `backup_school`
+  `backup_major` `exam_type` `current_education` `graduation_year`；
+- 学习条件：`study_window` `constraints`；
+- 自我评估：`strengths` `weaknesses` `motivation`；
+- AI 摘要：`ai_summary`（≤2000 字，和用户手写的 `notes` 分开，互不覆盖）；
+- `source`：默认 `agent`，写入 `updated_by`。
+
+推荐流程：
+
+```
+get_profile
+→ 看 missing / next_questions
+→ 一次只问 2–3 个问题（先目标院校/专业/动机，再时间限制和薄弱点）
+→ update_profile(..., source="agent", ai_summary="...")
+→ 再 get_profile 确认完整度
+```
+
+不要一次问完所有问题；用户没回答的字段不要臆造。
+
 ## 一次典型循环
 
 1. 你说「按 C-08 出 6 道」；
-2. Agent 先 `get_profile` 看目标、每日时长和薄弱考点，再用 `list_outline` 确认编号，`build_quiz` 组卷，把链接发你；
+2. Agent 先 `get_profile` 看目标、完整度、缺失字段和薄弱考点，再用 `list_outline` 确认编号，`build_quiz` 组卷，把链接发你；
 3. 你打开链接作答，卡住点「卡住了」；
 4. Agent 用 `read_inbox` 读到求助，用 `send_hint` 推提示；
 5. 交卷后 Agent 用 `read_inbox` / `get_attempt` 读结果；

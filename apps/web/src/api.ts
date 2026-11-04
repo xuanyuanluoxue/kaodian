@@ -1,4 +1,4 @@
-import type { AgentEvent, Attempt, ContentValidation, DailyStats, HeatmapDay, LibraryStats, OutlineNode, PageDetail, PageDraftInput, PageDraftResponse, PageQuestionCount, PageSummary, Profile, ProfileStatic, Progress, PublishResult, Question, QuestionType, Quiz, QuizSummary, Subject, SubjectStats, TypeStats } from "./types";
+import type { AgentEvent, Attempt, ContentValidation, DailyStats, HeatmapDay, LibraryStats, OutlineNode, PageDetail, PageDraftInput, PageDraftResponse, PageQuestionCount, PageSummary, Profile, ProfileUpdate, Progress, PublishResult, Question, QuestionType, Quiz, QuizSummary, Subject, SubjectStats, TypeStats } from "./types";
 
 const BASE = "/api";
 
@@ -68,7 +68,7 @@ export interface BuildQuizBody {
 
 export const api = {
   profile: () => request<Profile>("/profile"),
-  updateProfile: (body: Partial<ProfileStatic>) =>
+  updateProfile: (body: ProfileUpdate) =>
     request<Profile>("/profile", { method: "PUT", body: JSON.stringify(body) }),
   subjects: () => request<Subject[]>("/subjects"),
   questionTypes: () => request<QuestionType[]>("/question-types"),

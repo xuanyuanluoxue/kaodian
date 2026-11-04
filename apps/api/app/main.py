@@ -212,11 +212,26 @@ class ProfileIn(BaseModel):
     target_exam: str | None = None
     target_date: str | None = None
     target_score: float | None = None
+    target_school: str | None = Field(default=None, max_length=100)
+    target_major: str | None = Field(default=None, max_length=100)
+    target_region: str | None = Field(default=None, max_length=50)
+    backup_school: str | None = Field(default=None, max_length=100)
+    backup_major: str | None = Field(default=None, max_length=100)
+    exam_type: str | None = Field(default=None, max_length=100)
+    current_education: str | None = Field(default=None, max_length=100)
+    graduation_year: int | None = Field(default=None, ge=1950, le=2100)
     daily_minutes: int | None = Field(default=None, ge=1, le=600)
     subjects: list[str] | None = None
+    study_window: str | None = Field(default=None, max_length=200)
+    constraints: str | None = Field(default=None, max_length=1000)
+    strengths: str | None = Field(default=None, max_length=1000)
+    weaknesses: str | None = Field(default=None, max_length=1000)
+    motivation: str | None = Field(default=None, max_length=1000)
     notes: str | None = Field(default=None, max_length=2000)
+    ai_summary: str | None = Field(default=None, max_length=2000)
     preferred_tone: str | None = Field(default=None, max_length=200)
     preferred_examples: str | None = Field(default=None, max_length=200)
+    source: Literal["user", "agent"] = "user"
 
 
 # ---------------------------------------------------------------- helpers

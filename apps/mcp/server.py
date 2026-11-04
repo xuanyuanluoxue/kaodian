@@ -26,8 +26,12 @@ mcp = MCPServer(
     "kaodian",
     version="0.1.0",
     instructions=(
-        "考点是 Agent 的作答终端。每次开工先 get_profile，看清目标、每日时长和薄弱考点，"
-        "再决定今天学什么。先用 list_outline 确认考点编号，"
+        "考点是 Agent 的作答终端。每次开工先 get_profile：它返回 static/dynamic 以及 "
+        "completeness、missing、next_questions；先看还缺哪些画像信息，再决定今天学什么。"
+        "补画像时一次只问 2–3 个问题，优先问目标院校/专业/动机，再问时间限制和薄弱点，"
+        "不要一次问完所有问题；用户回答后用 update_profile(source=\"agent\", ai_summary=\"...\") "
+        "写入，然后再次 get_profile 确认完整度。"
+        "先用 list_outline 确认考点编号，"
         "题库是实时生成的：create_questions 入库存为 pending，review_questions 审查后才可组卷；"
         "材料题先用 create_question_group 建组，再用 create_questions 传 group_id/group_position 挂题；"
         "用 build_quiz 组卷并把 url 发给用户；用 publish_page 写讲解页，用户在控制台阅读；"
@@ -499,9 +503,14 @@ def get_progress() -> dict:
 
 @mcp.tool()
 def get_profile() -> dict:
-    """读取学习画像：静态目标 + 实时学情（倒计时、正确率、分科时长、薄弱考点）。
+    """读取学习画像：静态目标、实时学情，以及完整度提示。
 
-    每次开工先调这个，再决定学什么。
+    返回 `{static, dynamic, completeness, missing, next_questions}`：
+    - `completeness`：必填 8 项完成比例（0–1）；
+    - `missing`：按必填顺序列出未填字段；
+    - `next_questions`：建议接下来问的中文问题（必填优先，最多 6 条）。
+
+    每次开工先调这个：先看 missing / next_questions 补画像，再决定学什么。
     """
     return _call("GET", "/api/profile")
 
@@ -511,32 +520,79 @@ def update_profile(
     target_exam: str | None = None,
     target_date: str | None = None,
     target_score: float | None = None,
+    target_school: str | None = None,
+    target_major: str | None = None,
+    target_region: str | None = None,
+    backup_school: str | None = None,
+    backup_major: str | None = None,
+    exam_type: str | None = None,
+    current_education: str | None = None,
+    graduation_year: int | None = None,
     daily_minutes: int | None = None,
     subjects: list[str] | None = None,
+    study_window: str | None = None,
+    constraints: str | None = None,
+    strengths: str | None = None,
+    weaknesses: str | None = None,
+    motivation: str | None = None,
     notes: str | None = None,
+    ai_summary: str | None = None,
     preferred_tone: str | None = None,
     preferred_examples: str | None = None,
+    source: str = "agent",
 ) -> dict:
     """更新学习画像的静态字段，只传要改的；返回与 get_profile 相同结构。
+
+    推荐流程：先 get_profile 看 missing/next_questions，一次问 2–3 个问题，
+    用户回答后调用本工具（source="agent" 并写 ai_summary），再 get_profile 确认完整度。
 
     Args:
         target_exam: 目标考试，如「2028 广东专升本」。
         target_date: 考试日期，严格 YYYY-MM-DD；传空字符串可清除。
         target_score: 目标分。
+        target_school: 目标院校，≤100 字。
+        target_major: 目标专业，≤100 字。
+        target_region: 目标地区，≤50 字。
+        backup_school: 保底院校，≤100 字。
+        backup_major: 保底专业，≤100 字。
+        exam_type: 升学类型，如专升本/自考/考研。
+        current_education: 当前学历。
+        graduation_year: 毕业年份，1950–2100。
         daily_minutes: 每日目标分钟，1–600。
         subjects: 科目 id 数组，来自 list_subjects。
-        notes: 备注，≤2000 字。
+        study_window: 可学习时段，≤200 字。
+        constraints: 时间/工作/家庭限制，≤1000 字。
+        strengths: 自认为的优势，≤1000 字。
+        weaknesses: 自认为的薄弱点，≤1000 字。
+        motivation: 为什么考，≤1000 字。
+        notes: 用户备注，≤2000 字（用户手写，不要覆盖）。
+        ai_summary: AI 在对话后整理的摘要，≤2000 字；不影响 notes。
         preferred_tone: 讲解语气偏好，≤200 字。
         preferred_examples: 例子偏好，≤200 字。
+        source: 更新来源，Agent 调用保持默认 agent；会写入 updated_by。
     """
     payload: dict[str, Any] = {}
     for name, value in (
         ("target_exam", target_exam),
         ("target_date", target_date),
         ("target_score", target_score),
+        ("target_school", target_school),
+        ("target_major", target_major),
+        ("target_region", target_region),
+        ("backup_school", backup_school),
+        ("backup_major", backup_major),
+        ("exam_type", exam_type),
+        ("current_education", current_education),
+        ("graduation_year", graduation_year),
         ("daily_minutes", daily_minutes),
         ("subjects", subjects),
+        ("study_window", study_window),
+        ("constraints", constraints),
+        ("strengths", strengths),
+        ("weaknesses", weaknesses),
+        ("motivation", motivation),
         ("notes", notes),
+        ("ai_summary", ai_summary),
         ("preferred_tone", preferred_tone),
         ("preferred_examples", preferred_examples),
     ):
@@ -544,6 +600,7 @@ def update_profile(
             payload[name] = value
     if not payload:
         raise RuntimeError("没有要更新的字段")
+    payload["source"] = "agent" if source == "agent" else "user"
     return _call("PUT", "/api/profile", json=payload)
 
 

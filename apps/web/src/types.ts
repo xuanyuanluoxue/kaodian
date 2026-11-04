@@ -435,11 +435,38 @@ export interface ProfileStatic {
   target_exam: string | null;
   target_date: string | null;
   target_score: number | null;
+  target_school: string | null;
+  target_major: string | null;
+  target_region: string | null;
+  backup_school: string | null;
+  backup_major: string | null;
+  exam_type: string | null;
+  current_education: string | null;
+  graduation_year: number | null;
   daily_minutes: number;
   subjects: string[];
+  study_window: string | null;
+  constraints: string | null;
+  strengths: string | null;
+  weaknesses: string | null;
+  motivation: string | null;
   notes: string;
+  /** 只由 AI 维护，用户保存时不要回传。 */
+  ai_summary: string;
   preferred_tone: string;
   preferred_examples: string;
+  updated_by: "user" | "agent";
+}
+
+/** PUT /api/profile 可写字段；ai_summary / updated_by 不由此接口的页面表单发送。 */
+export type ProfileUpdate = Omit<
+  Partial<ProfileStatic>,
+  "ai_summary" | "updated_by"
+> & { source?: "user" | "agent" };
+
+export interface ProfileQuestion {
+  field: string;
+  question: string;
 }
 
 export interface SubjectProfile {
@@ -484,4 +511,9 @@ export interface ProfileDynamic {
 export interface Profile {
   static: ProfileStatic;
   dynamic: ProfileDynamic;
+  /** 必填 8 项的完成比例，0–1。 */
+  completeness: number;
+  /** 尚未填写的字段，必填优先。 */
+  missing: string[];
+  next_questions: ProfileQuestion[];
 }

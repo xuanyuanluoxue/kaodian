@@ -11,7 +11,7 @@ from . import paths
 
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA = Path(__file__).with_name("schema.sql")
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 _QUESTION_GROUP_DDL = """
 CREATE TABLE IF NOT EXISTS question_group (
@@ -59,13 +59,46 @@ CREATE TABLE IF NOT EXISTS profile (
     target_exam        TEXT,
     target_date        TEXT,
     target_score       REAL,
+    target_school      TEXT,
+    target_major       TEXT,
+    target_region      TEXT,
+    backup_school      TEXT,
+    backup_major       TEXT,
+    exam_type          TEXT,
+    current_education  TEXT,
+    graduation_year    INTEGER,
     daily_minutes      INTEGER NOT NULL DEFAULT 30,
     subjects           TEXT NOT NULL DEFAULT '[]',
+    study_window       TEXT,
+    constraints        TEXT,
+    strengths          TEXT,
+    weaknesses         TEXT,
+    motivation         TEXT,
     notes              TEXT NOT NULL DEFAULT '',
+    ai_summary         TEXT,
     preferred_tone     TEXT NOT NULL DEFAULT '',
     preferred_examples TEXT NOT NULL DEFAULT '',
+    updated_by         TEXT NOT NULL DEFAULT 'user',
     updated_at         TEXT
 )"""
+
+_PROFILE_V8_COLUMNS = {
+    "target_school": "TEXT",
+    "target_major": "TEXT",
+    "target_region": "TEXT",
+    "backup_school": "TEXT",
+    "backup_major": "TEXT",
+    "exam_type": "TEXT",
+    "current_education": "TEXT",
+    "graduation_year": "INTEGER",
+    "study_window": "TEXT",
+    "constraints": "TEXT",
+    "strengths": "TEXT",
+    "weaknesses": "TEXT",
+    "motivation": "TEXT",
+    "ai_summary": "TEXT",
+    "updated_by": "TEXT NOT NULL DEFAULT 'user'",
+}
 
 
 def db_path() -> Path:
@@ -228,6 +261,8 @@ def migrate(conn: sqlite3.Connection) -> None:
     conn.execute(_PAGE_DRAFT_DDL)
     # v7：学习画像单行表；动态学情不落库。
     conn.execute(_PROFILE_DDL)
+    # v8：画像补升学目标、学习条件、自我评估与 AI 摘要；旧库只加列。
+    _add_columns(conn, "profile", _PROFILE_V8_COLUMNS)
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_subject_pack_source "
         "ON subject(pack_id, source_key) WHERE pack_id IS NOT NULL"
