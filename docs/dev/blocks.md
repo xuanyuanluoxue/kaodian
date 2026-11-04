@@ -6,7 +6,7 @@
 
 ### Markdown（默认）
 
-`lessons/M02-1.md`：frontmatter + 正文。正文整体渲染为一个 Markdown 块。
+`lessons/m02-1-derivative-definition.md`：frontmatter + 正文。正文整体渲染为一个 Markdown 块。
 可选 frontmatter：
 
 ```yaml
@@ -16,7 +16,7 @@ theme: '{"accent":"math","density":"comfortable"}'
 
 ### JSON 块页（需要版式时）
 
-`lessons/M02-1.json`：
+`lessons/m02-1-derivative-definition.json`：
 
 ```json
 {

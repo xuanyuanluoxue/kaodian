@@ -238,6 +238,15 @@ def load_all() -> list[dict[str, Any]]:
 
 # ---------------------------------------------------------------- validate
 
+_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*\.(md|json|svg|png|jpg|jpeg|gif|mp3|mp4|webm)$")
+
+
+def _check_name(path_str: str, label: str, errors: list[str]) -> None:
+    name = Path(path_str).name
+    if not _NAME_RE.match(name):
+        errors.append(f"{label} 文件名必须是小写 kebab-case：{name}")
+
+
 def _outline_map(pack: dict[str, Any], errors: list[str]) -> dict[str, str]:
     subject_id = (pack.get("subject") or {}).get("id")
     mapping: dict[str, str] = {}
@@ -281,6 +290,8 @@ def validate_pack(pack: dict[str, Any]) -> list[str]:
     for key in ("id", "name", "version"):
         if not pack.get(key):
             errors.append(f"pack.json 缺少 {key}")
+    if not re.match(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", str(pack.get("id") or "")):
+        errors.append("pack.id 必须是英文小写 kebab-case")
     if pack.get("schema") != PACK_SCHEMA:
         errors.append(f"schema 必须是 {PACK_SCHEMA}，当前是 {pack.get('schema')!r}")
 
@@ -297,12 +308,21 @@ def validate_pack(pack: dict[str, Any]) -> list[str]:
 
     outline = _outline_map(pack, errors)
 
+    for name in pack.get("assets") or []:
+        _check_name(str(name), f"asset {name}", errors)
+
+    questions_dir = pack["path"] / "questions"
+    if questions_dir.is_dir():
+        for file in questions_dir.glob("*.json"):
+            _check_name(str(file), f"question file {file.name}", errors)
+
     lesson_keys: set[str] = set()
     for index, lesson in enumerate(pack.get("lessons") or []):
         label = f"lesson[{index}]"
         file = lesson.get("file")
         if file:
             label = str(file.relative_to(pack["path"])) if file.is_relative_to(pack["path"]) else str(file)
+            _check_name(label, label, errors)
         unknown = set(lesson) - LESSON_FIELDS - {
             "body", "file", "source_key", "format",
         }

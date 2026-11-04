@@ -1,0 +1,22 @@
+[
+  {
+    "id": "demo_fill_01",
+    "subject_id": "demo",
+    "outline_code": "D-02",
+    "type": "fill",
+    "stem": "演示填空：媒体接口的根目录是 content_dir()/packs/<pack>/______。",
+    "answer": [
+      "assets"
+    ],
+    "explanation": "内容包素材统一放在 packs/<pack>/assets/，正文用 /media/<pack>/<file> 引用。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "demo"
+    },
+    "tags": [
+      "媒体"
+    ],
+    "verified": true
+  }
+]

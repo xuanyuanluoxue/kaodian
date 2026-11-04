@@ -32,7 +32,7 @@ BLOCK_LESSON = {
 def make_content(tmp_path: Path) -> Path:
     root = tmp_path / "content"
     shutil.copytree(DEMO, root)
-    (root / "packs" / "demo" / "lessons" / "02-块页.json").write_text(
+    (root / "packs" / "demo" / "lessons" / "d-02-block.json").write_text(
         json.dumps(BLOCK_LESSON, ensure_ascii=False), encoding="utf-8",
     )
     return root
@@ -57,10 +57,10 @@ def page_by_key(client: TestClient, key: str) -> dict:
 def test_page_file_is_synced(edit_env):
     client, _ = edit_env
     page = page_by_key(client, "D-01")
-    assert page["file"] == "packs/demo/lessons/01-内容包.md"
+    assert page["file"] == "packs/demo/lessons/d-01-content-pack.md"
 
     block_page = page_by_key(client, "D-02-BLOCK")
-    assert block_page["file"] == "packs/demo/lessons/02-块页.json"
+    assert block_page["file"] == "packs/demo/lessons/d-02-block.json"
 
 
 def test_draft_save_read_delete(edit_env):
@@ -118,7 +118,7 @@ def test_draft_rejects_invalid_blocks(edit_env):
 def test_publish_markdown_writes_file_validates_and_syncs(edit_env):
     client, root = edit_env
     page = page_by_key(client, "D-01")
-    target = root / "packs" / "demo" / "lessons" / "01-内容包.md"
+    target = root / "packs" / "demo" / "lessons" / "d-01-content-pack.md"
     body = "# 发布后的正文\n\n这是网页编辑写回的内容。\n"
 
     client.put(
@@ -130,7 +130,7 @@ def test_publish_markdown_writes_file_validates_and_syncs(edit_env):
     )
     assert published.status_code == 200, published.text
     payload = published.json()
-    assert payload["file"] == "packs/demo/lessons/01-内容包.md"
+    assert payload["file"] == "packs/demo/lessons/d-01-content-pack.md"
     assert payload["committed"] is False
     assert payload["page"]["layout"] == "wide"
     assert payload["page"]["theme"] == {"accent": "math"}
@@ -172,7 +172,7 @@ def test_publish_block_page_writes_json(edit_env):
     assert published.status_code == 200, published.text
 
     data = json.loads(
-        (root / "packs" / "demo" / "lessons" / "02-块页.json").read_text(encoding="utf-8")
+        (root / "packs" / "demo" / "lessons" / "d-02-block.json").read_text(encoding="utf-8")
     )
     assert data["lesson_key"] == "D-02-BLOCK"
     assert data["layout"] == "split"
@@ -189,7 +189,7 @@ def test_publish_block_page_writes_json(edit_env):
 def test_publish_validation_failure_keeps_file(edit_env):
     client, root = edit_env
     page = page_by_key(client, "D-01")
-    target = root / "packs" / "demo" / "lessons" / "01-内容包.md"
+    target = root / "packs" / "demo" / "lessons" / "d-01-content-pack.md"
     before = target.read_text(encoding="utf-8")
 
     client.put(
@@ -212,7 +212,7 @@ def test_publish_requires_draft(edit_env):
 def test_publish_commit_failure_keeps_file_and_db(edit_env):
     client, root = edit_env
     page = page_by_key(client, "D-01")
-    target = root / "packs" / "demo" / "lessons" / "01-内容包.md"
+    target = root / "packs" / "demo" / "lessons" / "d-01-content-pack.md"
     body = "# git 提交失败也要保留文件\n"
 
     client.put(f"/api/pages/{page['id']}/draft", json={"body": body})

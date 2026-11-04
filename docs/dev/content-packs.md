@@ -23,7 +23,17 @@ content = "./content"
 - `db_path` = `KAODIAN_DB` 或 `data/api/kaodian.db`。
 - 启动时 `data_dir.mkdir(parents=True, exist_ok=True)`。
 
-## 2. 内容仓库
+## 2. 命名规范
+
+- 目录、文件名：英文小写 kebab-case，不带中文、不带编号前缀。
+- pack id：`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`。
+- 讲义：`<lesson-key 小写>-<slug>.md`，如 `m02-1-derivative-definition.md`。
+- 题目：按考点分文件，`<outline-code 小写>.json`，如 `m-09.json`。
+- 素材：`<topic>.svg`，科目由 pack 区分。
+- 中文标题只写在 frontmatter/JSON 字段里。
+- `content validate` 与内容仓库 CI 都会检查。
+
+## 3. 内容仓库
 
 ```
 content/
@@ -104,7 +114,7 @@ Markdown 页同步为 `format='markdown'`、`blocks=NULL`；JSON 块页同步为
 素材：正文写 `/media/<pack>/<file>`，文件在 `packs/<pack>/assets/`。
 框架前端只保留 UI 素材（favicon、图标），不再放任何学科图片。
 
-## 3. 数据库 v6
+## 4. 数据库 v6
 
 v4 新增：
 
@@ -130,7 +140,7 @@ v6 只给 `page` 加一列并新增草稿表，不重建表：
 
 | 对象 | 说明 |
 |---|---|
-| `page.file` | `TEXT`；内容文件相对 `content/` 的路径，例如 `packs/math/lessons/M02-1.md`；本地页为 `NULL` |
+| `page.file` | `TEXT`；内容文件相对 `content/` 的路径，例如 `packs/math/lessons/m02-1-derivative-definition.md`；本地页为 `NULL` |
 | `page_draft` | `page_id, body, blocks, layout, theme, version, updated_at`；只存未发布的修改，发布后删除 |
 
 草稿与发布契约见 [`editing.md`](editing.md)。
@@ -153,7 +163,7 @@ v6 只给 `page` 加一列并新增草稿表，不重建表：
 只更新/插入带 `pack_id` 的行；本地运行时创建的页面/题目（`pack_id IS NULL`）不动、不删。
 pack 里删除的内容不自动删库，改 frontmatter `status: archived`。
 
-## 4. 媒体
+## 5. 媒体
 
 `GET /media/{pack}/{path:path}`：
 
@@ -162,7 +172,7 @@ pack 里删除的内容不自动删库，改 frontmatter `status: archived`。
 - 只返回文件
 - `Cache-Control: public, max-age=31536000, immutable`
 
-## 5. CLI
+## 6. CLI
 
 `bin/kaodian` → `.venv/bin/python -m apps.cli`
 
@@ -178,14 +188,14 @@ pack 里删除的内容不自动删库，改 frontmatter `status: archived`。
 
 所有命令失败返回非 0；`--json` 输出 `{ok, ...}` 供 Agent 读取。
 
-## 6. 安全
+## 7. 安全
 
 - 内容目录按只读处理；`content sync` 不写内容。
 - 媒体路径必须防穿越。
 - 不执行 pack 里的任何代码。
 - 素材只按路径引用，不上传、不解析。
 
-## 7. 迁移顺序
+## 8. 迁移顺序
 
 1. 框架实现 pack 加载、v4 迁移、`/media`、CLI，用 `examples/demo-content` 测试。
 2. 本机建 `kaodian.toml` 指向 `./content` 与 `./data`。

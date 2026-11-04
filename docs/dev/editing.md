@@ -17,7 +17,7 @@
 | `version` | 每次保存 +1 |
 
 `page` 增加 `file TEXT`：内容文件相对 `content/` 的路径，例如
-`packs/math/lessons/M02-1-....md`。本地页（`pack_id IS NULL`）为 null。
+`packs/math/lessons/m02-1-derivative-definition.md`。本地页（`pack_id IS NULL`）为 null。
 
 ## 2. API
 

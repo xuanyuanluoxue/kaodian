@@ -81,7 +81,7 @@ def test_validate_pack_reports_duplicate_key_and_missing_asset(tmp_path, monkeyp
 def test_markdown_lesson_layout_and_theme(tmp_path, monkeypatch):
     root = tmp_path / "content"
     shutil.copytree(DEMO, root)
-    (root / "packs" / "demo" / "lessons" / "99-版式.md").write_text(
+    (root / "packs" / "demo" / "lessons" / "d-03-layout.md").write_text(
         "---\n"
         'lesson_key: "D-03"\n'
         'title: "版式测试"\n'
@@ -163,3 +163,14 @@ def test_cli_content_validate_exits_nonzero_on_broken_pack(tmp_path):
     payload = json.loads(result.stdout)
     assert payload["ok"] is False
     assert any("schema" in error for error in payload["packs"][0]["errors"])
+
+
+def test_pack_rejects_bad_file_names(tmp_path, monkeypatch):
+    root = tmp_path / "content"
+    shutil.copytree(DEMO, root)
+    lessons = root / "packs" / "demo" / "lessons"
+    (lessons / "outline.md").rename(lessons / "00-总览.md")
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(root))
+    pack = content.load_all()[0]
+    errors = content.validate_pack(pack)
+    assert any("kebab-case" in e for e in errors)

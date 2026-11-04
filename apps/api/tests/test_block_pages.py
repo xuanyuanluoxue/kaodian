@@ -41,7 +41,7 @@ def make_content(tmp_path: Path) -> Path:
     root = tmp_path / "content"
     shutil.copytree(DEMO, root)
     lessons = root / "packs" / "demo" / "lessons"
-    (lessons / "02-块页.json").write_text(
+    (lessons / "d-02-block.json").write_text(
         json.dumps(BLOCK_PAGE, ensure_ascii=False), encoding="utf-8",
     )
     return root

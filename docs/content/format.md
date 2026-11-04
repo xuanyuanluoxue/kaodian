@@ -10,7 +10,8 @@
 - 一页只讲**一个**可独立出题、独立复习的最小概念；
 - 目标 10–15 分钟，正文 **≤120 行**；
 - 出现「定义 + 法则 + 应用 + 特例」就拆页，不要塞进同一页；
-- 拆分页 `lesson_key` 用 `M02-1`、`M02-2`…，路径按 key 排序；
+- 拆分页 `lesson_key` 用 `M02-1`、`M02-2`…，文件名用小写 `m02-1-<slug>.md`；
+- 目录/文件名只用英文小写 kebab-case，中文标题写在 frontmatter；
 - 旧的大页拆完转 `draft` 并归档，不要和新页同时出现在路径里。
 
 ### 固定结构
@@ -75,7 +76,7 @@ $$f'(x)=\lim_{\Delta x\to0}\frac{\Delta y}{\Delta x}$$
 ## 3. 图片
 
 ```markdown
-![图 1：割线滑向切线，斜率趋近 2](/media/math/math-secant-anim.svg)
+![图 1：割线滑向切线，斜率趋近 2](/media/math/secant-anim.svg)
 ```
 
 - 路径统一 `/media/<pack>/xxx.svg`，文件在内容仓库 `packs/<pack>/assets/`；
