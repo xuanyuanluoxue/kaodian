@@ -82,6 +82,18 @@ export const api = {
     body: { active_seconds: number; answers: unknown[] },
   ) => request<Attempt>(`/attempts/${attemptId}/submit`, { method: "POST", body: JSON.stringify(body) }),
   attempt: (attemptId: string) => request<Attempt>(`/attempts/${attemptId}`),
+  quiz: (quizId: string) => request<Quiz>(`/quizzes/${quizId}`),
+  /** 草稿兜底：页面隐藏 / 卸载时用 keepalive 发，失败不阻塞。 */
+  saveDraftBeacon: (attemptId: string, answers: unknown[]) =>
+    fetch(`${BASE}/attempts/${attemptId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+      keepalive: true,
+    }).then((res) => {
+      if (!res.ok) throw new ApiError(res.status, res.statusText);
+      return res.json() as Promise<{ ok: boolean }>;
+    }),
   due: (subjectId?: string) =>
     request<Question[]>(`/reviews/due${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   today: () => request<DailyStats>("/stats/today"),

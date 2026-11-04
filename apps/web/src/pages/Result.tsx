@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api";
+import { GroupMaterial } from "../components/GroupMaterial";
 import { MathText } from "../components/MathText";
+import { QuestionMedia } from "../components/QuestionMedia";
 import { errorText, formatDuration, percent } from "../lib/format";
 import { useQuestionTypes } from "../lib/useQuestionTypes";
 import type { Attempt, ResultItem } from "../types";
@@ -169,6 +171,9 @@ export function Result() {
         {results.map((item, i) => {
           const q = item.question;
           const ok = item.correct;
+          const group = q.group_id
+            ? (attempt.quiz.groups || []).find((g) => g.id === q.group_id)
+            : undefined;
           return (
             <details key={q.id} className={`result-item ${ok === true ? "ok" : ok === false ? "bad" : ""}`}>
               <summary>
@@ -184,11 +189,13 @@ export function Result() {
                 </span>
               </summary>
               <div className="result-body">
+                <GroupMaterial group={group} collapsible />
                 <p className="meta-line">
                   <span className="code-chip">{q.outline_code}</span>
                   <span className="muted small">{label(q.type)}</span>
                   <span className="muted small">用时 {item.time_spent ?? 0} 秒</span>
                 </p>
+                <QuestionMedia media={q.media} />
                 <div className="answer-compare">
                   <div>
                     <span className="muted small">你的答案</span>

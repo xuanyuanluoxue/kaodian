@@ -18,12 +18,20 @@ export function Today() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([api.subjects(), api.due()])
-      .then(([subs, d]) => {
-        setSubjects(subs);
-        setDue(d);
-      })
-      .catch((e) => setError(errorText(e)));
+    let alive = true;
+    void (async () => {
+      const [subjectsR, dueR] = await Promise.allSettled([api.subjects(), api.due()]);
+      if (!alive) return;
+      const failed: string[] = [];
+      if (subjectsR.status === "fulfilled") setSubjects(subjectsR.value);
+      else failed.push(`科目（${errorText(subjectsR.reason)}）`);
+      if (dueR.status === "fulfilled") setDue(dueR.value);
+      else failed.push(`复习队列（${errorText(dueR.reason)}）`);
+      if (failed.length) setError(`部分内容加载失败：${failed.join("；")}`);
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // 今日统计：20 秒轮询 + 回到前台立刻刷新（阅读和答题都可能在其他页面产生时间）

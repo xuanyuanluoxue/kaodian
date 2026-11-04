@@ -30,10 +30,26 @@ CREATE TABLE IF NOT EXISTS outline_node (
 
 CREATE INDEX IF NOT EXISTS idx_outline_subject ON outline_node(subject_id, sort);
 
+-- 材料题 / 一拖多：一段材料（可含媒体）下挂多道小题。
+CREATE TABLE IF NOT EXISTS question_group (
+    id          TEXT PRIMARY KEY,
+    subject_id  TEXT REFERENCES subject(id) ON DELETE CASCADE,
+    title       TEXT,
+    material    TEXT NOT NULL DEFAULT '',
+    media       TEXT,
+    source_key  TEXT,
+    created_at  TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_question_group_source
+    ON question_group(subject_id, source_key);
+
 CREATE TABLE IF NOT EXISTS question (
     id               TEXT PRIMARY KEY,
     subject_id       TEXT NOT NULL REFERENCES subject(id) ON DELETE CASCADE,
     outline_code     TEXT NOT NULL REFERENCES outline_node(code) ON DELETE CASCADE,
+    group_id         TEXT REFERENCES question_group(id) ON DELETE SET NULL,
+    group_position   INTEGER NOT NULL DEFAULT 0,
     type             TEXT NOT NULL,
     stem             TEXT NOT NULL,
     options          TEXT,
@@ -47,6 +63,7 @@ CREATE TABLE IF NOT EXISTS question (
     tags             TEXT,
     verified         INTEGER NOT NULL DEFAULT 0,
     language         TEXT,
+    media            TEXT,
     status           TEXT NOT NULL DEFAULT 'approved',
     reviewed_at      TEXT,
     review_note      TEXT,
@@ -56,6 +73,18 @@ CREATE TABLE IF NOT EXISTS question (
 
 CREATE INDEX IF NOT EXISTS idx_question_code ON question(outline_code);
 CREATE INDEX IF NOT EXISTS idx_question_subject ON question(subject_id, type);
+CREATE INDEX IF NOT EXISTS idx_question_group ON question(group_id, group_position);
+
+-- 一题多考点：outline_code 仍是主考点，这里保存全部关联（含主考点）。
+CREATE TABLE IF NOT EXISTS question_outline (
+    question_id  TEXT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
+    outline_code TEXT NOT NULL REFERENCES outline_node(code) ON DELETE CASCADE,
+    weight       REAL NOT NULL DEFAULT 1,
+    PRIMARY KEY (question_id, outline_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_question_outline_code
+    ON question_outline(outline_code, question_id);
 
 CREATE TABLE IF NOT EXISTS quiz (
     id               TEXT PRIMARY KEY,

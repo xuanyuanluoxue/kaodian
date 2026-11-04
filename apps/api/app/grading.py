@@ -8,6 +8,30 @@ import unicodedata
 from .question_types import get_type, needs_rubric, type_ids
 
 _LETTERS = "ABCDEFGH"
+MEDIA_TYPES = {"image", "audio", "video"}
+
+
+def validate_media(media: object, label: str = "media") -> list[str]:
+    """媒体引用：type/url 必填；url 只能是站内 / 路径或 https:// 外链。"""
+    if media is None:
+        return []
+    if not isinstance(media, list):
+        return [f"{label} 必须是数组"]
+    errors: list[str] = []
+    for i, item in enumerate(media):
+        if not isinstance(item, dict):
+            errors.append(f"{label}[{i}] 必须是对象")
+            continue
+        kind = item.get("type")
+        if kind not in MEDIA_TYPES:
+            errors.append(f"{label}[{i}].type 必须是 image/audio/video 之一")
+        url = item.get("url")
+        if not isinstance(url, str) or not url.strip():
+            errors.append(f"{label}[{i}].url 必填")
+        elif not (url.startswith("https://") or (url.startswith("/") and not url.startswith("//"))):
+            errors.append(f"{label}[{i}].url 只能是以 / 开头的站内路径或 https:// 链接")
+    return errors
+
 
 
 def normalize(text: object) -> str:
@@ -145,6 +169,26 @@ def validate_question(payload: dict, outline: dict[str, str]) -> list[str]:
         errors.append(f"outline_code {code} 不在大纲里")
     elif payload.get("subject_id") and payload["subject_id"] != outline[code]:
         errors.append(f"outline_code {code} 属于 {outline[code]}，与 subject_id 不符")
+
+    extra_codes = payload.get("outline_codes") or []
+    if not isinstance(extra_codes, list) or any(
+        not isinstance(c, str) or not c for c in extra_codes
+    ):
+        errors.append("outline_codes 必须是非空考点编号数组")
+    else:
+        subject = payload.get("subject_id") or (outline.get(code) if code else None)
+        missing = [c for c in extra_codes if c not in outline]
+        if missing:
+            errors.append(f"outline_codes 不在大纲里：{', '.join(missing)}")
+        elif subject:
+            mismatch = [c for c in extra_codes if outline[c] != subject]
+            if mismatch:
+                errors.append(f"outline_codes 不属于科目 {subject}：{', '.join(mismatch)}")
+
+    errors.extend(validate_media(payload.get("media")))
+    position = payload.get("group_position")
+    if position is not None and (not isinstance(position, int) or position < 0):
+        errors.append("group_position 必须是非负整数")
 
     stem = (payload.get("stem") or "").strip()
     if len(stem) < 5:

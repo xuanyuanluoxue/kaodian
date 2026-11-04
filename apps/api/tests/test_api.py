@@ -496,3 +496,194 @@ def test_code_run_rejects_unknown_language(client, monkeypatch):
     monkeypatch.setenv("KAODIAN_ALLOW_CODE_RUN", "1")
     res = client.post("/api/code/run", json={"code": "print(1)", "language": "python"})
     assert res.status_code == 422
+
+
+def _single(outline_code, stem, **extra):
+    return {
+        "outline_code": outline_code,
+        "type": "single",
+        "stem": stem,
+        "options": ["甲", "乙", "丙", "丁"],
+        "answer": ["A"],
+        "explanation": "这是解析，长度足够通过校验。",
+        "difficulty": 2,
+        "score": 3,
+        **extra,
+    }
+
+
+def test_question_group_quiz_detail(client):
+    group = client.post("/api/question-groups", json={
+        "subject_id": "computer",
+        "title": "阅读下面材料",
+        "material": "一个 C 程序由若干函数组成。",
+        "media": [{"type": "image", "url": "/images/x.svg", "alt": "程序结构"}],
+    }).json()
+    assert group["id"].startswith("g_")
+
+    created = client.post("/api/questions/batch", json={"questions": [
+        _single("C-01", "材料题小题一：程序的基本单位是（ ）",
+                group_id=group["id"], group_position=1),
+        _single("C-01", "材料题小题二：函数入口是（ ）",
+                group_id=group["id"], group_position=2),
+    ]}).json()
+    assert created["created"] == 2
+    client.post("/api/questions/review",
+                json={"ids": created["ids"], "decision": "approve"})
+
+    detail = client.get(f"/api/question-groups/{group['id']}").json()
+    assert [q["id"] for q in detail["questions"]] == created["ids"]
+    assert all(q["group_id"] == group["id"] for q in detail["questions"])
+
+    quiz = client.post("/api/quizzes", json={
+        "mode": "practice", "question_ids": created["ids"],
+    }).json()
+    assert len(quiz["groups"]) == 1
+    assert quiz["groups"][0]["id"] == group["id"]
+    assert quiz["groups"][0]["question_ids"] == created["ids"]
+    assert quiz["groups"][0]["material"] == "一个 C 程序由若干函数组成。"
+    assert all(q["group_id"] == group["id"] for q in quiz["questions"])
+
+
+def test_question_with_secondary_outline_code_can_be_drawn(client):
+    created = client.post("/api/questions/batch", json={"questions": [
+        _single("C-02", "多考点测试：下列哪个是合法标识符（ ）",
+                outline_codes=["C-02", "C-05"]),
+    ]}).json()
+    qid = created["ids"][0]
+    client.post("/api/questions/review", json={"ids": [qid], "decision": "approve"})
+
+    found = client.get("/api/questions?code=C-05&limit=200").json()
+    assert any(q["id"] == qid for q in found)
+    assert set(next(q for q in found if q["id"] == qid)["outline_codes"]) == {"C-02", "C-05"}
+
+    quiz = client.post("/api/quizzes", json={
+        "mode": "practice", "count": 100,
+        "filters": {"subject_id": "computer", "codes": ["C-05"], "types": ["single"]},
+    }).json()
+    assert qid in {q["id"] for q in quiz["questions"]}
+
+
+def test_question_media_roundtrip(client):
+    media = [
+        {"type": "image", "url": "/images/tree.svg", "alt": "二叉树",
+         "license": "CC0", "source": "local"},
+        {"type": "audio", "url": "https://example.com/a.mp3", "alt": "朗读"},
+    ]
+    created = client.post("/api/questions/batch", json={"questions": [
+        _single("C-03", "媒体测试：二叉树的中序遍历是（ ）", media=media),
+    ]}).json()
+    qid = created["ids"][0]
+    items = client.get("/api/questions?status=pending&code=C-03&limit=200").json()
+    item = next(q for q in items if q["id"] == qid)
+    assert item["media"] == media
+
+    bad = client.post("/api/questions/batch", json={"questions": [
+        _single("C-03", "媒体校验：非法外链应当被拒绝（ ）",
+                media=[{"type": "image", "url": "http://example.com/x.png"}]),
+    ]})
+    assert bad.status_code == 422
+
+
+def test_group_config_sync_is_idempotent(tmp_path, monkeypatch):
+    from apps.api.app import db as database
+
+    cfg = tmp_path / "config"
+    shutil.copytree(Path(__file__).resolve().parents[3] / "config", cfg)
+    (cfg / "questions" / "grouped.seed.json").write_text(json.dumps({
+        "groups": [{
+            "key": "g1",
+            "title": "材料组一",
+            "material": "阅读材料正文。",
+            "media": [{"type": "image", "url": "/images/x.svg", "alt": "图"}],
+        }],
+        "questions": [
+            {**_single("M-01", "对象格式测试：函数极限的定义是（ ）",
+                       outline_codes=["M-01", "M-02"]),
+             "group_key": "g1", "group_position": 1},
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    monkeypatch.setenv("KAODIAN_CONFIG_DIR", str(cfg))
+    path = tmp_path / "sync-group.db"
+    database.init_db(path)
+    database.init_db(path)
+
+    with database.session(path) as conn:
+        groups = conn.execute(
+            "SELECT * FROM question_group WHERE source_key = 'g1'"
+        ).fetchall()
+        assert len(groups) == 1
+        q = conn.execute(
+            "SELECT * FROM question WHERE stem = ?",
+            ("对象格式测试：函数极限的定义是（ ）",),
+        ).fetchone()
+        assert q is not None
+        assert q["group_id"] == groups[0]["id"]
+        assert q["group_position"] == 1
+        linked = {
+            r["outline_code"] for r in conn.execute(
+                "SELECT outline_code FROM question_outline WHERE question_id = ?",
+                (q["id"],),
+            )
+        }
+        assert {"M-01", "M-02"} <= linked
+
+
+def test_v2_database_upgrades_without_data_loss(tmp_path):
+    from apps.api.app import db as database
+
+    path = tmp_path / "v2.db"
+    database.init_db(path)
+    with database.session(path) as conn:
+        before = {
+            table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("subject", "outline_node", "question")
+        }
+        now = database.now_iso()
+        conn.execute(
+            """INSERT INTO page(id, subject_id, title, summary, body, lesson_key,
+                                outline_codes, kind, status, sort_order, created_at, updated_at)
+               VALUES ('p_migrate', 'computer', '迁移测试页', NULL, '正文', 'L99',
+                       '[]', 'lesson', 'published', 1, ?, ?)""",
+            (now, now),
+        )
+        qid = conn.execute("SELECT id FROM question LIMIT 1").fetchone()["id"]
+
+    # 退回 v2：删掉 v2.1 新增的表和列。
+    raw = sqlite3.connect(path)
+    try:
+        raw.execute("DROP TABLE question_outline")
+        raw.execute("DROP TABLE question_group")
+        raw.execute("DROP INDEX IF EXISTS idx_question_group")
+        raw.execute("ALTER TABLE question DROP COLUMN group_id")
+        raw.execute("ALTER TABLE question DROP COLUMN group_position")
+        raw.execute("ALTER TABLE question DROP COLUMN media")
+        raw.execute("PRAGMA user_version = 2")
+        raw.commit()
+    finally:
+        raw.close()
+
+    database.init_db(path)
+
+    with database.session(path) as conn:
+        for table in before:
+            assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] >= before[table]
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
+        tables = {
+            r["name"] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+        assert {"question_group", "question_outline"} <= tables
+        columns = {r["name"] for r in conn.execute("PRAGMA table_info(question)")}
+        assert {"group_id", "group_position", "media"} <= columns
+        assert conn.execute(
+            "SELECT 1 FROM page WHERE id = 'p_migrate'"
+        ).fetchone() is not None
+        assert conn.execute(
+            "SELECT 1 FROM question_outline WHERE question_id = ?", (qid,)
+        ).fetchone() is not None
+
+    assert list(tmp_path.glob("v2.db.bak-v2-*"))
+

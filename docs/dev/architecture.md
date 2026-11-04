@@ -71,7 +71,9 @@ flowchart LR
 | 表 | 内容 |
 |---|---|
 | `subject` / `outline_node` | 科目（含显示色/图标/排序）与考纲树 |
-| `question` | 题目，`status` = pending / approved / rejected |
+| `question` | 题目，`status` = pending / approved / rejected；`group_id` 挂材料组 |
+| `question_group` | 材料题 / 一拖多：材料正文、媒体、来源 key |
+| `question_outline` | 一题多考点；主考点仍是 `question.outline_code` |
 | `quiz` / `quiz_item` | 练习单 |
 | `attempt` / `answer` | 作答、逐题得分、`grading_status` |
 | `review` | 每题的掌握度、下次复习 |
@@ -81,9 +83,11 @@ flowchart LR
 
 ## 版本与内容同步
 
-- `PRAGMA user_version = 2`；旧库启动时先备份为 `*.bak-v{old}-{时间}`，再增量加列。
-- `config/` 每次启动同步：科目/大纲 UPSERT，题库只补新题；不会删除库里已有内容。
+- `PRAGMA user_version = 3`；旧库启动时先备份为 `*.bak-v{old}-{时间}`，再增量加列/建表。
+- `config/` 每次启动同步：科目/大纲/材料组 UPSERT，题库只补新题；不会删除库里已有内容。
 - 新增科目只加 `config/subjects/*.json`，不需要改代码；新增题型只改 `config/question_types.json`。
+- v2 → v3 新增 `question_group`、`question_outline` 两张表，`question` 增加
+  `group_id/group_position/media`；老题的主考点会回填到 `question_outline`。
 
 详见 [`framework-v2.md`](framework-v2.md)。
 

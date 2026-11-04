@@ -19,5 +19,19 @@ export function percent(part: number, total: number): string {
 }
 
 export function errorText(e: unknown): string {
-  return e instanceof ApiError ? e.message : String(e);
+  if (e instanceof ApiError) return e.message || "请求失败";
+  if (e instanceof Error) return e.message || "出错了";
+  if (typeof e === "string") return e || "请求失败";
+  if (e && typeof e === "object") {
+    const maybe = e as { message?: unknown; detail?: unknown };
+    if (typeof maybe.message === "string" && maybe.message) return maybe.message;
+    if (typeof maybe.detail === "string" && maybe.detail) return maybe.detail;
+    try {
+      const text = JSON.stringify(e);
+      if (text && text !== "{}") return text;
+    } catch {
+      /* ignore */
+    }
+  }
+  return "请求失败";
 }

@@ -15,13 +15,13 @@ from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import db as database
 from . import question_types
-from .grading import fingerprint, grade, validate_question
+from .grading import fingerprint, grade, validate_media, validate_question
 from .review import apply_result
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -32,6 +32,7 @@ WEB_DIST = ROOT / "apps" / "web" / "dist"
 
 class QuestionIn(BaseModel):
     outline_code: str
+    outline_codes: list[str] = Field(default_factory=list)
     subject_id: str | None = None
     type: str
     stem: str
@@ -46,7 +47,24 @@ class QuestionIn(BaseModel):
     tags: list[str] = Field(default_factory=list)
     verified: bool = False
     language: str | None = None
+    group_id: str | None = None
+    group_position: int = 0
+    media: list[dict] = Field(default_factory=list)
     client_ref: str | None = None
+
+
+class QuestionGroupIn(BaseModel):
+    subject_id: str | None = None
+    title: str | None = None
+    material: str = ""
+    media: list[dict] = Field(default_factory=list)
+
+
+class QuestionGroupPatch(BaseModel):
+    subject_id: str | None = None
+    title: str | None = None
+    material: str | None = None
+    media: list[dict] | None = None
 
 
 class BatchIn(BaseModel):
@@ -157,9 +175,18 @@ class PagePatch(BaseModel):
     sort_order: int | None = None
 
 
+class ImportIn(BaseModel):
+    format: str = "kaodian-export"
+    version: int = database.SCHEMA_VERSION
+    scope: Literal["content", "progress", "all"] = "content"
+    overwrite: bool = False
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
 # ---------------------------------------------------------------- helpers
 
-def row_to_question(row: sqlite3.Row, reveal: bool = True) -> dict:
+def row_to_question(row: sqlite3.Row, reveal: bool = True,
+                    conn: sqlite3.Connection | None = None) -> dict:
     def load(value):
         if value is None:
             return None
@@ -168,13 +195,32 @@ def row_to_question(row: sqlite3.Row, reveal: bool = True) -> dict:
         except (TypeError, json.JSONDecodeError):
             return value
 
+    codes = None
+    if conn is not None:
+        codes = [
+            r["outline_code"]
+            for r in conn.execute(
+                """SELECT outline_code FROM question_outline
+                   WHERE question_id = ?
+                   ORDER BY CASE WHEN outline_code = ? THEN 0 ELSE 1 END,
+                            weight DESC, outline_code""",
+                (row["id"], row["outline_code"]),
+            )
+        ]
+    if not codes:
+        codes = [row["outline_code"]]
+
     item = {
         "id": row["id"],
         "subject_id": row["subject_id"],
         "outline_code": row["outline_code"],
+        "outline_codes": codes,
+        "group_id": row["group_id"] if "group_id" in row.keys() else None,
+        "group_position": row["group_position"] if "group_position" in row.keys() else 0,
         "type": row["type"],
         "stem": row["stem"],
         "options": load(row["options"]),
+        "media": (load(row["media"]) if "media" in row.keys() else None) or [],
         "score": row["score"],
         "difficulty": row["difficulty"],
         "tags": load(row["tags"]) or [],
@@ -191,6 +237,24 @@ def row_to_question(row: sqlite3.Row, reveal: bool = True) -> dict:
         item["reference_answer"] = row["reference_answer"]
         item["rubric"] = load(row["rubric"])
     return item
+
+
+def group_dict(row: sqlite3.Row) -> dict:
+    media = None
+    if row["media"]:
+        try:
+            media = json.loads(row["media"])
+        except (TypeError, json.JSONDecodeError):
+            media = row["media"]
+    return {
+        "id": row["id"],
+        "subject_id": row["subject_id"],
+        "title": row["title"],
+        "material": row["material"] or "",
+        "media": media or [],
+        "source_key": row["source_key"] if "source_key" in row.keys() else None,
+        "created_at": row["created_at"],
+    }
 
 
 def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
@@ -227,6 +291,29 @@ def get_quiz(conn: sqlite3.Connection, quiz_id: str) -> dict:
            WHERE i.quiz_id = ? ORDER BY i.position""",
         (quiz_id,),
     ).fetchall()
+
+    questions = [
+        row_to_question(r, reveal=(quiz["mode"] == "practice"), conn=conn)
+        for r in items
+    ]
+
+    groups: list[dict] = []
+    group_ids = list(dict.fromkeys(q["group_id"] for q in questions if q["group_id"]))
+    if group_ids:
+        marks = ",".join("?" * len(group_ids))
+        rows = conn.execute(
+            f"SELECT * FROM question_group WHERE id IN ({marks})", group_ids
+        ).fetchall()
+        by_id = {row["id"]: group_dict(row) for row in rows}
+        members: dict[str, list[str]] = {}
+        for q in questions:
+            if q["group_id"]:
+                members.setdefault(q["group_id"], []).append(q["id"])
+        for gid in group_ids:
+            if gid not in by_id:
+                continue
+            groups.append({**by_id[gid], "question_ids": members.get(gid, [])})
+
     return {
         "id": quiz["id"],
         "title": quiz["title"],
@@ -235,7 +322,8 @@ def get_quiz(conn: sqlite3.Connection, quiz_id: str) -> dict:
         "agent_session_id": quiz["agent_session_id"],
         "created_at": quiz["created_at"],
         "question_count": len(items),
-        "questions": [row_to_question(r, reveal=(quiz["mode"] == "practice")) for r in items],
+        "questions": questions,
+        "groups": groups,
     }
 
 
@@ -268,7 +356,9 @@ def get_attempt(conn: sqlite3.Connection, attempt_id: str, reveal: bool = True) 
         "grading_status": row["grading_status"] if "grading_status" in row.keys() else "none",
         "quiz": quiz if reveal or row["status"] == "submitted" else {
             **quiz, "questions": [{k: v for k, v in q.items() if k in
-                                   {"id", "subject_id", "outline_code", "type", "stem", "options", "score", "difficulty", "tags"}}
+                                   {"id", "subject_id", "outline_code", "outline_codes", "group_id",
+                                    "group_position", "type", "stem", "options", "media",
+                                    "score", "difficulty", "tags"}}
                                   for q in quiz["questions"]],
         },
         "answers": answers,
@@ -359,7 +449,7 @@ def results_for(conn: sqlite3.Connection, attempt_id: str) -> list[dict]:
             "SELECT * FROM answer WHERE attempt_id = ? AND question_id = ?", (attempt_id, q["id"])
         ).fetchone()
         out.append({
-            "question": row_to_question(q, reveal=True),
+            "question": row_to_question(q, reveal=True, conn=conn),
             "response": json.loads(a["response"]) if a and a["response"] else None,
             "self_grade": json.loads(a["self_grade"]) if a and a["self_grade"] else None,
             "correct": None if not a or a["correct"] is None else bool(a["correct"]),
@@ -430,6 +520,404 @@ def log_event(conn: sqlite3.Connection, attempt_id: str | None, kind: str, paylo
     )
 
 
+# ---------------------------------------------------------------- export / import
+
+_EXPORT_SPECS: dict[str, list[tuple[str, str, tuple[str, ...], str]]] = {
+    "content": [
+        ("subjects", "subject", (), "sort, id"),
+        ("outline", "outline_node", (), "subject_id, sort, code"),
+        ("groups", "question_group", ("media",), "created_at, id"),
+        ("questions", "question",
+         ("options", "answer", "rubric", "source", "tags", "media"), "created_at, id"),
+        ("question_outline", "question_outline", (), "question_id, outline_code"),
+        ("pages", "page", ("outline_codes",), "subject_id, sort_order, created_at, id"),
+    ],
+    "progress": [
+        ("page_progress", "page_progress", (), "page_id"),
+        ("review", "review", (), "question_id"),
+        ("study_time", "study_time", (), "day, source, ref"),
+    ],
+}
+
+
+def _decode_json(value: Any) -> Any:
+    if value is None:
+        return None
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return value
+
+
+def export_data(conn: sqlite3.Connection, scope: Literal["content", "progress", "all"]) -> dict:
+    scopes = ("content", "progress") if scope == "all" else (scope,)
+    data: dict[str, list[dict]] = {}
+    for name in scopes:
+        for key, table, json_cols, order in _EXPORT_SPECS[name]:
+            rows = []
+            for row in conn.execute(f"SELECT * FROM {table} ORDER BY {order}"):
+                item = dict(row)
+                for column in json_cols:
+                    item[column] = _decode_json(item.get(column))
+                rows.append(item)
+            data[key] = rows
+    return data
+
+
+_REQUIRED = object()
+_NOW = object()
+
+# 导入只接受这些列；JSON 列在写入前统一编码，未知字段忽略。
+_IMPORT_SPECS: dict[str, tuple[str, str, dict[str, Any], tuple[str, ...]]] = {
+    "subjects": ("subject", "id", {
+        "id": _REQUIRED, "name": _REQUIRED, "short": _REQUIRED,
+        "exam_score": 100, "exam_minutes": 120, "color": None, "icon": None,
+        "sort": 0, "code_language": None,
+    }, ()),
+    "outline": ("outline_node", "code", {
+        "code": _REQUIRED, "subject_id": _REQUIRED, "section": None,
+        "title": _REQUIRED, "requirement": None, "frequency": None, "hours": None,
+        "stage": None, "assessment": None, "kind": "point", "sort": 0,
+        "parent_code": None, "depth": 0,
+    }, ()),
+    "groups": ("question_group", "id", {
+        "id": _REQUIRED, "subject_id": None, "title": None, "material": "",
+        "media": None, "source_key": None, "created_at": _NOW,
+    }, ("media",)),
+    "questions": ("question", "id", {
+        "id": _REQUIRED, "subject_id": None, "outline_code": _REQUIRED,
+        "group_id": None, "group_position": 0, "type": _REQUIRED,
+        "stem": _REQUIRED, "options": None, "answer": None, "explanation": "",
+        "reference_answer": None, "rubric": None, "score": 1, "difficulty": 2,
+        "source": None, "tags": None, "verified": 0, "language": None,
+        "media": None, "status": "approved", "reviewed_at": None,
+        "review_note": None, "fingerprint": None, "created_at": _NOW,
+    }, ("options", "answer", "rubric", "source", "tags", "media")),
+    "question_outline": ("question_outline", "question_id", {
+        "question_id": _REQUIRED, "outline_code": _REQUIRED, "weight": 1,
+    }, ()),
+    "pages": ("page", "id", {
+        "id": _REQUIRED, "subject_id": None, "title": _REQUIRED, "summary": None,
+        "body": _REQUIRED, "lesson_key": None, "outline_codes": None,
+        "kind": "lesson", "status": "published", "sort_order": 1000,
+        "created_at": _NOW, "updated_at": _NOW,
+    }, ("outline_codes",)),
+    "page_progress": ("page_progress", "page_id", {
+        "page_id": _REQUIRED, "completed_at": _NOW, "xp": 10,
+    }, ()),
+    "review": ("review", "question_id", {
+        "question_id": _REQUIRED, "due_date": _REQUIRED, "interval_days": 0,
+        "mastery": 0, "streak": 0, "lapses": 0, "last_result": None,
+        "updated_at": _NOW,
+    }, ()),
+    "study_time": ("study_time", "day", {
+        "day": _REQUIRED, "source": _REQUIRED, "ref": "", "seconds": 0,
+        "updated_at": _NOW,
+    }, ()),
+}
+
+
+def _json_text(value: Any) -> Any:
+    if value is None or isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _row_values(table: str, index: int, row: Any) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        raise HTTPException(422, f"{table}[{index}] 必须是对象")
+    _, _, columns, json_cols = _IMPORT_SPECS[table]
+    values: dict[str, Any] = {}
+    for column, default in columns.items():
+        if column in row:
+            value = row[column]
+        elif default is _REQUIRED:
+            raise HTTPException(422, f"{table}[{index}].{column} 不能为空")
+        elif default is _NOW:
+            value = database.now_iso()
+        else:
+            value = default
+        if column in json_cols:
+            value = _json_text(value)
+        if column == "verified":
+            value = 1 if value else 0
+        values[column] = value
+    return values
+
+
+def _check_ref(conn: sqlite3.Connection, table: str, column: str, value: Any,
+               label: str) -> None:
+    if value is None:
+        return
+    if not conn.execute(f"SELECT 1 FROM {table} WHERE {column} = ?", (value,)).fetchone():
+        raise HTTPException(422, f"{label}: {value} 不存在")
+
+
+def _store_row(conn: sqlite3.Connection, table: str, pk: str,
+               values: dict[str, Any], overwrite: bool) -> bool:
+    exists = conn.execute(
+        f"SELECT 1 FROM {table} WHERE {pk} = ?", (values[pk],)
+    ).fetchone()
+    if exists:
+        if not overwrite:
+            return False
+        fields = [key for key in values if key != pk]
+        if fields:
+            conn.execute(
+                f"UPDATE {table} SET {', '.join(f'{key} = ?' for key in fields)} WHERE {pk} = ?",
+                [values[key] for key in fields] + [values[pk]],
+            )
+        return True
+    columns = list(values)
+    conn.execute(
+        f"INSERT INTO {table}({', '.join(columns)}) VALUES ({', '.join('?' * len(columns))})",
+        [values[key] for key in columns],
+    )
+    return True
+
+
+def _store_group(conn: sqlite3.Connection, values: dict[str, Any], overwrite: bool) -> bool:
+    existing = conn.execute(
+        "SELECT id FROM question_group WHERE id = ?", (values["id"],)
+    ).fetchone()
+    if not existing and values["source_key"] is not None:
+        existing = conn.execute(
+            "SELECT id FROM question_group WHERE source_key = ? AND subject_id IS ?",
+            (values["source_key"], values["subject_id"]),
+        ).fetchone()
+    if existing:
+        if not overwrite:
+            return False
+        fields = [key for key in values if key != "id"]
+        conn.execute(
+            f"UPDATE question_group SET {', '.join(f'{key} = ?' for key in fields)} WHERE id = ?",
+            [values[key] for key in fields] + [existing["id"]],
+        )
+        return True
+    return _store_row(conn, "question_group", "id", values, True)
+
+
+def _store_question(conn: sqlite3.Connection, values: dict[str, Any], overwrite: bool,
+                    index: int) -> bool:
+    by_id = conn.execute(
+        "SELECT id FROM question WHERE id = ?", (values["id"],)
+    ).fetchone()
+    by_fp = None
+    if values["fingerprint"]:
+        by_fp = conn.execute(
+            "SELECT id FROM question WHERE fingerprint = ?", (values["fingerprint"],)
+        ).fetchone()
+    if by_id and by_fp and by_id["id"] != by_fp["id"]:
+        raise HTTPException(
+            422,
+            f"questions[{index}].fingerprint 已被题目 {by_fp['id']} 占用",
+        )
+    existing = by_id or by_fp
+    if existing:
+        if not overwrite:
+            return False
+        fields = [key for key in values if key != "id"]
+        conn.execute(
+            f"UPDATE question SET {', '.join(f'{key} = ?' for key in fields)} WHERE id = ?",
+            [values[key] for key in fields] + [existing["id"]],
+        )
+        return True
+    return _store_row(conn, "question", "id", values, True)
+
+
+def import_data(conn: sqlite3.Connection, body: ImportIn) -> dict:
+    if body.format != "kaodian-export":
+        raise HTTPException(422, "format 必须是 kaodian-export")
+    if body.version < 1:
+        raise HTTPException(422, f"version {body.version} 不合法")
+    if body.version > database.SCHEMA_VERSION:
+        raise HTTPException(
+            422,
+            f"导出文件版本 {body.version} 高于当前支持的 {database.SCHEMA_VERSION}",
+        )
+    if not isinstance(body.data, dict):
+        raise HTTPException(422, "data 必须是对象")
+
+    content_keys = ["subjects", "outline", "groups", "questions",
+                    "question_outline", "pages"]
+    progress_keys = ["page_progress", "review", "study_time"]
+    if body.scope == "content":
+        keys = content_keys
+    elif body.scope == "progress":
+        keys = progress_keys
+    else:
+        keys = content_keys + progress_keys
+
+    imported = {key: 0 for key in keys}
+    skipped = {key: 0 for key in keys}
+    subjects_touched: set[str] = set()
+
+    def rows_of(key: str) -> list:
+        value = body.data.get(key, [])
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise HTTPException(422, f"data.{key} 必须是数组")
+        return value
+
+    if "subjects" in keys:
+        for index, row in enumerate(rows_of("subjects")):
+            values = _row_values("subjects", index, row)
+            if _store_row(conn, "subject", "id", values, body.overwrite):
+                imported["subjects"] += 1
+            else:
+                skipped["subjects"] += 1
+
+    if "outline" in keys:
+        for index, row in enumerate(rows_of("outline")):
+            values = _row_values("outline", index, row)
+            _check_ref(conn, "subject", "id", values["subject_id"],
+                       f"outline[{index}].subject_id")
+            if _store_row(conn, "outline_node", "code", values, body.overwrite):
+                imported["outline"] += 1
+                subjects_touched.add(values["subject_id"])
+            else:
+                skipped["outline"] += 1
+        for subject_id in subjects_touched:
+            database._update_depths(conn, subject_id)
+
+    if "groups" in keys:
+        for index, row in enumerate(rows_of("groups")):
+            values = _row_values("groups", index, row)
+            _check_ref(conn, "subject", "id", values["subject_id"],
+                       f"groups[{index}].subject_id")
+            if _store_group(conn, values, body.overwrite):
+                imported["groups"] += 1
+            else:
+                skipped["groups"] += 1
+
+    if "questions" in keys:
+        for index, row in enumerate(rows_of("questions")):
+            values = _row_values("questions", index, row)
+            label = f"questions[{index}]"
+            if not values["subject_id"]:
+                subject = conn.execute(
+                    "SELECT subject_id FROM outline_node WHERE code = ?",
+                    (values["outline_code"],),
+                ).fetchone()
+                if subject:
+                    values["subject_id"] = subject["subject_id"]
+            _check_ref(conn, "subject", "id", values["subject_id"],
+                       f"{label}.subject_id")
+            _check_ref(conn, "outline_node", "code", values["outline_code"],
+                       f"{label}.outline_code")
+            _check_ref(conn, "question_group", "id", values["group_id"],
+                       f"{label}.group_id")
+            if not values["fingerprint"]:
+                values["fingerprint"] = fingerprint(values["stem"])
+            if _store_question(conn, values, body.overwrite, index):
+                imported["questions"] += 1
+            else:
+                skipped["questions"] += 1
+
+    if "question_outline" in keys:
+        for index, row in enumerate(rows_of("question_outline")):
+            values = _row_values("question_outline", index, row)
+            label = f"question_outline[{index}]"
+            _check_ref(conn, "question", "id", values["question_id"],
+                       f"{label}.question_id")
+            _check_ref(conn, "outline_node", "code", values["outline_code"],
+                       f"{label}.outline_code")
+            exists = conn.execute(
+                """SELECT 1 FROM question_outline
+                   WHERE question_id = ? AND outline_code = ?""",
+                (values["question_id"], values["outline_code"]),
+            ).fetchone()
+            if exists:
+                if body.overwrite:
+                    conn.execute(
+                        """UPDATE question_outline SET weight = ?
+                           WHERE question_id = ? AND outline_code = ?""",
+                        (values["weight"], values["question_id"], values["outline_code"]),
+                    )
+                    imported["question_outline"] += 1
+                else:
+                    skipped["question_outline"] += 1
+                continue
+            conn.execute(
+                """INSERT INTO question_outline(question_id, outline_code, weight)
+                   VALUES (?,?,?)""",
+                (values["question_id"], values["outline_code"], values["weight"]),
+            )
+            imported["question_outline"] += 1
+
+    if "pages" in keys:
+        for index, row in enumerate(rows_of("pages")):
+            values = _row_values("pages", index, row)
+            label = f"pages[{index}]"
+            _check_ref(conn, "subject", "id", values["subject_id"],
+                       f"{label}.subject_id")
+            codes = _decode_json(values["outline_codes"]) or []
+            if not isinstance(codes, list):
+                raise HTTPException(422, f"{label}.outline_codes 必须是数组")
+            for code in codes:
+                _check_ref(conn, "outline_node", "code", code,
+                           f"{label}.outline_codes")
+            if _store_row(conn, "page", "id", values, body.overwrite):
+                imported["pages"] += 1
+            else:
+                skipped["pages"] += 1
+
+    if "page_progress" in keys:
+        for index, row in enumerate(rows_of("page_progress")):
+            values = _row_values("page_progress", index, row)
+            label = f"page_progress[{index}]"
+            if not conn.execute("SELECT 1 FROM page WHERE id = ?",
+                                (values["page_id"],)).fetchone():
+                # 进度依赖页面已存在；单独导入进度时跳过悬空记录。
+                skipped["page_progress"] += 1
+                continue
+            if _store_row(conn, "page_progress", "page_id", values, body.overwrite):
+                imported["page_progress"] += 1
+            else:
+                skipped["page_progress"] += 1
+
+    if "review" in keys:
+        for index, row in enumerate(rows_of("review")):
+            values = _row_values("review", index, row)
+            if not conn.execute("SELECT 1 FROM question WHERE id = ?",
+                                (values["question_id"],)).fetchone():
+                skipped["review"] += 1
+                continue
+            if _store_row(conn, "review", "question_id", values, body.overwrite):
+                imported["review"] += 1
+            else:
+                skipped["review"] += 1
+
+    if "study_time" in keys:
+        for index, row in enumerate(rows_of("study_time")):
+            values = _row_values("study_time", index, row)
+            key = (values["day"], values["source"], values["ref"])
+            exists = conn.execute(
+                "SELECT 1 FROM study_time WHERE day = ? AND source = ? AND ref = ?", key
+            ).fetchone()
+            if exists:
+                if body.overwrite:
+                    conn.execute(
+                        """UPDATE study_time SET seconds = ?, updated_at = ?
+                           WHERE day = ? AND source = ? AND ref = ?""",
+                        (values["seconds"], values["updated_at"], *key),
+                    )
+                    imported["study_time"] += 1
+                else:
+                    skipped["study_time"] += 1
+                continue
+            conn.execute(
+                """INSERT INTO study_time(day, source, ref, seconds, updated_at)
+                   VALUES (?,?,?,?,?)""",
+                (values["day"], values["source"], values["ref"],
+                 values["seconds"], values["updated_at"]),
+            )
+            imported["study_time"] += 1
+
+    return {"imported": imported, "skipped": skipped}
+
+
 # ---------------------------------------------------------------- app
 
 def create_app(db_file: Path | None = None) -> FastAPI:
@@ -464,7 +952,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; "
+            "img-src 'self' data: blob: https:; media-src 'self' https:; font-src 'self' data:; connect-src 'self'; "
             "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
         )
         return response
@@ -535,14 +1023,19 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         if status != "all":
             sql += " AND status = ?"
             args.append(status)
-        for column, value in (("subject_id", subject_id), ("outline_code", code), ("type", type)):
+        for column, value in (("subject_id", subject_id), ("type", type)):
             if value:
                 sql += f" AND {column} = ?"
                 args.append(value)
+        if code:
+            sql += (" AND (outline_code = ? OR EXISTS ("
+                    "SELECT 1 FROM question_outline qo"
+                    " WHERE qo.question_id = question.id AND qo.outline_code = ?))")
+            args += [code, code]
         sql += " ORDER BY created_at DESC LIMIT ?"
         args.append(limit)
         with conn() as c:
-            return [row_to_question(r) for r in c.execute(sql, args)]
+            return [row_to_question(r, conn=c) for r in c.execute(sql, args)]
 
     @app.post("/api/questions/validate")
     def validate(body: BatchIn):
@@ -558,9 +1051,23 @@ def create_app(db_file: Path | None = None) -> FastAPI:
     def create_questions(body: BatchIn):
         with conn() as c:
             outline = {r["code"]: r["subject_id"] for r in c.execute("SELECT code, subject_id FROM outline_node")}
+            groups = {
+                r["id"]: r["subject_id"]
+                for r in c.execute("SELECT id, subject_id FROM question_group")
+            }
             errors = []
             for i, q in enumerate(body.questions):
                 errs = validate_question(q.model_dump(), outline)
+                if q.group_id:
+                    if q.group_id not in groups:
+                        errs.append(f"group_id {q.group_id} 不存在")
+                    else:
+                        subject_id = q.subject_id or outline.get(q.outline_code)
+                        if groups[q.group_id] and groups[q.group_id] != subject_id:
+                            errs.append(
+                                f"group_id {q.group_id} 属于 {groups[q.group_id]}，"
+                                f"与题目科目 {subject_id} 不符"
+                            )
                 if errs:
                     errors.append({"index": i, "errors": errs})
             if errors:
@@ -574,11 +1081,13 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 try:
                     c.execute(
                         """INSERT INTO question
-                           (id, subject_id, outline_code, type, stem, options, answer, explanation,
-                            reference_answer, rubric, score, difficulty, source, tags, verified, status, fingerprint, created_at)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                           (id, subject_id, outline_code, group_id, group_position, type, stem,
+                            options, answer, explanation, reference_answer, rubric, score, difficulty,
+                            source, tags, verified, language, media, status, fingerprint, created_at)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (
-                            qid, subject_id, q.outline_code, q.type, q.stem,
+                            qid, subject_id, q.outline_code, q.group_id, q.group_position,
+                            q.type, q.stem,
                             json.dumps(q.options, ensure_ascii=False) if q.options is not None else None,
                             json.dumps(q.answer, ensure_ascii=False) if q.answer is not None else None,
                             q.explanation, q.reference_answer,
@@ -586,12 +1095,22 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                             q.score, q.difficulty,
                             json.dumps(q.source or {"kind": "ai"}, ensure_ascii=False),
                             json.dumps(q.tags, ensure_ascii=False),
-                            1 if q.verified else 0, "pending", fp, database.now_iso(),
+                            1 if q.verified else 0, q.language,
+                            json.dumps(q.media, ensure_ascii=False) if q.media else None,
+                            "pending", fp, database.now_iso(),
                         ),
                     )
-                    created.append(qid)
                 except sqlite3.IntegrityError:
                     skipped.append(q.stem[:40])
+                    continue
+                linked = [q.outline_code]
+                linked += [code for code in q.outline_codes if code not in linked]
+                for code in linked:
+                    c.execute(
+                        "INSERT OR IGNORE INTO question_outline(question_id, outline_code) VALUES (?,?)",
+                        (qid, code),
+                    )
+                created.append(qid)
             log_event(c, None, "questions.created", {"created": len(created), "skipped": len(skipped)})
         return {"created": len(created), "skipped": len(skipped), "ids": created}
 
@@ -632,6 +1151,106 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             "by_type": [dict(r) for r in by_type],
         }
 
+    # -------- question groups（材料题 / 一拖多）
+
+    @app.post("/api/question-groups", status_code=201)
+    def create_question_group(body: QuestionGroupIn):
+        errors = validate_media(body.media)
+        if errors:
+            raise HTTPException(422, "；".join(errors))
+        with conn() as c:
+            if body.subject_id and not c.execute(
+                "SELECT 1 FROM subject WHERE id = ?", (body.subject_id,)
+            ).fetchone():
+                raise HTTPException(422, f"subject_id {body.subject_id} 不存在")
+            gid = database.new_id("g")
+            c.execute(
+                """INSERT INTO question_group
+                   (id, subject_id, title, material, media, source_key, created_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (gid, body.subject_id, body.title, body.material,
+                 json.dumps(body.media, ensure_ascii=False) if body.media else None,
+                 None, database.now_iso()),
+            )
+            row = c.execute("SELECT * FROM question_group WHERE id = ?", (gid,)).fetchone()
+            return {**group_dict(row), "questions": []}
+
+    @app.get("/api/question-groups")
+    def list_question_groups(subject_id: str | None = None,
+                             limit: int = Query(50, ge=1, le=200)):
+        sql = """SELECT g.*, (SELECT COUNT(*) FROM question q WHERE q.group_id = g.id)
+                        AS question_count
+                 FROM question_group g WHERE 1=1"""
+        args: list = []
+        if subject_id:
+            sql += " AND g.subject_id = ?"
+            args.append(subject_id)
+        sql += " ORDER BY g.created_at DESC LIMIT ?"
+        args.append(limit)
+        with conn() as c:
+            return [
+                {**group_dict(r), "question_count": r["question_count"]}
+                for r in c.execute(sql, args)
+            ]
+
+    def read_group(conn: sqlite3.Connection, group_id: str) -> dict:
+        row = conn.execute(
+            "SELECT * FROM question_group WHERE id = ?", (group_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "材料组不存在")
+        questions = conn.execute(
+            """SELECT * FROM question
+               WHERE group_id = ? ORDER BY group_position, created_at""",
+            (group_id,),
+        ).fetchall()
+        return {
+            **group_dict(row),
+            "question_count": len(questions),
+            "questions": [row_to_question(q, conn=conn) for q in questions],
+        }
+
+    @app.get("/api/question-groups/{group_id}")
+    def get_question_group(group_id: str):
+        with conn() as c:
+            return read_group(c, group_id)
+
+    @app.patch("/api/question-groups/{group_id}")
+    def update_question_group(group_id: str, body: QuestionGroupPatch):
+        data = body.model_dump(exclude_unset=True)
+        with conn() as c:
+            row = c.execute(
+                "SELECT * FROM question_group WHERE id = ?", (group_id,)
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "材料组不存在")
+            if not data:
+                return read_group(c, group_id)
+            if "subject_id" in data and data["subject_id"] and not c.execute(
+                "SELECT 1 FROM subject WHERE id = ?", (data["subject_id"],)
+            ).fetchone():
+                raise HTTPException(422, f"subject_id {data['subject_id']} 不存在")
+            if data.get("media") is not None:
+                errors = validate_media(data["media"])
+                if errors:
+                    raise HTTPException(422, "；".join(errors))
+                data["media"] = json.dumps(data["media"], ensure_ascii=False) if data["media"] else None
+            fields = ", ".join(f"{k} = ?" for k in data)
+            c.execute(f"UPDATE question_group SET {fields} WHERE id = ?",
+                      [*data.values(), group_id])
+            return read_group(c, group_id)
+
+    @app.delete("/api/question-groups/{group_id}")
+    def delete_question_group(group_id: str):
+        with conn() as c:
+            row = c.execute(
+                "SELECT 1 FROM question_group WHERE id = ?", (group_id,)
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "材料组不存在")
+            c.execute("DELETE FROM question_group WHERE id = ?", (group_id,))
+        return {"ok": True}
+
     # -------- quizzes
 
     @app.get("/api/quizzes")
@@ -663,8 +1282,13 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                     sql += " AND q.subject_id = ?"
                     args.append(f.subject_id)
                 if f.codes:
-                    sql += f" AND q.outline_code IN ({','.join('?' * len(f.codes))})"
-                    args += f.codes
+                    marks = ",".join("?" * len(f.codes))
+                    sql += (
+                        f" AND (q.outline_code IN ({marks}) OR EXISTS ("
+                        f"SELECT 1 FROM question_outline qo"
+                        f" WHERE qo.question_id = q.id AND qo.outline_code IN ({marks})))"
+                    )
+                    args += f.codes + f.codes
                 if f.types:
                     sql += f" AND q.type IN ({','.join('?' * len(f.types))})"
                     args += f.types
@@ -793,7 +1417,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 if g["correct"] is not None and (response is not None or self_grade is not None):
                     apply_result(c, q["id"], g["correct"])
                 results.append({
-                    "question": row_to_question(q, reveal=True),
+                    "question": row_to_question(q, reveal=True, conn=c),
                     "response": response,
                     "self_grade": self_grade,
                     "correct": g["correct"],
@@ -853,7 +1477,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             args.append(subject_id)
         sql += " ORDER BY r.due_date, r.mastery"
         with conn() as c:
-            return [{**row_to_question(r), "due_date": r["due_date"], "mastery": r["mastery"],
+            return [{**row_to_question(r, conn=c), "due_date": r["due_date"], "mastery": r["mastery"],
                      "interval_days": r["interval_days"]} for r in c.execute(sql, args)]
 
     def today_seconds(c: sqlite3.Connection) -> int:
@@ -918,6 +1542,220 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             "correct": answered["ok"] or 0,
             "by_subject": [dict(r) for r in by_subject],
         }
+
+    def stats_window(days: int) -> tuple[str, str]:
+        end = date.today()
+        start = end - timedelta(days=days - 1)
+        return start.isoformat(), end.isoformat()
+
+    def attempt_seconds_by_subject(c: sqlite3.Connection, start: str,
+                                   end: str) -> tuple[dict[str, int], dict[str, int]]:
+        """把整次作答的 active_seconds 按题目数分摊到科目，避免跨科重复计时。"""
+        attempts = c.execute(
+            """SELECT id, active_seconds FROM attempt
+               WHERE date(started_at) BETWEEN ? AND ?""",
+            (start, end),
+        ).fetchall()
+        if not attempts:
+            return {}, {}
+        counts = c.execute(
+            """SELECT t.id AS attempt_id, q.subject_id, COUNT(*) AS n
+               FROM attempt t
+               JOIN quiz_item i ON i.quiz_id = t.quiz_id
+               JOIN question q ON q.id = i.question_id
+               WHERE date(t.started_at) BETWEEN ? AND ?
+               GROUP BY t.id, q.subject_id""",
+            (start, end),
+        ).fetchall()
+        per_attempt: dict[str, list[tuple[str, int]]] = {}
+        for row in counts:
+            per_attempt.setdefault(row["attempt_id"], []).append(
+                (row["subject_id"], row["n"])
+            )
+        seconds: dict[str, float] = {}
+        attempt_counts: dict[str, int] = {}
+        for attempt in attempts:
+            parts = per_attempt.get(attempt["id"], [])
+            total = sum(n for _, n in parts)
+            if not total:
+                continue
+            for subject_id, n in parts:
+                seconds[subject_id] = seconds.get(subject_id, 0.0) + (
+                    (attempt["active_seconds"] or 0) * n / total
+                )
+                attempt_counts[subject_id] = attempt_counts.get(subject_id, 0) + 1
+        return ({k: int(round(v)) for k, v in seconds.items()}, attempt_counts)
+
+    @app.get("/api/stats/subjects")
+    def stats_subjects(days: int = Query(30, ge=1, le=365)):
+        start, end = stats_window(days)
+        with conn() as c:
+            subjects = c.execute(
+                "SELECT id, name, short, color, icon FROM subject ORDER BY sort, id"
+            ).fetchall()
+            answered = {
+                r["subject_id"]: r
+                for r in c.execute(
+                    """SELECT q.subject_id, COUNT(*) AS n,
+                              SUM(CASE WHEN a.correct = 1 THEN 1 ELSE 0 END) AS ok
+                       FROM answer a
+                       JOIN attempt t ON t.id = a.attempt_id
+                       JOIN question q ON q.id = a.question_id
+                       WHERE date(t.started_at) BETWEEN ? AND ?
+                         AND a.correct IS NOT NULL
+                       GROUP BY q.subject_id""",
+                    (start, end),
+                )
+            }
+            reading = {
+                r["subject_id"]: r["seconds"]
+                for r in c.execute(
+                    """SELECT p.subject_id, COALESCE(SUM(st.seconds), 0) AS seconds
+                       FROM study_time st JOIN page p ON p.id = st.ref
+                       WHERE st.source = 'page' AND st.day BETWEEN ? AND ?
+                         AND p.subject_id IS NOT NULL
+                       GROUP BY p.subject_id""",
+                    (start, end),
+                )
+            }
+            attempt_seconds, attempt_counts = attempt_seconds_by_subject(c, start, end)
+
+        out = []
+        for subject in subjects:
+            sid = subject["id"]
+            row = answered.get(sid)
+            out.append({
+                "subject_id": sid,
+                "name": subject["name"],
+                "short": subject["short"],
+                "color": subject["color"],
+                "icon": subject["icon"],
+                "answered": row["n"] if row else 0,
+                "correct": (row["ok"] or 0) if row else 0,
+                "seconds": attempt_seconds.get(sid, 0) + reading.get(sid, 0),
+                "attempts": attempt_counts.get(sid, 0),
+            })
+        return out
+
+    @app.get("/api/stats/heatmap")
+    def stats_heatmap(days: int = Query(90, ge=1, le=365)):
+        start, end = stats_window(days)
+        with conn() as c:
+            attempt_rows = {
+                r["day"]: r["seconds"]
+                for r in c.execute(
+                    """SELECT date(started_at) AS day, COALESCE(SUM(active_seconds), 0) AS seconds
+                       FROM attempt WHERE date(started_at) BETWEEN ? AND ?
+                       GROUP BY date(started_at)""",
+                    (start, end),
+                )
+            }
+            reading_rows = {
+                r["day"]: r["seconds"]
+                for r in c.execute(
+                    """SELECT day, COALESCE(SUM(seconds), 0) AS seconds
+                       FROM study_time WHERE day BETWEEN ? AND ?
+                       GROUP BY day""",
+                    (start, end),
+                )
+            }
+            answered_rows = {
+                r["day"]: r["n"]
+                for r in c.execute(
+                    """SELECT date(t.started_at) AS day, COUNT(*) AS n
+                       FROM answer a JOIN attempt t ON t.id = a.attempt_id
+                       WHERE date(t.started_at) BETWEEN ? AND ?
+                         AND a.correct IS NOT NULL
+                       GROUP BY date(t.started_at)""",
+                    (start, end),
+                )
+            }
+
+        today = date.today()
+        out = []
+        for offset in range(days - 1, -1, -1):
+            day = (today - timedelta(days=offset)).isoformat()
+            out.append({
+                "date": day,
+                "seconds": attempt_rows.get(day, 0) + reading_rows.get(day, 0),
+                "answered": answered_rows.get(day, 0),
+            })
+        return out
+
+    @app.get("/api/stats/types")
+    def stats_types(days: int = Query(30, ge=1, le=365)):
+        start, end = stats_window(days)
+        with conn() as c:
+            rows = c.execute(
+                """SELECT q.type, COUNT(*) AS n,
+                          SUM(CASE WHEN a.correct = 1 THEN 1 ELSE 0 END) AS ok
+                   FROM answer a
+                   JOIN attempt t ON t.id = a.attempt_id
+                   JOIN question q ON q.id = a.question_id
+                   WHERE date(t.started_at) BETWEEN ? AND ?
+                     AND a.correct IS NOT NULL
+                   GROUP BY q.type""",
+                (start, end),
+            ).fetchall()
+        labels = {item["id"]: item.get("label", item["id"])
+                  for item in question_types.load_types()}
+        return [
+            {
+                "type": row["type"],
+                "label": labels.get(row["type"], row["type"]),
+                "answered": row["n"],
+                "correct": row["ok"] or 0,
+            }
+            for row in rows
+        ]
+
+    # -------- 备份：导出 / 导入（JSON body，不接受文件路径）
+
+    @app.get("/api/export")
+    def export_all(scope: Literal["content", "progress", "all"] = "content"):
+        with conn() as c:
+            data = export_data(c, scope)
+        payload = {
+            "format": "kaodian-export",
+            "version": database.SCHEMA_VERSION,
+            "exported_at": database.now_iso(),
+            "scope": scope,
+            "data": data,
+        }
+        filename = f"kaodian-export-{date.today():%Y%m%d}.json"
+        return Response(
+            json.dumps(payload, ensure_ascii=False),
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @app.post("/api/import")
+    def import_all(body: ImportIn):
+        c = conn()
+
+        def rollback() -> None:
+            try:
+                c.execute("ROLLBACK")
+            except sqlite3.Error:
+                pass
+
+        try:
+            c.isolation_level = None
+            c.execute("BEGIN IMMEDIATE")
+            result = import_data(c, body)
+            c.execute("COMMIT")
+            return result
+        except HTTPException:
+            rollback()
+            raise
+        except sqlite3.IntegrityError as exc:
+            rollback()
+            raise HTTPException(422, f"导入失败，已回滚：{exc}")
+        except Exception:
+            rollback()
+            raise
+        finally:
+            c.close()
 
 
     # -------- 主观题评分（Agent 读库评分）

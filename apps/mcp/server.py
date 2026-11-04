@@ -28,6 +28,7 @@ mcp = MCPServer(
     instructions=(
         "考点是 Agent 的作答终端。先用 list_outline 确认考点编号，"
         "题库是实时生成的：create_questions 入库存为 pending，review_questions 审查后才可组卷；"
+        "材料题先用 create_question_group 建组，再用 create_questions 传 group_id/group_position 挂题；"
         "用 build_quiz 组卷并把 url 发给用户；用 publish_page 写讲解页，用户在控制台阅读；"
         "用户答题时可以用 send_hint 推提示；read_inbox 读取求助和交卷结果；"
         "主观题交卷后进 get_grading_queue，读答案后用 grade_answer 写回分数。"
@@ -102,8 +103,42 @@ def create_questions(questions: list[dict]) -> dict:
 
     每道题至少包含：outline_code、type、stem、explanation、difficulty、score；
     客观题还要 options 和 answer，主观题还要 reference_answer 和 rubric。
+    可选：outline_codes（一题多考点，含主考点）、group_id / group_position（挂材料组）、
+    media（图片/音频/视频引用数组）。
         """
     return _call("POST", "/api/questions/batch", json={"questions": questions})
+
+
+@mcp.tool()
+def create_question_group(
+    subject_id: str,
+    title: str,
+    material: str,
+    media: list[dict] | None = None,
+) -> dict:
+    """新建材料组（一拖多）：一段材料/图片/音频带多道小题。
+
+    Args:
+        subject_id: 科目 id，来自 list_subjects。
+        title: 材料标题，如「阅读下面材料」。
+        material: 材料正文（Markdown）。
+        media: 媒体引用数组，元素形如
+            {"type": "image|audio|video", "url": "/images/x.svg",
+             "alt": "图注", "license": "CC0", "source": "..."}。
+    """
+    payload: dict[str, Any] = {
+        "subject_id": subject_id,
+        "title": title,
+        "material": material,
+        "media": media or [],
+    }
+    return _call("POST", "/api/question-groups", json=payload)
+
+
+@mcp.tool()
+def get_question_group(group_id: str) -> dict:
+    """读取材料组详情，含按 group_position 排序的题目列表。"""
+    return _call("GET", f"/api/question-groups/{group_id}")
 
 
 @mcp.tool()
@@ -119,9 +154,13 @@ def list_pending_questions(subject_id: str = "", code: str = "", limit: int = 20
         {
             "id": q["id"],
             "outline_code": q["outline_code"],
+            "outline_codes": q.get("outline_codes", []),
+            "group_id": q.get("group_id"),
+            "group_position": q.get("group_position", 0),
             "type": q["type"],
             "stem": q["stem"],
             "options": q.get("options"),
+            "media": q.get("media", []),
             "answer": q.get("answer"),
             "explanation": q.get("explanation"),
             "reference_answer": q.get("reference_answer"),

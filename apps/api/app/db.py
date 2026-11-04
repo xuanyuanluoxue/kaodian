@@ -11,7 +11,26 @@ from typing import Any, Iterator
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA = Path(__file__).with_name("schema.sql")
 DEFAULT_DB = ROOT / "user-data" / "kaodian.db"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+
+_QUESTION_GROUP_DDL = """
+CREATE TABLE IF NOT EXISTS question_group (
+    id          TEXT PRIMARY KEY,
+    subject_id  TEXT REFERENCES subject(id) ON DELETE CASCADE,
+    title       TEXT,
+    material    TEXT NOT NULL DEFAULT '',
+    media       TEXT,
+    source_key  TEXT,
+    created_at  TEXT NOT NULL
+)"""
+
+_QUESTION_OUTLINE_DDL = """
+CREATE TABLE IF NOT EXISTS question_outline (
+    question_id  TEXT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
+    outline_code TEXT NOT NULL REFERENCES outline_node(code) ON DELETE CASCADE,
+    weight       REAL NOT NULL DEFAULT 1,
+    PRIMARY KEY (question_id, outline_code)
+)"""
 
 
 def db_path() -> Path:
@@ -60,6 +79,8 @@ def init_db(path: Path | None = None) -> None:
         if not existing:
             conn.executescript(SCHEMA.read_text(encoding="utf-8"))
         migrate(conn)
+        # migrate 只负责加列/建表；这里补齐索引与后续新增的 DDL（幂等）。
+        conn.executescript(SCHEMA.read_text(encoding="utf-8"))
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         sync_content(conn)
 
@@ -99,7 +120,12 @@ def _backup(path: Path, version: int) -> None:
 
 
 def migrate(conn: sqlite3.Connection) -> None:
-    """增量迁移：只加列/索引，不重建表。旧库和新库都会经过这里。"""
+    """增量迁移：只加列/建表/索引，不重建表。旧库和新库都会经过这里。"""
+    conn.execute(_QUESTION_GROUP_DDL)
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_question_group_source "
+        "ON question_group(subject_id, source_key)"
+    )
     _add_columns(conn, "quiz", {
         "agent_session_id": "TEXT",
     })
@@ -108,7 +134,20 @@ def migrate(conn: sqlite3.Connection) -> None:
         "reviewed_at": "TEXT",
         "review_note": "TEXT",
         "language": "TEXT",
+        "group_id": "TEXT REFERENCES question_group(id) ON DELETE SET NULL",
+        "group_position": "INTEGER NOT NULL DEFAULT 0",
+        "media": "TEXT",
     })
+    conn.execute(_QUESTION_OUTLINE_DDL)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_question_outline_code "
+        "ON question_outline(outline_code, question_id)"
+    )
+    # v2 的题只有主考点，升级后回填，保证组卷按考点过滤不漏老题。
+    conn.execute(
+        """INSERT OR IGNORE INTO question_outline(question_id, outline_code)
+           SELECT id, outline_code FROM question WHERE outline_code IS NOT NULL"""
+    )
     _add_columns(conn, "answer", {
         "graded_by": "TEXT",
         "feedback": "TEXT",
@@ -144,7 +183,9 @@ def _add_columns(conn: sqlite3.Connection, table: str, columns: dict[str, str]) 
 
 
 def sync_content(conn: sqlite3.Connection) -> None:
-    """把 config/ 同步进库：upsert 科目/大纲，题库只补新题，不覆盖用户改动。"""
+    """把 config/ 同步进库：upsert 科目/大纲/材料组，题库只补新题，不覆盖用户改动。"""
+    from .grading import validate_media
+
     base = config_dir()
     subjects = base / "subjects"
     if not subjects.is_dir():
@@ -195,9 +236,87 @@ def sync_content(conn: sqlite3.Connection) -> None:
     questions = base / "questions"
     if questions.is_dir():
         for file in sorted(questions.glob("*.json")):
-            items = json.loads(file.read_text(encoding="utf-8"))
+            data = json.loads(file.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                groups: list[dict[str, Any]] = []
+                items = data
+            elif isinstance(data, dict):
+                groups = data.get("groups") or []
+                items = data.get("questions") or []
+            else:
+                raise RuntimeError(f"{file} 必须是数组或 {{groups, questions}} 对象")
+
+            # 组本身可能没写 subject_id，用挂在其下题目的考点反推。
+            inferred: dict[str, str] = {}
+            for item in items:
+                key = item.get("group_key")
+                if key and key not in inferred:
+                    subject = _outline_subject(conn, item.get("outline_code"))
+                    if subject:
+                        inferred[key] = subject
+
+            group_map: dict[str, str] = {}
+            for index, group in enumerate(groups):
+                if not isinstance(group, dict):
+                    raise RuntimeError(f"{file}.groups[{index}] 必须是对象")
+                key = (
+                    group.get("key")
+                    or group.get("source_key")
+                    or group.get("title")
+                    or f"{file.stem}:{index}"
+                )
+                subject_id = group.get("subject_id") or inferred.get(key)
+                errors = validate_media(group.get("media"), f"groups[{index}].media")
+                if errors:
+                    raise RuntimeError(f"{file} " + "；".join(errors))
+                gid = _upsert_group(conn, subject_id, key, group)
+                group_map[key] = gid
+                if group.get("key"):
+                    group_map[group["key"]] = gid
+
             for index, item in enumerate(items):
-                _insert_seed_question(conn, file, index, item)
+                _insert_seed_question(conn, file, index, item, group_map)
+
+
+def _outline_subject(conn: sqlite3.Connection, code: Any) -> str | None:
+    if not code:
+        return None
+    row = conn.execute(
+        "SELECT subject_id FROM outline_node WHERE code = ?", (code,)
+    ).fetchone()
+    return row["subject_id"] if row else None
+
+
+def _upsert_group(
+    conn: sqlite3.Connection,
+    subject_id: str | None,
+    source_key: str,
+    data: dict[str, Any],
+) -> str:
+    """配置里的 group 按 (subject_id, source_key) 幂等 upsert。"""
+    if subject_id and not conn.execute(
+        "SELECT 1 FROM subject WHERE id = ?", (subject_id,)
+    ).fetchone():
+        raise RuntimeError(f"question_group {source_key} 的 subject_id {subject_id} 不存在")
+    existing = conn.execute(
+        "SELECT id FROM question_group WHERE source_key = ? AND subject_id IS ?",
+        (source_key, subject_id),
+    ).fetchone()
+    media = _json(data.get("media")) if data.get("media") else None
+    if existing:
+        conn.execute(
+            "UPDATE question_group SET title = ?, material = ?, media = ? WHERE id = ?",
+            (data.get("title"), data.get("material") or "", media, existing["id"]),
+        )
+        return existing["id"]
+    gid = new_id("g")
+    conn.execute(
+        """INSERT INTO question_group(id, subject_id, title, material, media, source_key, created_at)
+           VALUES (?,?,?,?,?,?,?)""",
+        (gid, subject_id, data.get("title"), data.get("material") or "",
+         media, source_key, now_iso()),
+    )
+    return gid
 
 
 def _validate_subject(file: Path, data: dict[str, Any]) -> None:
@@ -235,9 +354,13 @@ def _update_depths(conn: sqlite3.Connection, subject_id: str) -> None:
 
 
 def _insert_seed_question(
-    conn: sqlite3.Connection, file: Path, index: int, item: dict[str, Any]
+    conn: sqlite3.Connection,
+    file: Path,
+    index: int,
+    item: dict[str, Any],
+    group_map: dict[str, str] | None = None,
 ) -> None:
-    from .grading import fingerprint
+    from .grading import fingerprint, validate_media
     from .question_types import get_type
 
     code = item.get("outline_code")
@@ -248,21 +371,52 @@ def _insert_seed_question(
     ).fetchone()
     if not outline:
         raise RuntimeError(f"{file}[{index}] 的 outline_code {code} 不在大纲里")
+    subject_id = item.get("subject_id") or outline["subject_id"]
+
+    extra_codes = item.get("outline_codes") or []
+    for extra in extra_codes:
+        node = conn.execute(
+            "SELECT subject_id FROM outline_node WHERE code = ?", (extra,)
+        ).fetchone()
+        if not node:
+            raise RuntimeError(f"{file}[{index}] 的 outline_codes {extra} 不在大纲里")
+        if node["subject_id"] != subject_id:
+            raise RuntimeError(
+                f"{file}[{index}] 的 outline_codes {extra} 不属于科目 {subject_id}"
+            )
+    errors = validate_media(item.get("media"), "media")
+    if errors:
+        raise RuntimeError(f"{file}[{index}] " + "；".join(errors))
+
+    group_id = item.get("group_id")
+    group_key = item.get("group_key")
+    if group_key:
+        if not group_map or group_key not in group_map:
+            raise RuntimeError(f"{file}[{index}] 的 group_key {group_key} 没有对应 group")
+        group_id = group_map[group_key]
+    if group_id and not conn.execute(
+        "SELECT 1 FROM question_group WHERE id = ?", (group_id,)
+    ).fetchone():
+        raise RuntimeError(f"{file}[{index}] 的 group_id {group_id} 不存在")
+
     qtype = item.get("type")
     spec = get_type(qtype)
     if not spec:
         raise RuntimeError(f"{file}[{index}] 的题型 {qtype} 不在 question_types.json 里")
+    fp = fingerprint(item["stem"])
 
     conn.execute(
         """INSERT OR IGNORE INTO question
-           (id, subject_id, outline_code, type, stem, options, answer, explanation,
-            reference_answer, rubric, score, difficulty, source, tags, verified,
-            language, fingerprint, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           (id, subject_id, outline_code, group_id, group_position, type, stem, options,
+            answer, explanation, reference_answer, rubric, score, difficulty, source, tags,
+            verified, language, media, fingerprint, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             item.get("id") or new_id("q"),
-            item.get("subject_id") or outline["subject_id"],
+            subject_id,
             code,
+            group_id,
+            item.get("group_position", 0),
             qtype,
             item["stem"],
             _json(item.get("options")),
@@ -276,10 +430,18 @@ def _insert_seed_question(
             _json(item.get("tags", [])),
             1 if item.get("verified") else 0,
             item.get("language") or spec.get("language"),
-            fingerprint(item["stem"]),
+            _json(item.get("media")) if item.get("media") else None,
+            fp,
             now_iso(),
         ),
     )
+    row = conn.execute("SELECT id FROM question WHERE fingerprint = ?", (fp,)).fetchone()
+    if row:
+        for linked in [code, *extra_codes]:
+            conn.execute(
+                "INSERT OR IGNORE INTO question_outline(question_id, outline_code) VALUES (?,?)",
+                (row["id"], linked),
+            )
 
 
 def _json(value: Any) -> str | None:

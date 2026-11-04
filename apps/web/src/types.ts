@@ -59,6 +59,24 @@ export interface OutlineNode {
   depth?: number;
 }
 
+export interface QuestionMedia {
+  type: "image" | "audio" | "video";
+  url: string;
+  alt?: string | null;
+  license?: string | null;
+  source?: string | null;
+}
+
+/** 材料题 / 复合题的分组：一段材料（可带图 / 音频 / 视频）挂多道小题。 */
+export interface QuestionGroup {
+  id: string;
+  subject_id?: string | null;
+  title?: string | null;
+  material: string;
+  media: QuestionMedia[];
+  question_ids?: string[];
+}
+
 export interface Question {
   id: string;
   subject_id: string;
@@ -75,6 +93,10 @@ export interface Question {
   explanation?: string;
   reference_answer?: string | null;
   rubric?: RubricPoint[] | null;
+  /** 材料题归属；group_position 决定同组小题顺序。 */
+  group_id?: string | null;
+  group_position?: number;
+  media?: QuestionMedia[] | null;
 }
 
 export interface Quiz {
@@ -86,6 +108,8 @@ export interface Quiz {
   created_at: string;
   question_count: number;
   questions: Question[];
+  /** 材料 / 复合题分组。 */
+  groups?: QuestionGroup[];
 }
 
 export interface AnswerState {
