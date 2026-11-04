@@ -20,6 +20,16 @@ cp kaodian.example.toml kaodian.toml
 # data = "../../kaodian-runtime"
 ```
 
+## 0. 三根工作区
+
+用 IDE 打开 `kaodian.code-workspace`，同时看到：
+
+- `framework/`：代码、CLI、文档
+- `content/`：讲义、题库、素材
+- `runtime/`：数据库、导出（只读查看）
+
+`.vscode/tasks.json` 提供 `validate / sync / serve / check` 四个任务，直接跑不用记路径。
+
 ## 1. 终端里改内容
 
 ```bash
