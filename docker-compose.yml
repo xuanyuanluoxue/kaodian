@@ -8,9 +8,11 @@ services:
     ports:
       - "127.0.0.1:8010:8000"
     volumes:
-      - ./user-data:/data
+      - "${KAODIAN_CONTENT_HOST:-../kaodian-content}:/content:ro"
+      - "${KAODIAN_DATA_HOST:-../../kaodian-runtime}:/data"
     environment:
-      KAODIAN_DB: /data/kaodian.db
+      KAODIAN_CONTENT_DIR: /content
+      KAODIAN_DATA_DIR: /data
       KAODIAN_ALLOW_CODE_RUN: "${KAODIAN_ALLOW_CODE_RUN:-0}"
       TZ: "${TZ:-Asia/Shanghai}"
     # 宿主机 UID/GID 不是 1000 时：KAODIAN_UID=$(id -u) KAODIAN_GID=$(id -g) docker compose up --build

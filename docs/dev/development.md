@@ -25,6 +25,14 @@ cd apps/web && npm ci
 
 ## 日常开发（两个终端）
 
+先准备内容路径。默认会读 `examples/demo-content`，把数据写到 `runtime/`；
+接入本机真实内容时复制示例配置：
+
+```bash
+cp kaodian.example.toml kaodian.toml
+# 编辑 [paths] content / data，或改用环境变量
+```
+
 ```bash
 # 终端 1：后端
 cd apps/api
@@ -35,12 +43,20 @@ cd apps/web
 npm run dev            # http://localhost:5173
 ```
 
+也可以直接用 CLI：
+
+```bash
+bin/kaodian content validate    # 校验内容包
+bin/kaodian content sync        # 文件 → DB
+bin/kaodian serve --reload      # API + Web，默认 :8010
+bin/kaodian doctor              # 路径、DB 版本、pack 状态
+```
+
 ## 生产模式（单端口）
 
 ```bash
-cd apps/web && npm run build
-cd apps/api && ../../.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010
-# http://127.0.0.1:8010
+bin/kaodian serve --host 127.0.0.1 --port 8010
+# 或先 make build，再起 uvicorn
 ```
 
 FastAPI 直接托管 `apps/web/dist`，同时提供 API。
@@ -53,8 +69,8 @@ make lint     # 前端 oxlint
 make check    # test + lint + build
 ```
 
-当前 25 项：种子、校验、组卷、判分、复习、Agent 事件、代码沙箱、时长统计、
-题型注册表、内容同步幂等、页面排序、新增科目仅靠配置。
+当前 48 项：示例内容包、校验、组卷、判分、复习、Agent 事件、代码沙箱、时长统计、
+题型注册表、内容同步幂等/自然键、v3→v4 迁移、媒体防穿越、CLI 冒烟。
 
 CI：`.github/workflows/ci.yml`，push / PR 跑后端测试 + 前端 lint + build。
 
@@ -65,22 +81,28 @@ make docker     # 自动传当前 UID/GID，http://127.0.0.1:8010
 ```
 
 - 非 root 运行；`user: "${KAODIAN_UID:-1000}:${KAODIAN_GID:-1000}"`
-- 数据卷：`./user-data:/data`；宿主机 UID 不是 1000 时用 `make docker`
-- 容器内 `KAODIAN_DB=/data/kaodian.db`，`TZ` 默认 `Asia/Shanghai`
+- 内容只读挂载：`${KAODIAN_CONTENT_HOST:-../kaodian-content}:/content:ro`
+- 数据卷：`${KAODIAN_DATA_HOST:-../../kaodian-runtime}:/data`
+- 容器内 `KAODIAN_CONTENT_DIR=/content`、`KAODIAN_DATA_DIR=/data`
 - `HEALTHCHECK` 打 `/api/health`；`cap_drop: ALL` + `no-new-privileges`
 - 默认镜像**不装** gcc/bubblewrap；需要代码沙箱用 `make docker-sandbox`
 - 容器内 `bwrap` 仍受用户命名空间限制，失败时优先用本地 uvicorn
+- 想用示例内容而不挂载：`KAODIAN_CONTENT_DIR=/app/examples/demo-content`
 
 ## 环境变量
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `KAODIAN_DB` | `user-data/kaodian.db` | SQLite 路径 |
+| `KAODIAN_CONTENT_DIR` | `examples/demo-content` | 内容仓库根目录（含 `registry.json`） |
+| `KAODIAN_DATA_DIR` | `runtime/` | 数据库、`exports/`、日志；自动创建 |
+| `KAODIAN_DB` | `data_dir()/kaodian.db` | SQLite 路径，优先级最高 |
 | `KAODIAN_DAILY_GOAL_MINUTES` | `30` | 每日目标分钟数 |
 | `KAODIAN_ALLOW_CODE_RUN` | `0` | 设为 `1` 才启用代码练习终端 |
 | `KAODIAN_CORS_ORIGINS` | 本地 5173 | 逗号分隔的允许来源 |
-| `KAODIAN_CONFIG_DIR` | `config/` | 科目/题型配置目录（测试可覆盖） |
+| `KAODIAN_CONFIG_DIR` | `config/` | 框架题型注册表目录（测试可覆盖） |
 | `TZ` | `Asia/Shanghai`（Docker） | 影响「今天」与连续天数 |
+
+路径优先级：环境变量 → 仓库根 `kaodian.toml` → 默认值。`kaodian.toml` 不提交。
 
 ## 代码沙箱
 
@@ -98,12 +120,17 @@ make build       # 前端构建
 make check       # 以上三项
 make dev-api     # 后端热重载
 make dev-web     # 前端开发服务器
+bin/kaodian content validate  # 校验内容包（--json 供 Agent 读）
+bin/kaodian content sync      # 内容 → DB
+bin/kaodian backup            # SQLite 备份到 data_dir/exports/
+bin/kaodian mcp-config        # 输出 IDE MCP JSON
 make docker      # compose 启动（非 root）
 make docker-sandbox  # 带 gcc/bubblewrap 的镜像 + 开启代码沙箱
 ```
 
 ## 数据
 
-- 开发/运行数据都在 `user-data/kaodian.db`，不进 Git
-- 备份与重置见 `user-data/README.md`
-- 种子数据来自 `config/`，首次启动自动导入
+- 运行数据默认在 `runtime/kaodian.db`，不进 Git；可用 `KAODIAN_DATA_DIR` 改位置
+- 备份：`bin/kaodian backup`，或停服务后复制 SQLite 文件
+- 内容来自内容仓库，首次启动/`content sync` 自动同步；框架只带 `examples/demo-content`
+- 迁移真实库：先停服务并备份，再启动让 v3→v4 迁移，最后 `content sync` 回填 `pack_id`

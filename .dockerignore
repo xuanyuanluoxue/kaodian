@@ -3,6 +3,8 @@
 .github
 docs
 scripts
+runtime
+kaodian.toml
 user-data
 apps/web/node_modules
 apps/web/dist
@@ -12,3 +14,4 @@ apps/mcp
 **/*.pyc
 **/*.md
 !apps/web/public/**/*.md
+!examples/**/*.md

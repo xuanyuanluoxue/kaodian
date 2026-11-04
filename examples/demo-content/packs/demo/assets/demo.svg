@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80" viewBox="0 0 240 80" role="img" aria-label="demo">
+  <rect width="240" height="80" rx="12" fill="#eef3f8"/>
+  <circle cx="40" cy="40" r="14" fill="#2f5d8a"/>
+  <text x="66" y="47" font-family="sans-serif" font-size="18" fill="#1f2d3d">demo asset</text>
+</svg>

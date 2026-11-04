@@ -10,9 +10,15 @@ from fastapi.testclient import TestClient
 
 from apps.api.app.main import create_app
 
+ROOT = Path(__file__).resolve().parents[3]
+DEMO = ROOT / "examples" / "demo-content"
+
 
 @pytest.fixture()
-def client(tmp_path):
+def client(tmp_path, monkeypatch):
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(DEMO))
+    monkeypatch.setenv("KAODIAN_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("KAODIAN_DB", str(tmp_path / "test.db"))
     app = create_app(tmp_path / "test.db")
     with TestClient(app) as c:
         yield c
@@ -32,16 +38,16 @@ def answer_of(q: dict):
 
 def test_seed(client):
     subjects = client.get("/api/subjects").json()
-    assert {s["id"] for s in subjects} == {"computer", "math", "english", "politics"}
-    computer = next(s for s in subjects if s["id"] == "computer")
-    assert computer["node_count"] == 50
-    assert computer["question_count"] >= 20
-    assert len(client.get("/api/outline?subject_id=math").json()) == 54
+    assert {s["id"] for s in subjects} == {"demo"}
+    demo = next(s for s in subjects if s["id"] == "demo")
+    assert demo["node_count"] == 2
+    assert demo["question_count"] == 3
+    assert len(client.get("/api/outline?subject_id=demo").json()) == 2
 
 
 def test_validate_rejects_unknown_code(client):
     bad = {
-        "outline_code": "C-99",
+        "outline_code": "D-99",
         "type": "single",
         "stem": "这是一道测试题，选项至少两个。",
         "options": ["甲", "乙"],
@@ -58,7 +64,7 @@ def test_validate_rejects_unknown_code(client):
 
 def test_batch_create_and_dedupe(client):
     item = {
-        "outline_code": "C-02",
+        "outline_code": "D-02",
         "type": "single",
         "stem": "测试标识符规则：下列哪个是合法标识符？",
         "options": ["1a", "a1", "int", "-a"],
@@ -81,11 +87,11 @@ def test_practice_flow(client):
         "/api/quizzes",
         json={
             "mode": "practice",
-            "count": 2,
-            "filters": {"subject_id": "computer", "codes": ["C-08"], "types": ["single"]},
+            "count": 1,
+            "filters": {"subject_id": "demo", "codes": ["D-01"], "types": ["single"]},
         },
     ).json()
-    assert quiz["question_count"] == 2
+    assert quiz["question_count"] == 1
     assert all("answer" in q for q in quiz["questions"])
 
     attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
@@ -98,27 +104,27 @@ def test_practice_flow(client):
         json={"active_seconds": 60, "answers": answers},
     ).json()
     assert result["status"] == "submitted"
-    assert result["score"] == 6
-    assert len(result["results"]) == 2
+    assert result["score"] == 3
+    assert len(result["results"]) == 1
     assert result["weak"] == []
 
     fetched = client.get(f"/api/attempts/{attempt['id']}").json()
-    assert len(fetched["results"]) == 2
+    assert len(fetched["results"]) == 1
 
 
 def test_exam_hides_answers(client):
     quiz = client.post(
         "/api/quizzes",
-        json={"mode": "exam", "count": 2, "filters": {"subject_id": "computer", "types": ["single"]}},
+        json={"mode": "exam", "count": 1, "filters": {"subject_id": "demo", "types": ["single"]}},
     ).json()
-    assert quiz["time_limit"] == 180
+    assert quiz["time_limit"] == 90
     assert all("answer" not in q for q in quiz["questions"])
     attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
     assert all("answer" not in q for q in attempt["quiz"]["questions"])
 
 
 def test_subjective_goes_to_agent_grading(client):
-    q = client.get("/api/questions?code=C-11&limit=50").json()
+    q = client.get("/api/questions?code=D-01&limit=50").json()
     short = next(x for x in q if x["type"] == "short")
     quiz = client.post(
         "/api/quizzes",
@@ -131,7 +137,7 @@ def test_subjective_goes_to_agent_grading(client):
             "active_seconds": 120,
             "answers": [{
                 "question_id": short["id"],
-                "response": "字符数组是 char 数组；输入用 scanf，输出用 printf。",
+                "response": "同步只更新自然键命中的行并回填 pack_id，本地内容不删。",
                 "time_spent": 100,
             }],
         },
@@ -157,7 +163,7 @@ def test_subjective_goes_to_agent_grading(client):
 
 def test_generated_question_needs_review(client):
     item = {
-        "outline_code": "C-04",
+        "outline_code": "D-02",
         "type": "single",
         "stem": "十进制数 12 转换成二进制是（ ）",
         "options": ["1010", "1100", "1001", "1110"],
@@ -169,7 +175,7 @@ def test_generated_question_needs_review(client):
     created = client.post("/api/questions/batch", json={"questions": [item]}).json()
     qid = created["ids"][0]
 
-    pending = client.get("/api/questions?status=pending&code=C-04").json()
+    pending = client.get("/api/questions?status=pending&code=D-02").json()
     assert any(q["id"] == qid for q in pending)
 
     before = client.post("/api/quizzes", json={"mode": "practice", "question_ids": [qid]})
@@ -190,7 +196,7 @@ def test_generated_question_needs_review(client):
 
 
 def test_review_mastery_after_three_correct(client, tmp_path):
-    q = client.get("/api/questions?code=C-08&type=fill&limit=1").json()[0]
+    q = client.get("/api/questions?code=D-02&type=fill&limit=1").json()[0]
     quiz = client.post("/api/quizzes", json={"mode": "practice", "question_ids": [q["id"]]}).json()
     for _ in range(3):
         attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
@@ -210,8 +216,9 @@ def test_review_mastery_after_three_correct(client, tmp_path):
     assert row["streak"] == 0
     assert row["interval_days"] == 1
 
+
 def test_agent_session_flow(client):
-    session = client.post("/api/agent/sessions", json={"title": "C 语言 · 循环"}).json()
+    session = client.post("/api/agent/sessions", json={"title": "演示 · 内容包"}).json()
 
     quiz = client.post(
         "/api/quizzes",
@@ -219,7 +226,7 @@ def test_agent_session_flow(client):
             "mode": "practice",
             "count": 1,
             "agent_session_id": session["id"],
-            "filters": {"subject_id": "computer", "codes": ["C-08"], "types": ["single"]},
+            "filters": {"subject_id": "demo", "codes": ["D-01"], "types": ["single"]},
         },
     ).json()
     assert quiz["agent_session_id"] == session["id"]
@@ -235,7 +242,7 @@ def test_agent_session_flow(client):
     q = quiz["questions"][0]
     help_res = client.post(
         "/api/agent/help",
-        json={"attempt_id": attempt["id"], "question_id": q["id"], "body": "while 和 do-while 分不清"},
+        json={"attempt_id": attempt["id"], "question_id": q["id"], "body": "自然键是什么"},
     )
     assert help_res.status_code == 201
 
@@ -260,7 +267,7 @@ def test_agent_session_flow(client):
 def test_help_requires_agent_session(client):
     quiz = client.post(
         "/api/quizzes",
-        json={"mode": "practice", "count": 1, "filters": {"subject_id": "computer", "types": ["single"]}},
+        json={"mode": "practice", "count": 1, "filters": {"subject_id": "demo", "types": ["single"]}},
     ).json()
     attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
     q = quiz["questions"][0]
@@ -288,16 +295,11 @@ def test_study_time_counts(client):
 def test_active_attempt_counts_in_stats(client):
     quiz = client.post(
         "/api/quizzes",
-        json={
-            "mode": "practice",
-            "count": 1,
-            "filters": {"subject_id": "computer", "types": ["single"]},
-        },
+        json={"mode": "practice", "count": 1, "filters": {"subject_id": "demo", "types": ["single"]}},
     ).json()
     attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
     client.patch(f"/api/attempts/{attempt['id']}", json={"active_seconds": 60})
 
-    # 还没交卷，但进行中的作答时间也要算进今日投入
     stats = client.get("/api/stats/today").json()
     assert stats["active_seconds"] >= 60
     assert stats["attempts"] >= 1
@@ -347,7 +349,7 @@ def test_code_run_explains_typo(client, monkeypatch):
 def test_spa_blocks_path_traversal(client):
     for path in (
         "/../../../README.md",
-        "/%2e%2e/%2e%2e/%2e%2e/user-data/kaodian.db",
+        "/%2e%2e/%2e%2e/%2e%2e/kaodian-runtime/kaodian.db",
     ):
         r = client.get(path)
         assert r.status_code == 200
@@ -358,18 +360,14 @@ def test_spa_blocks_path_traversal(client):
 def test_answer_must_belong_to_quiz(client):
     quiz = client.post(
         "/api/quizzes",
-        json={
-            "mode": "practice",
-            "count": 1,
-            "filters": {"subject_id": "computer", "types": ["single"]},
-        },
+        json={"mode": "practice", "count": 1, "filters": {"subject_id": "demo", "types": ["single"]}},
     ).json()
     attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
     in_quiz = {q["id"] for q in quiz["questions"]}
 
     outsider = next(
         q
-        for q in client.get("/api/questions?subject_id=computer&limit=50").json()
+        for q in client.get("/api/questions?subject_id=demo&limit=50").json()
         if q["id"] not in in_quiz
     )
     r = client.patch(
@@ -391,24 +389,33 @@ def test_question_type_registry(client):
 
 def test_subject_display_fields(client):
     subjects = client.get("/api/subjects").json()
-    computer = next(s for s in subjects if s["id"] == "computer")
-    assert computer["color"].startswith("#")
-    assert computer["icon"]
-    assert computer["sort"] == 1
-    assert computer["code_language"] == "c"
+    demo = next(s for s in subjects if s["id"] == "demo")
+    assert demo["color"].startswith("#")
+    assert demo["icon"]
+    assert demo["sort"] == 1
+    assert demo["code_language"] is None
     assert [s["sort"] for s in subjects] == sorted(s["sort"] for s in subjects)
 
 
-def test_content_sync_is_idempotent(tmp_path):
+def test_content_sync_is_idempotent(tmp_path, monkeypatch):
     from apps.api.app import db as database
+
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(DEMO))
+    monkeypatch.setenv("KAODIAN_DATA_DIR", str(tmp_path / "data"))
 
     path = tmp_path / "sync.db"
     database.init_db(path)
     database.init_db(path)
     with database.session(path) as conn:
-        assert conn.execute("SELECT COUNT(*) FROM subject").fetchone()[0] == 4
-        assert conn.execute("SELECT COUNT(*) FROM outline_node").fetchone()[0] == 161
+        assert conn.execute("SELECT COUNT(*) FROM subject").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM outline_node").fetchone()[0] == 2
+        assert conn.execute("SELECT COUNT(*) FROM question").fetchone()[0] == 3
+        assert conn.execute("SELECT COUNT(*) FROM page").fetchone()[0] == 2
+        assert conn.execute("SELECT COUNT(*) FROM content_pack").fetchone()[0] == 1
         assert conn.execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
+        rows = conn.execute("SELECT pack_id, source_key FROM subject").fetchall()
+        assert rows[0]["pack_id"] == "demo"
+        assert rows[0]["source_key"] == "demo"
 
 
 def test_multi_blank_fill_grading():
@@ -427,7 +434,7 @@ def test_multi_blank_fill_grading():
 def test_page_sort_order(client):
     def make(title, order):
         return client.post("/api/pages", json={
-            "subject_id": "math",
+            "subject_id": "demo",
             "title": title,
             "body": "正文内容",
             "kind": "lesson",
@@ -437,27 +444,56 @@ def test_page_sort_order(client):
 
     make("后", 20)
     make("前", 10)
-    titles = [p["title"] for p in client.get("/api/pages?subject_id=math").json()]
+    titles = [p["title"] for p in client.get("/api/pages?subject_id=demo").json()]
     assert titles.index("前") < titles.index("后")
 
 
-def test_new_subject_only_needs_config(tmp_path, monkeypatch):
-    cfg = tmp_path / "config"
-    shutil.copytree(Path(__file__).resolve().parents[3] / "config", cfg)
-    (cfg / "subjects" / "physics.json").write_text(
-        json.dumps({
-            "id": "physics",
-            "name": "物理",
-            "short": "物理",
+def _write_pack(root: Path, pack_id: str, code: str) -> None:
+    pack = root / "packs" / pack_id
+    (pack / "lessons").mkdir(parents=True)
+    (pack / "questions").mkdir()
+    (pack / "assets").mkdir()
+    (pack / "pack.json").write_text(json.dumps({
+        "id": pack_id,
+        "name": f"{pack_id} 科目",
+        "version": "1.0.0",
+        "schema": 1,
+        "subject": {
+            "id": pack_id,
+            "name": f"{pack_id} 科目",
+            "short": pack_id,
             "color": "#336699",
             "icon": "atom",
             "sort": 9,
             "exam": {"score": 100, "minutes": 90},
-            "nodes": [{"code": "PH-01", "title": "质点运动"}],
-        }, ensure_ascii=False),
+        },
+    }, ensure_ascii=False), encoding="utf-8")
+    (pack / "outline.json").write_text(json.dumps([
+        {"code": code, "title": "质点运动"}
+    ], ensure_ascii=False), encoding="utf-8")
+    (pack / "lessons" / "00.md").write_text(
+        "---\n"
+        'title: "总览"\n'
+        'kind: "outline"\n'
+        'status: "published"\n'
+        "sort_order: 1\n"
+        f'outline_codes: ["{code}"]\n'
+        "---\n\n# 总览\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("KAODIAN_CONFIG_DIR", str(cfg))
+
+
+def test_new_pack_added_to_content(tmp_path, monkeypatch):
+    content = tmp_path / "content"
+    shutil.copytree(DEMO, content)
+    _write_pack(content, "physics", "PH-01")
+    registry = json.loads((content / "registry.json").read_text(encoding="utf-8"))
+    registry["packs"].append({"id": "physics", "path": "packs/physics"})
+    (content / "registry.json").write_text(
+        json.dumps(registry, ensure_ascii=False), encoding="utf-8",
+    )
+
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(content))
     app = create_app(tmp_path / "physics.db")
     with TestClient(app) as c:
         subjects = c.get("/api/subjects").json()
@@ -514,17 +550,17 @@ def _single(outline_code, stem, **extra):
 
 def test_question_group_quiz_detail(client):
     group = client.post("/api/question-groups", json={
-        "subject_id": "computer",
+        "subject_id": "demo",
         "title": "阅读下面材料",
-        "material": "一个 C 程序由若干函数组成。",
-        "media": [{"type": "image", "url": "/images/x.svg", "alt": "程序结构"}],
+        "material": "一个内容包由 registry、pack、outline 组成。",
+        "media": [{"type": "image", "url": "/media/demo/demo.svg", "alt": "内容包"}],
     }).json()
     assert group["id"].startswith("g_")
 
     created = client.post("/api/questions/batch", json={"questions": [
-        _single("C-01", "材料题小题一：程序的基本单位是（ ）",
+        _single("D-01", "材料题小题一：科目按什么匹配（ ）",
                 group_id=group["id"], group_position=1),
-        _single("C-01", "材料题小题二：函数入口是（ ）",
+        _single("D-01", "材料题小题二：媒体根目录是（ ）",
                 group_id=group["id"], group_position=2),
     ]}).json()
     assert created["created"] == 2
@@ -541,125 +577,124 @@ def test_question_group_quiz_detail(client):
     assert len(quiz["groups"]) == 1
     assert quiz["groups"][0]["id"] == group["id"]
     assert quiz["groups"][0]["question_ids"] == created["ids"]
-    assert quiz["groups"][0]["material"] == "一个 C 程序由若干函数组成。"
+    assert quiz["groups"][0]["material"] == "一个内容包由 registry、pack、outline 组成。"
     assert all(q["group_id"] == group["id"] for q in quiz["questions"])
 
 
 def test_question_with_secondary_outline_code_can_be_drawn(client):
     created = client.post("/api/questions/batch", json={"questions": [
-        _single("C-02", "多考点测试：下列哪个是合法标识符（ ）",
-                outline_codes=["C-02", "C-05"]),
+        _single("D-01", "多考点测试：内容包的自然键是什么（ ）",
+                outline_codes=["D-01", "D-02"]),
     ]}).json()
     qid = created["ids"][0]
     client.post("/api/questions/review", json={"ids": [qid], "decision": "approve"})
 
-    found = client.get("/api/questions?code=C-05&limit=200").json()
+    found = client.get("/api/questions?code=D-02&limit=200").json()
     assert any(q["id"] == qid for q in found)
-    assert set(next(q for q in found if q["id"] == qid)["outline_codes"]) == {"C-02", "C-05"}
+    assert set(next(q for q in found if q["id"] == qid)["outline_codes"]) == {"D-01", "D-02"}
 
     quiz = client.post("/api/quizzes", json={
         "mode": "practice", "count": 100,
-        "filters": {"subject_id": "computer", "codes": ["C-05"], "types": ["single"]},
+        "filters": {"subject_id": "demo", "codes": ["D-02"], "types": ["single"]},
     }).json()
     assert qid in {q["id"] for q in quiz["questions"]}
 
 
 def test_question_media_roundtrip(client):
     media = [
-        {"type": "image", "url": "/images/tree.svg", "alt": "二叉树",
+        {"type": "image", "url": "/media/demo/demo.svg", "alt": "演示",
          "license": "CC0", "source": "local"},
         {"type": "audio", "url": "https://example.com/a.mp3", "alt": "朗读"},
     ]
     created = client.post("/api/questions/batch", json={"questions": [
-        _single("C-03", "媒体测试：二叉树的中序遍历是（ ）", media=media),
+        _single("D-02", "媒体测试：素材放在哪个目录（ ）", media=media),
     ]}).json()
     qid = created["ids"][0]
-    items = client.get("/api/questions?status=pending&code=C-03&limit=200").json()
+    items = client.get("/api/questions?status=pending&code=D-02&limit=200").json()
     item = next(q for q in items if q["id"] == qid)
     assert item["media"] == media
 
     bad = client.post("/api/questions/batch", json={"questions": [
-        _single("C-03", "媒体校验：非法外链应当被拒绝（ ）",
+        _single("D-02", "媒体校验：非法外链应当被拒绝（ ）",
                 media=[{"type": "image", "url": "http://example.com/x.png"}]),
     ]})
     assert bad.status_code == 422
 
 
-def test_group_config_sync_is_idempotent(tmp_path, monkeypatch):
+def test_content_sync_natural_keys_do_not_duplicate(tmp_path, monkeypatch):
     from apps.api.app import db as database
 
-    cfg = tmp_path / "config"
-    shutil.copytree(Path(__file__).resolve().parents[3] / "config", cfg)
-    (cfg / "questions" / "grouped.seed.json").write_text(json.dumps({
-        "groups": [{
-            "key": "g1",
-            "title": "材料组一",
-            "material": "阅读材料正文。",
-            "media": [{"type": "image", "url": "/images/x.svg", "alt": "图"}],
-        }],
-        "questions": [
-            {**_single("M-01", "对象格式测试：函数极限的定义是（ ）",
-                       outline_codes=["M-01", "M-02"]),
-             "group_key": "g1", "group_position": 1},
-        ],
-    }, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(DEMO))
+    monkeypatch.setenv("KAODIAN_DATA_DIR", str(tmp_path / "data"))
 
-    monkeypatch.setenv("KAODIAN_CONFIG_DIR", str(cfg))
-    path = tmp_path / "sync-group.db"
-    database.init_db(path)
-    database.init_db(path)
-
-    with database.session(path) as conn:
-        groups = conn.execute(
-            "SELECT * FROM question_group WHERE source_key = 'g1'"
-        ).fetchall()
-        assert len(groups) == 1
-        q = conn.execute(
-            "SELECT * FROM question WHERE stem = ?",
-            ("对象格式测试：函数极限的定义是（ ）",),
-        ).fetchone()
-        assert q is not None
-        assert q["group_id"] == groups[0]["id"]
-        assert q["group_position"] == 1
-        linked = {
-            r["outline_code"] for r in conn.execute(
-                "SELECT outline_code FROM question_outline WHERE question_id = ?",
-                (q["id"],),
-            )
-        }
-        assert {"M-01", "M-02"} <= linked
-
-
-def test_v2_database_upgrades_without_data_loss(tmp_path):
-    from apps.api.app import db as database
-
-    path = tmp_path / "v2.db"
+    path = tmp_path / "natural.db"
     database.init_db(path)
     with database.session(path) as conn:
         before = {
             table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-            for table in ("subject", "outline_node", "question")
+            for table in ("subject", "outline_node", "question", "page")
         }
         now = database.now_iso()
         conn.execute(
             """INSERT INTO page(id, subject_id, title, summary, body, lesson_key,
                                 outline_codes, kind, status, sort_order, created_at, updated_at)
-               VALUES ('p_migrate', 'computer', '迁移测试页', NULL, '正文', 'L99',
-                       '[]', 'lesson', 'published', 1, ?, ?)""",
+               VALUES ('p_local', 'demo', '本地页', NULL, '正文', NULL,
+                       '[]', 'note', 'published', 999, ?, ?)""",
+            (now, now),
+        )
+    database.init_db(path)
+    with database.session(path) as conn:
+        for table in ("subject", "outline_node", "question"):
+            assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == before[table]
+        assert conn.execute("SELECT COUNT(*) FROM page").fetchone()[0] == before["page"] + 1
+        assert conn.execute(
+            "SELECT pack_id FROM page WHERE id = 'p_local'"
+        ).fetchone()["pack_id"] is None
+        assert conn.execute("SELECT COUNT(*) FROM content_pack").fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM page WHERE pack_id = 'demo'"
+        ).fetchone()[0] == 2
+
+
+def test_v3_database_upgrades_without_data_loss(tmp_path, monkeypatch):
+    from apps.api.app import db as database
+
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(DEMO))
+    monkeypatch.setenv("KAODIAN_DATA_DIR", str(tmp_path / "data"))
+
+    path = tmp_path / "v3.db"
+    database.init_db(path)
+    with database.session(path) as conn:
+        before = {
+            table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("subject", "outline_node", "question", "page")
+        }
+        now = database.now_iso()
+        conn.execute(
+            """INSERT INTO page(id, subject_id, title, summary, body, lesson_key,
+                                outline_codes, kind, status, sort_order, created_at, updated_at)
+               VALUES ('p_migrate', 'demo', '迁移测试页', NULL, '正文', NULL,
+                       '[]', 'note', 'published', 1, ?, ?)""",
             (now, now),
         )
         qid = conn.execute("SELECT id FROM question LIMIT 1").fetchone()["id"]
 
-    # 退回 v2：删掉 v2.1 新增的表和列。
     raw = sqlite3.connect(path)
     try:
-        raw.execute("DROP TABLE question_outline")
-        raw.execute("DROP TABLE question_group")
-        raw.execute("DROP INDEX IF EXISTS idx_question_group")
-        raw.execute("ALTER TABLE question DROP COLUMN group_id")
-        raw.execute("ALTER TABLE question DROP COLUMN group_position")
-        raw.execute("ALTER TABLE question DROP COLUMN media")
-        raw.execute("PRAGMA user_version = 2")
+        for index in (
+            "idx_subject_pack_source", "idx_question_pack_source",
+            "idx_page_pack_source", "idx_outline_pack",
+        ):
+            raw.execute(f"DROP INDEX IF EXISTS {index}")
+        raw.execute("ALTER TABLE subject DROP COLUMN pack_id")
+        raw.execute("ALTER TABLE subject DROP COLUMN source_key")
+        raw.execute("ALTER TABLE outline_node DROP COLUMN pack_id")
+        raw.execute("ALTER TABLE question DROP COLUMN pack_id")
+        raw.execute("ALTER TABLE question DROP COLUMN source_key")
+        raw.execute("ALTER TABLE page DROP COLUMN pack_id")
+        raw.execute("ALTER TABLE page DROP COLUMN source_key")
+        raw.execute("DROP TABLE content_pack")
+        raw.execute("PRAGMA user_version = 3")
         raw.commit()
     finally:
         raw.close()
@@ -669,61 +704,59 @@ def test_v2_database_upgrades_without_data_loss(tmp_path):
     with database.session(path) as conn:
         for table in before:
             assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] >= before[table]
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
         tables = {
             r["name"] for r in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             )
         }
-        assert {"question_group", "question_outline"} <= tables
-        columns = {r["name"] for r in conn.execute("PRAGMA table_info(question)")}
-        assert {"group_id", "group_position", "media"} <= columns
+        assert "content_pack" in tables
         assert conn.execute(
             "SELECT 1 FROM page WHERE id = 'p_migrate'"
         ).fetchone() is not None
         assert conn.execute(
-            "SELECT 1 FROM question_outline WHERE question_id = ?", (qid,)
-        ).fetchone() is not None
+            "SELECT pack_id FROM question WHERE id = ?", (qid,)
+        ).fetchone()["pack_id"] == "demo"
+        assert conn.execute(
+            "SELECT COUNT(*) FROM subject WHERE pack_id = 'demo'"
+        ).fetchone()[0] == 1
 
-    assert list(tmp_path.glob("v2.db.bak-v2-*"))
-
+    assert list(tmp_path.glob("v3.db.bak-v3-*"))
 
 
 def test_page_question_count(client):
     page = client.post("/api/pages", json={
-        "subject_id": "computer",
-        "title": "循环与跳转",
+        "subject_id": "demo",
+        "title": "内容包",
         "body": "正文",
-        "outline_codes": ["C-08"],
+        "outline_codes": ["D-01"],
     }).json()
     res = client.get(f"/api/pages/{page['id']}/question-count")
     assert res.status_code == 200
     data = res.json()
-    assert data["codes"] == ["C-08"]
+    assert data["codes"] == ["D-01"]
     assert data["count"] > 0
     assert data["count"] == len(
-        client.get("/api/questions?code=C-08&limit=200").json()
+        client.get("/api/questions?code=D-01&limit=200").json()
     )
 
-    # 一题挂多个考点：C-08 是副考点，也要计入且只算一次
     first = client.post("/api/pages", json={
-        "subject_id": "computer", "title": "多考点", "body": "正文",
-        "outline_codes": ["C-05", "C-08"],
+        "subject_id": "demo", "title": "多考点", "body": "正文",
+        "outline_codes": ["D-01", "D-02"],
     }).json()
     before = client.get(f"/api/pages/{first['id']}/question-count").json()["count"]
 
     qid = client.post("/api/questions/batch", json={"questions": [{
-        "outline_code": "C-05",
-        "outline_codes": ["C-08"],
+        "outline_code": "D-01",
+        "outline_codes": ["D-02"],
         "type": "single",
-        "stem": "下列循环语句中，至少执行一次循环体的是（ ）",
-        "options": ["while", "for", "do-while", "if"],
-        "answer": ["C"],
-        "explanation": "do-while 先执行循环体再判断条件。",
+        "stem": "下列同步行为中，不会删除本地内容的是（ ）",
+        "options": ["UPSERT", "DROP TABLE", "DELETE", "TRUNCATE"],
+        "answer": ["A"],
+        "explanation": "同步只 upsert 命中的自然键，本地内容保持不变。",
         "difficulty": 2,
         "score": 3,
     }]}).json()["ids"][0]
-    # 未审的题不计入
     pending = client.get(f"/api/pages/{first['id']}/question-count").json()["count"]
     assert pending == before
 
@@ -731,14 +764,31 @@ def test_page_question_count(client):
     after = client.get(f"/api/pages/{first['id']}/question-count").json()["count"]
     assert after == before + 1
 
-    # 无考点页面返回 0；不存在的页面 404
     empty = client.post("/api/pages", json={
-        "subject_id": "computer", "title": "空页", "body": "正文",
+        "subject_id": "demo", "title": "空页", "body": "正文",
     }).json()
     assert client.get(f"/api/pages/{empty['id']}/question-count").json() == {
         "count": 0, "codes": [],
     }
     assert client.get("/api/pages/p_missing/question-count").status_code == 404
+
+
+def test_media_serves_pack_asset(client):
+    res = client.get("/media/demo/demo.svg")
+    assert res.status_code == 200
+    assert res.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert b"<svg" in res.content
+
+
+def test_media_blocks_traversal_and_missing(client):
+    assert client.get("/media/nope/demo.svg").status_code == 404
+    assert client.get("/media/demo/nope.svg").status_code == 404
+    for path in (
+        "/media/demo/%2e%2e/pack.json",
+        "/media/demo/..%2f..%2fpack.json",
+        "/media/demo/%2e%2e%2f%2e%2e%2fpack.json",
+    ):
+        assert client.get(path).status_code == 404
 
 
 def test_agent_stream_sse(client):
@@ -772,7 +822,6 @@ def test_agent_stream_sse(client):
     assert payload["id"] == first
     assert payload["body"] == "先看定义"
 
-    # after_id 之后只补发新事件
     with client.stream("GET", f"{url}&after_id={first}") as res:
         block = read_event(res)
     payloads = [

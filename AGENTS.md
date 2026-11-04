@@ -1,54 +1,56 @@
 # AGENTS.md
 
-> 面向 AI Agent 的项目入口。根 `README.md` 给人看；这里给 Agent 任务路由和边界。
-> 详细文档在 `docs/`，按任务读，不要一次全读。
+> 三处边界：**框架**在 `~/code/kaodian`，**内容**在 `~/code/kaodian-content`，**运行时数据**在 `~/kaodian-runtime`。
+> 先确认改哪一层，再动手。
 
-## 先确认三件事
+## 路由
 
-1. **改哪**：源码 `apps/`，内容配置 `config/`，文档 `docs/`，用户数据 `user-data/`（只读，除非用户要求）。
-2. **能不能写**：用户数据、`LICENSE`、`.git/` 不主动改；新增依赖前先问。
-3. **谁来提交**：子 Agent 一律不 commit；主 Agent 验收后提交。
-
-## 任务路由
-
-| 任务 | 先读 | 交给 |
+| 任务 | 目录 | 先读 |
 |---|---|---|
-| 改前端 / 后端 / MCP | `docs/dev/architecture.md`、`docs/dev/tech-stack.md` | 开发子 Agent |
-| 加 API / 改数据模型 | `docs/dev/api.md`、`apps/api/app/main.py` | 开发子 Agent |
-| 本地跑、测试、构建 | `docs/dev/development.md` | 开发子 Agent |
-| 写讲义、拆课、加图 | `docs/content/format.md` | 教学子 Agent |
-| 出题、审题、评分 | `docs/ai/pipelines.md` | 教学子 Agent（审题只由主 Agent） |
-| 接 IDE / MCP | `docs/ai/integration.md`、`docs/ai/protocols/agent.md` | 主 Agent |
-| 排期、进度、决策 | `docs/product/roadmap.md` | 主 Agent |
+| 改前端/后端/MCP/CLI | 框架仓库 | `docs/dev/architecture.md`、`docs/dev/content-packs.md` |
+| 改讲义/题库/素材 | 内容仓库 | 内容仓库 `README.md`、`AGENTS.md` |
+| 迁移/备份/导出 | 运行时目录 + `bin/kaodian` | `docs/dev/development.md` |
+| 接 IDE / MCP | 框架仓库 | `docs/ai/integration.md`、`docs/ai/ide-workflow.md` |
+| 产品/路线 | 框架仓库 `docs/product/` | `final-state.md` |
 
-## 子 Agent 规则
+## 硬边界
 
-给子 Agent 的任务必须自带：**工作目录、目标、验收命令、禁止项**。子 Agent 只回报文件、行数与结果，长日志留在子 Agent 上下文。
+- 框架仓库**不放**任何一科内容、图片、题库。
+- 内容仓库**不放**代码、数据库、作答记录。
+- 运行时目录**不进 Git**；备份只拷它。
+- 内容源是 Markdown/JSON 文件；DB 里的内容只是可重建索引。
+- 本地页面/题目（`pack_id IS NULL`）不会被 `content sync` 删除或覆盖。
 
-| 角色 | 可以 | 不可以 |
+## 子 Agent
+
+| 角色 | 只碰 | 不碰 |
 |---|---|---|
-| 开发 | 改 `apps/`、跑测试/构建 | 改讲义、动 `user-data/`、commit |
-| 教学 | 写 Markdown、`create_questions`、`publish_page(draft)` | 审题、组卷、发布、改代码、commit |
-| 验收 | 只读 diff、复核题目与例题 | 改实现 |
+| 框架开发 | `apps/` `bin/` `docs/dev/` `examples/` | 内容仓库、runtime |
+| 内容教学 | 内容仓库 `packs/<id>/` | 代码、DB |
+| 验收 | 只读 diff / 文件 | 实现 |
 
-## 内容与数据边界
-
-- 讲义源文件在本机的私有学习工作区（如 `~/资料/学习`），**不进本仓库**；控制台里是发布后的副本。
-- `user-data/kaodian.db` 是用户进度，默认被 `.gitignore` 排除；不要读进上下文，不要提交。
-- 题目入库只算格式合法，必须人工/主 Agent 验算后才能 `approve` 组卷。
-- 素材只用可自由使用的来源并记录许可证；真题注明「改编自 X 年真题」。
+- 子 Agent 不 commit；主 Agent 验收后提交。
+- 内容子 Agent 只写文件，不 `content sync`；主 Agent 统一同步。
+- 交付只报文件、校验结果、风险；长日志留在子 Agent。
 
 ## 常用命令
 
 ```bash
-make test     # pytest apps/api/tests
-make build    # 前端构建（tsc + vite）
-make dev-api  # uvicorn :8000
-make dev-web  # vite :5173
+make check
+bin/kaodian content validate
+bin/kaodian content sync
+bin/kaodian doctor --json
+bin/kaodian serve --port 8010
 ```
+
+## 内容格式
+
+- 一课一概念，≤120 行。
+- Markdown + KaTeX + Mermaid + `/media/<pack>/...`。
+- frontmatter 字段见 `docs/dev/content-packs.md`。
+- 素材必须登记许可证；真题写“改编自 X 年真题”。
 
 ## 文档维护
 
-- 根 `README.md` ≤100 行，只做入口；
-- 一个主题一个文件，单文件 ≤200 行；
-- 改目录或接口时，同步更新 `docs/README.md`、`docs/dev/architecture.md` 和本文件。
+- 根 `README.md` ≤110 行，只做入口。
+- 改路径/接口时同步 `docs/dev/`、`docs/ai/` 和本文件。

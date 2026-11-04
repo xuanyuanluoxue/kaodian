@@ -7,12 +7,9 @@ __pycache__/
 .env
 .env.*
 
-# 数据库与导出（本地数据，不入库）
-user-data/*.db
-user-data/*.db-*
-user-data/*.bak-*
-user-data/exports/
-!user-data/README.md
+# 本机路径配置与运行时数据（内容在独立仓库）
+kaodian.toml
+runtime/
 
 apps/web/node_modules/
 apps/web/dist/

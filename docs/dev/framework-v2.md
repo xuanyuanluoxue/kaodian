@@ -1,4 +1,6 @@
-# 框架 v2 契约
+# 框架 v2 契约（历史）
+
+> v2 的 `config/subjects`、`config/questions` 已被 [`content-packs.md`](content-packs.md) 的内容包方案取代；本文件保留作字段参考。
 
 > 边界：**任意科目、单一考试形态、单机单用户、题型注册表**。
 > 内容（题库/讲义）不在本期范围；这里只定义框架层。
@@ -6,7 +8,7 @@
 
 ## 1. 配置
 
-### 科目 `config/subjects/*.json`
+### 科目 `packs/<id>/pack.json`（v2 时在 config/subjects）
 
 ```json
 {
@@ -59,7 +61,7 @@
 
 新增题型只改这个文件；服务端校验、判分、评分队列和前端筛选都读它。
 
-### 题库 `config/questions/*.json`
+### 题库 `packs/<id>/questions/*.json`（v2 时在 config/questions）
 
 仍支持纯数组，也支持带材料组的对象格式：
 
@@ -158,4 +160,4 @@ v2 升级时会把每道老题的 `outline_code` 回填进 `question_outline`。
 cd apps/web && npm run build
 ```
 
-再造一个临时科目（只加 `config/subjects/test.json`）验证：路径出现、组卷可选、无需改代码。
+再造一个临时 pack（只加 `packs/test/`）验证：路径出现、组卷可选、无需改代码。

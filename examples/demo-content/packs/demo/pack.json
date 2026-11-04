@@ -1,0 +1,19 @@
+{
+  "id": "demo",
+  "name": "演示内容包",
+  "version": "1.0.0",
+  "schema": 1,
+  "subject": {
+    "id": "demo",
+    "name": "演示科目",
+    "short": "演示",
+    "color": "#2f5d8a",
+    "icon": "sparkles",
+    "sort": 1,
+    "code_language": null,
+    "exam": {
+      "score": 100,
+      "minutes": 60
+    }
+  }
+}

@@ -3,6 +3,20 @@
 Base：`http://127.0.0.1:8010/api`（本地）  
 所有写操作只经过 API；MCP 和浏览器都调这里。
 
+## 健康检查与媒体
+
+| 方法 | 路径 | 作用 |
+|---|---|---|
+| GET | `/api/health` | 版本与 `schema_version` |
+| GET | `/media/{pack}/{path}` | 内容包素材（只读） |
+
+`/media` 的根目录是 `content_dir()/packs/<pack>/assets/`：
+
+- `resolve()` 后必须仍在根目录内，`../` 一律 404；
+- 只返回文件；pack 或文件不存在返回 404；
+- 响应头 `Cache-Control: public, max-age=31536000, immutable`；
+- 正文与题目里的媒体引用统一写 `/media/<pack>/<file>`。
+
 ## 科目与大纲
 
 | 方法 | 路径 | 作用 |
@@ -153,7 +167,7 @@ data: {"id":42,"session_id":"s_x","kind":"note","role":"agent","body":"...","ref
 ```json
 {
   "format": "kaodian-export",
-  "version": 3,
+  "version": 4,
   "exported_at": "2026-11-04T18:30:00",
   "scope": "content",
   "data": {
@@ -171,12 +185,12 @@ data: {"id":42,"session_id":"s_x","kind":"note","role":"agent","body":"...","ref
 导入 body：
 
 ```json
-{"format":"kaodian-export","version":3,"scope":"content","overwrite":false,"data":{}}
+{"format":"kaodian-export","version":4,"scope":"content","overwrite":false,"data":{}}
 ```
 
 规则：
 
-- `format` 必须为 `kaodian-export`；`version` 高于当前 `SCHEMA_VERSION` 返回 422；
+- `format` 必须为 `kaodian-export`；`version` 高于当前 `SCHEMA_VERSION`（当前 4） 返回 422；
 - 整个导入在单个事务里，任一记录失败全部回滚；
 - `overwrite=false`：按主键跳过已存在记录；题目同时按 `fingerprint` 去重；
 - `overwrite=true`：UPSERT（页面标题、题目字段等以导入文件为准）；

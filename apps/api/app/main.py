@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import db as database
+from . import paths
 from . import question_types
 from .grading import fingerprint, grade, validate_media, validate_question
 from .review import apply_result
@@ -964,6 +965,8 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         path = request.url.path
         if path.startswith("/assets/"):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif path.startswith("/media/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         elif path.startswith("/api/agent/stream"):
             # SSE：禁止代理缓存，但也不要 no-store（某些代理会直接断流）
             response.headers["Cache-Control"] = "no-cache"
@@ -981,6 +984,20 @@ def create_app(db_file: Path | None = None) -> FastAPI:
     @app.get("/api/health")
     def health():
         return {"ok": True, "version": app.version, "schema_version": database.SCHEMA_VERSION}
+
+    @app.get("/media/{pack_id}/{path:path}")
+    def media(pack_id: str, path: str):
+        """内容包素材：只读、只返回文件，禁止 ../ 逃逸。"""
+        base = (paths.content_dir() / "packs" / pack_id / "assets").resolve()
+        if not base.is_dir():
+            raise HTTPException(404, "内容包或素材目录不存在")
+        target = (base / path).resolve()
+        if not target.is_relative_to(base) or not target.is_file():
+            raise HTTPException(404, "素材不存在")
+        return FileResponse(
+            target,
+            headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        )
 
     @app.get("/api/subjects")
     def subjects():
@@ -2277,7 +2294,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 raise HTTPException(404, "Not Found")
             root = WEB_DIST.resolve()
             target = (root / path).resolve()
-            # 只允许 dist 内的文件；禁止 ../ 逃逸到 user-data / 源码。
+            # 只允许 dist 内的文件；禁止 ../ 逃逸到 runtime / 源码。
             if path and target.is_file() and target.is_relative_to(root):
                 return FileResponse(target)
             return FileResponse(root / "index.html")

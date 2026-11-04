@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import json
 from datetime import date
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,8 +16,15 @@ CONTENT_KEYS = [
 PROGRESS_KEYS = ["page_progress", "review", "study_time"]
 
 
+ROOT = Path(__file__).resolve().parents[3]
+DEMO = ROOT / "examples" / "demo-content"
+
+
 @pytest.fixture()
-def client(tmp_path):
+def client(tmp_path, monkeypatch):
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(DEMO))
+    monkeypatch.setenv("KAODIAN_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("KAODIAN_DB", str(tmp_path / "test.db"))
     app = create_app(tmp_path / "test.db")
     with TestClient(app) as c:
         yield c
@@ -34,10 +43,14 @@ def make_page(client: TestClient, subject_id: str, title: str,
 
 
 def fresh_client(tmp_path, monkeypatch) -> TestClient:
-    """没有 config 内容的空库，用来验证导入确实写入了数据。"""
-    config = tmp_path / "empty-config"
-    (config / "subjects").mkdir(parents=True)
-    monkeypatch.setenv("KAODIAN_CONFIG_DIR", str(config))
+    """没有内容包的空库，用来验证导入确实写入了数据。"""
+    content = tmp_path / "empty-content"
+    content.mkdir(parents=True)
+    (content / "registry.json").write_text(
+        json.dumps({"schema": 1, "packs": []}), encoding="utf-8",
+    )
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(content))
+    monkeypatch.setenv("KAODIAN_DATA_DIR", str(tmp_path / "fresh-data"))
     return TestClient(create_app(tmp_path / "fresh.db"))
 
 
@@ -63,13 +76,13 @@ def answer_of(question: dict):
 
 
 def test_export_content_import_into_empty_db(client, tmp_path, monkeypatch):
-    make_page(client, "computer", "导出测试页", ["C-01"])
+    make_page(client, "demo", "导出测试页", ["D-01"])
     r = client.get("/api/export?scope=content")
     assert r.status_code == 200
     assert "kaodian-export-" in r.headers["content-disposition"]
     payload = r.json()
     assert payload["format"] == "kaodian-export"
-    assert payload["version"] == 3
+    assert payload["version"] == 4
     assert payload["scope"] == "content"
     assert set(payload["data"]) == set(CONTENT_KEYS)
     assert payload["data"]["questions"]
@@ -121,7 +134,7 @@ def test_repeat_import_without_overwrite_skips_everything(client, tmp_path, monk
 
 
 def test_overwrite_restores_modified_page(client, tmp_path, monkeypatch):
-    page = make_page(client, "computer", "原始标题", ["C-01"])
+    page = make_page(client, "demo", "原始标题", ["D-01"])
     payload = client.get("/api/export?scope=content").json()
 
     with fresh_client(tmp_path, monkeypatch) as fresh:
@@ -134,7 +147,7 @@ def test_overwrite_restores_modified_page(client, tmp_path, monkeypatch):
             "/api/import", json=import_body(payload, overwrite=True)
         )
         assert restored.status_code == 200
-        assert restored.json()["imported"]["pages"] == 1
+        assert restored.json()["imported"]["pages"] == len(payload["data"]["pages"])
         assert fresh.get(f"/api/pages/{page['id']}").json()["title"] == "原始标题"
 
 
@@ -146,7 +159,7 @@ def test_import_rejects_newer_version(client):
     assert r.status_code == 422
     assert "高于当前支持" in r.text
 
-    body["version"] = 3
+    body["version"] = 4
     body["format"] = "something-else"
     assert client.post("/api/import", json=body).status_code == 422
 
@@ -154,15 +167,15 @@ def test_import_rejects_newer_version(client):
 def test_stats_subjects_heatmap_and_types(client):
     created = client.post("/api/questions/batch", json={"questions": [
         {
-            "outline_code": "C-01", "type": "single",
-            "stem": "统计测试：计算机科目单选题，选出正确答案。",
+            "outline_code": "D-01", "type": "single",
+            "stem": "统计测试：演示科目单选题一，选出正确答案。",
             "options": ["甲", "乙", "丙", "丁"], "answer": ["A"],
             "explanation": "测试用解析，长度足够通过校验。",
             "score": 2,
         },
         {
-            "outline_code": "M-01", "type": "single",
-            "stem": "统计测试：数学科目单选题，选出正确答案。",
+            "outline_code": "D-02", "type": "single",
+            "stem": "统计测试：演示科目单选题二，选出正确答案。",
             "options": ["甲", "乙", "丙", "丁"], "answer": ["B"],
             "explanation": "测试用解析，长度足够通过校验。",
             "score": 2,
@@ -174,8 +187,8 @@ def test_stats_subjects_heatmap_and_types(client):
     }).status_code == 200
 
     ids = created["ids"]
-    expected = {}
-    for qid, subject_id, seconds in ((ids[0], "computer", 60), (ids[1], "math", 90)):
+    total_seconds = 0
+    for qid, seconds in ((ids[0], 60), (ids[1], 90)):
         quiz = client.post("/api/quizzes", json={
             "mode": "practice", "question_ids": [qid],
         }).json()
@@ -193,36 +206,25 @@ def test_stats_subjects_heatmap_and_types(client):
             },
         )
         assert result.status_code == 200, result.text
-        expected[subject_id] = seconds
+        total_seconds += seconds
 
-    computer_page = make_page(client, "computer", "统计页 · 计算机")
-    math_page = make_page(client, "math", "统计页 · 数学")
+    page = make_page(client, "demo", "统计页 · 演示")
     client.post("/api/activity", json={
-        "page_id": computer_page["id"], "seconds": 120, "source": "page",
-    })
-    client.post("/api/activity", json={
-        "page_id": math_page["id"], "seconds": 30, "source": "page",
+        "page_id": page["id"], "seconds": 150, "source": "page",
     })
 
     subjects = {s["subject_id"]: s for s in
                 client.get("/api/stats/subjects?days=30").json()}
-    assert subjects["computer"]["answered"] == 1
-    assert subjects["computer"]["correct"] == 1
-    assert subjects["computer"]["attempts"] == 1
-    assert subjects["computer"]["seconds"] == expected["computer"] + 120
-    assert subjects["math"]["answered"] == 1
-    assert subjects["math"]["correct"] == 1
-    assert subjects["math"]["attempts"] == 1
-    assert subjects["math"]["seconds"] == expected["math"] + 30
-    # 没有作答的科目也要返回 0，方便前端画完整列表。
-    assert subjects["english"]["answered"] == 0
-    assert subjects["english"]["seconds"] == 0
+    assert subjects["demo"]["answered"] == 2
+    assert subjects["demo"]["correct"] == 2
+    assert subjects["demo"]["attempts"] == 2
+    assert subjects["demo"]["seconds"] == total_seconds + 150
 
     heatmap = client.get("/api/stats/heatmap?days=90").json()
     assert len(heatmap) == 90
     assert heatmap[-1]["date"] == date.today().isoformat()
     assert heatmap[-1]["answered"] == 2
-    assert heatmap[-1]["seconds"] == 300
+    assert heatmap[-1]["seconds"] == total_seconds + 150
     assert [x["date"] for x in heatmap] == sorted(x["date"] for x in heatmap)
 
     types = {t["type"]: t for t in client.get("/api/stats/types?days=30").json()}
@@ -249,7 +251,7 @@ def test_import_rejects_missing_foreign_key(client, tmp_path, monkeypatch):
 
 
 def test_export_progress_scope_only_progress_tables(client):
-    make_page(client, "computer", "进度导出页")
+    make_page(client, "demo", "进度导出页")
     client.post("/api/activity", json={
         "page_id": "p_anything", "seconds": 30, "source": "page",
     })

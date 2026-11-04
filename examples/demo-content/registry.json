@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "demo",
+      "path": "packs/demo"
+    }
+  ]
+}

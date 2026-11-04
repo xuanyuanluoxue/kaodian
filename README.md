@@ -1,104 +1,95 @@
 # 考点 · Kaodian
 
-> **Agent 的作答终端。** 你在对话里让 Agent 出题、给提示，在网页上作答；计时和结果自动回传，Agent 接着安排下一组或讲解。
-> 本地优先、无账号、数据在你自己机器上。
+> **Agent 的作答终端。** 在 IDE 里让 Agent 出题、改讲义、给提示；在网页上阅读、作答、计时；结果通过 MCP 回传。
+> 本地优先、无账号、内容与用户数据彻底分开。
 
-```mermaid
-flowchart LR
-  Chat["IDE / 对话"] -->|MCP stdio| MCP["apps/mcp"]
-  MCP -->|HTTP| API["apps/api"]
-  Browser["浏览器 / 手机"] -->|HTTP| API
-  API --> DB[("user-data/kaodian.db")]
+## 三个目录，三种生命周期
+
+```
+~/code/kaodian/           框架仓库（公开）：只有代码、文档、CLI
+~/code/kaodian-content/   内容仓库（公开）：讲义、题库、素材、许可证
+~/kaodian-runtime/        运行时数据（私有）：SQLite、导出、日志，不进 Git
 ```
 
-AI **不在网页里跑**：它是 IDE 里的 MCP 客户端，通过 stdio 启动 `apps/mcp/server.py`，再由这个桥调本地 API。网页只是它让你作答的终端。
-
-## 能做什么
-
-| 模块 | 能力 |
-|---|---|
-| 学习路径 | 节点式课程、连续天数、每日目标、XP，按科目分路径 |
-| 讲义 | Agent 写入 Markdown：KaTeX 公式、Mermaid、SVG 动图、`math-graph` 可拖交互图 |
-| 组卷 / 作答 | 按考点、题型、题量组卷；单题一屏、计时、标记、主观题 |
-| 判分 | 客观题即时判分；主观题进队列由 Agent 按 rubric 评分 |
-| 复习 | 连对 3 次掌握度 +1，答错 −1；间隔 1/3/7/15/30 天 |
-| 协作 | 提示条、卡住求助、交卷回传；MCP 暴露 19 个工具 |
-| 代码练习 | 讲义左侧 gcc + bubblewrap 终端（默认关闭） |
+| 层 | 内容 | 能否重建 |
+|---|---|---|
+| 框架 | `apps/web` `apps/api` `apps/mcp` `apps/cli` | 代码，Git 版本化 |
+| 内容 | `packs/<科目>/`：大纲、讲义、题库、素材 | 文件是源，DB 只是索引 |
+| 运行时 | `kaodian.db`、`exports/`、`logs/` | 用户数据，只能备份 |
 
 ## 快速开始
 
-需要 Python 3.11+、Node 20.19+；代码练习另需 `gcc` 与 `bubblewrap`。
+需要 Python 3.11+、Node 20.19+。
 
 ```bash
-make check   # pytest + 前端 lint + 构建，提交前跑一遍
+git clone <framework> kaodian
+git clone <content> kaodian-content
+cd kaodian
+cp kaodian.example.toml kaodian.toml   # 改成你的 content / data 路径
+make setup
+bin/kaodian content validate
+bin/kaodian serve --port 8010
+# http://127.0.0.1:8010
 ```
+
+不配 `kaodian.toml` 时，默认加载 `examples/demo-content`，数据写到 `./runtime/`，用于试跑。
+
+## IDE 是控制面
 
 ```bash
-make setup          # 建 venv、装后端 + MCP 依赖、npm ci
-
-# 终端 1：后端
-make dev-api        # http://127.0.0.1:8000
-
-# 终端 2：前端
-make dev-web        # http://127.0.0.1:5173
+bin/kaodian content list          # 看有哪些 pack
+bin/kaodian content validate      # 校验讲义/题库/素材
+bin/kaodian content sync          # 文件 -> DB 索引
+bin/kaodian doctor --json         # 路径、DB 版本、pack 状态
+bin/kaodian mcp-config            # 输出 IDE 的 MCP 配置
 ```
 
-单端口运行（FastAPI 托管前端构建产物）或 Docker：
-
-```bash
-make build && cd apps/api && ../../.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010
-make docker                 # 非 root 容器，自动用当前 UID/GID，http://127.0.0.1:8010
-```
-
-## 接入 AI（MCP）
+AI 在 IDE 里改内容文件、跑上面命令；运行时通过 MCP 调 API：
 
 ```bash
 opencode mcp add kaodian --global \
   --env KAODIAN_API=http://127.0.0.1:8010 \
-  --env KAODIAN_WEB=http://127.0.0.1:8010 \
-  -- /path/to/kaodian/.venv/bin/python /path/to/kaodian/apps/mcp/server.py
+  -- -- /path/to/kaodian/.venv/bin/python /path/to/kaodian/apps/mcp/server.py
 ```
 
-Claude Desktop / Cursor / VS Code（Cline、Continue）等任何支持 MCP stdio 的客户端都可以接，配置见 [`docs/ai/integration.md`](docs/ai/integration.md)。
+## 内容包
+
+```
+kaodian-content/
+├── registry.json
+└── packs/math/
+    ├── pack.json          # 科目、版本、考试参数
+    ├── outline.json       # 考纲节点
+    ├── lessons/*.md       # frontmatter + Markdown
+    ├── questions/*.json
+    ├── assets/*           # /media/math/xxx.svg
+    └── LICENSES.md
+```
+
+新增一科只加一个 pack；新增一页只加一个 Markdown；不用改框架代码。
 
 ## 目录
 
 ```
-apps/web/   前端（React + Vite + TS）      apps/api/   后端（FastAPI + SQLite）
-apps/mcp/   AI 桥（stdio MCP → API）       config/    科目、考纲、种子题库
-docs/       文档（产品 / 开发 / AI / 内容）  scripts/   大纲导入、冒烟
-user-data/  用户数据（作答、进度、复习），不进 Git
+apps/web/      前端（React + Vite + TS）
+apps/api/      后端（FastAPI + SQLite）
+apps/mcp/      AI 桥（stdio MCP）
+apps/cli/      kaodian 命令
+bin/kaodian    CLI 入口
+config/        框架默认配置（题型注册表）
+docs/          产品 / 开发 / AI / 内容
+examples/      演示内容包（测试与首次启动）
 ```
 
-| 位置 | 内容 | 进 Git |
-|---|---|---|
-| `apps/` `config/` `docs/` | 源码、配置、文档 | ✅ |
-| `user-data/kaodian.db` | 作答、时长、复习、进度 | ❌ |
-| 私有学习工作区 | 讲义源文件、计划、日志（不在本仓库） | ❌ |
+## 验证
 
-## 文档
+```bash
+make check     # pytest + 前端 lint + build
+```
 
-| 我想… | 读 |
-|---|---|
-| 了解定位与功能 | [`docs/product/overview.md`](docs/product/overview.md) |
-| 看模块与数据流 | [`docs/dev/architecture.md`](docs/dev/architecture.md) |
-| 本地开发 / 测试 | [`docs/dev/development.md`](docs/dev/development.md) |
-| 调 API | [`docs/dev/api.md`](docs/dev/api.md) |
-| 让 AI 接进来 | [`docs/ai/integration.md`](docs/ai/integration.md) |
-| 出题 / 审题 / 评分 | [`docs/ai/pipelines.md`](docs/ai/pipelines.md) |
-| 写讲义 / 加图 | [`docs/content/format.md`](docs/content/format.md) |
+## 安全与许可
 
-完整索引：[`docs/README.md`](docs/README.md)。
-
-## 安全与版权
-
-- 默认只绑 `127.0.0.1`，无账号体系，**不要暴露公网**；
-- 代码沙箱默认关闭，`KAODIAN_ALLOW_CODE_RUN=1` 才启用，且断网、只读系统；
-- AI 生成的题先入库 `pending`，主 Agent 审查后才可组卷；
-- 素材只用可自由使用的来源并记录许可证，真题注明「改编自 X 年真题」。
-
-## License
-
-- 代码：MIT，见 [`LICENSE`](LICENSE)。
-- 素材：`apps/web/public/素材库/` 按该目录的 [`LICENSE-素材.md`](apps/web/public/素材库/LICENSE-素材.md)，含 CC0 / CC BY / CC BY-SA，发布页面时保留署名。
-- 种子题：`config/questions/` 为公开真题改编的教学示例，不是原卷；正式使用前请自行核对来源与版权。
+- 默认只绑 `127.0.0.1`，无账号体系，不要暴露公网。
+- 代码沙箱默认关闭，`KAODIAN_ALLOW_CODE_RUN=1` 才启用。
+- 代码 MIT；内容与素材许可见内容仓库的 `LICENSES-素材.md` 和各 pack 的 `LICENSES.md`。
+- 真题只用改编版，不收录原卷。

@@ -9,7 +9,21 @@ CREATE TABLE IF NOT EXISTS subject (
     color         TEXT,
     icon          TEXT,
     sort          INTEGER NOT NULL DEFAULT 0,
-    code_language TEXT
+    code_language TEXT,
+    pack_id       TEXT,
+    source_key    TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subject_pack_source
+    ON subject(pack_id, source_key) WHERE pack_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS content_pack (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    version    TEXT NOT NULL,
+    schema     INTEGER NOT NULL,
+    path       TEXT,
+    synced_at  TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS outline_node (
@@ -25,10 +39,13 @@ CREATE TABLE IF NOT EXISTS outline_node (
     kind         TEXT NOT NULL DEFAULT 'point',
     sort         INTEGER NOT NULL DEFAULT 0,
     parent_code  TEXT,
-    depth        INTEGER NOT NULL DEFAULT 0
+    depth        INTEGER NOT NULL DEFAULT 0,
+    pack_id      TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_outline_subject ON outline_node(subject_id, sort);
+CREATE INDEX IF NOT EXISTS idx_outline_pack ON outline_node(pack_id);
+
 
 -- 材料题 / 一拖多：一段材料（可含媒体）下挂多道小题。
 CREATE TABLE IF NOT EXISTS question_group (
@@ -68,8 +85,13 @@ CREATE TABLE IF NOT EXISTS question (
     reviewed_at      TEXT,
     review_note      TEXT,
     fingerprint      TEXT UNIQUE,
+    pack_id          TEXT,
+    source_key       TEXT,
     created_at       TEXT NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_question_pack_source
+    ON question(pack_id, source_key) WHERE pack_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_question_code ON question(outline_code);
 CREATE INDEX IF NOT EXISTS idx_question_subject ON question(subject_id, type);
@@ -188,8 +210,13 @@ CREATE TABLE IF NOT EXISTS page (
     status        TEXT NOT NULL DEFAULT 'published',
     sort_order    INTEGER NOT NULL DEFAULT 1000,
     created_at    TEXT NOT NULL,
-    updated_at    TEXT NOT NULL
+    updated_at    TEXT NOT NULL,
+    pack_id       TEXT,
+    source_key    TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_page_pack_source
+    ON page(pack_id, source_key) WHERE pack_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_page_subject ON page(subject_id, sort_order, created_at);
 CREATE INDEX IF NOT EXISTS idx_page_status ON page(status, subject_id);

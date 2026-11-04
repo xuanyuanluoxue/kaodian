@@ -1,0 +1,50 @@
+[
+  {
+    "id": "demo_single_01",
+    "subject_id": "demo",
+    "outline_code": "D-01",
+    "type": "single",
+    "stem": "演示单选：内容包同步按哪个字段匹配科目？",
+    "options": ["subject.id", "文件名", "排序号", "颜色"],
+    "answer": ["A"],
+    "explanation": "科目按 subject.id 匹配，迁移时不会因为文件名变化而重复插入。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {"kind": "demo"},
+    "tags": ["内容包"],
+    "verified": true
+  },
+  {
+    "id": "demo_fill_01",
+    "subject_id": "demo",
+    "outline_code": "D-02",
+    "type": "fill",
+    "stem": "演示填空：媒体接口的根目录是 content_dir()/packs/<pack>/______。",
+    "answer": ["assets"],
+    "explanation": "内容包素材统一放在 packs/<pack>/assets/，正文用 /media/<pack>/<file> 引用。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {"kind": "demo"},
+    "tags": ["媒体"],
+    "verified": true
+  },
+  {
+    "id": "demo_short_01",
+    "subject_id": "demo",
+    "outline_code": "D-01",
+    "type": "short",
+    "stem": "演示简答：说明 pack_id 为空的本地内容在 content sync 时会发生什么。",
+    "reference_answer": "同步只更新或插入内容包自然键命中的行，并回填 pack_id；没有命中的本地页面和题目保持不变，也不会被删除。",
+    "rubric": [
+      {"point": "说明自然键匹配", "score": 4},
+      {"point": "说明回填 pack_id", "score": 3},
+      {"point": "说明不删除本地内容", "score": 3}
+    ],
+    "explanation": "这是主观题示例，交卷后进入 Agent 评分队列，按 rubric 给分。",
+    "score": 10,
+    "difficulty": 2,
+    "source": {"kind": "demo"},
+    "tags": ["同步"],
+    "verified": true
+  }
+]

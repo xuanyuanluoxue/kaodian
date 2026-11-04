@@ -80,22 +80,23 @@ flowchart LR
 
 写题前先用 `list_outline` 确认编号；批量提交前可先 `POST /questions/validate` 只校验不入库。
 
-## 2. 讲义：草稿 → 验收 → 发布
+## 2. 讲义：文件 → 校验 → 同步
+
+持久内容在**内容仓库**，不在 API 里直接写：
 
 ```text
-子 Agent 写 .md
-  → POST /pages        status=draft, lesson_key=L05
-  → POST /questions/batch   status=pending（8–10 题）
-  → 报告 page_id + question ids
-
-主 Agent 验收
-  → 读正文，校对概念、例题、图
-  → list_pending_questions 逐题验算
-  → review_questions approve/reject
-  → PATCH /pages/{id}  status=published
+子 Agent 写 packs/<subject>/lessons/*.md
+  → bin/kaodian content validate
+  → bin/kaodian content sync
+  → HTTP GET /api/pages 确认
 ```
 
-`lesson_key` 决定学习路径顺序（`M02-1`、`M02-2`…），与创建时间无关。拆分课时用后缀编号，不要复用旧 key。
+- frontmatter 里 `status: draft|published|archived` 决定是否上线；
+- `lesson_key` 决定路径顺序，与创建时间无关；
+- `publish_page` 只用于运行时的临时页（`pack_id IS NULL`），不进入内容仓库；
+- 题库同理：种子题写 `packs/<subject>/questions/*.json`，运行时 AI 生成的题走 `create_questions`（pending）。
+
+主 Agent 验收：读正文、校对例题、跑 `content validate`，确认后提交内容仓库。
 
 ## 3. 主观题：交卷 → 评分队列 → 写回
 
@@ -119,7 +120,7 @@ Agent
 | 角色 | 可以 | 不可以 |
 |---|---|---|
 | 子 Agent（教学） | 写 `.md`、调 `create_questions`、`publish_page(status=draft)` | 审题、组卷、发布、commit、改代码 |
-| 子 Agent（开发） | 改代码、跑测试、跑构建 | 改讲义、动 `user-data/`、commit |
+| 子 Agent（开发） | 改代码、跑测试、跑构建 | 改讲义、动 `runtime/`、commit |
 | 主 Agent | 验收、`review_questions`、`update_page(published)`、提交 | 把长日志整段带进主上下文 |
 
 - 子 Agent 只回报：文件、行数、测试结果、不确定处。

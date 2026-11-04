@@ -15,7 +15,8 @@ ARG INSTALL_SANDBOX=0
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    KAODIAN_DB=/data/kaodian.db \
+    KAODIAN_CONTENT_DIR=/content \
+    KAODIAN_DATA_DIR=/data \
     TZ=Asia/Shanghai
 
 RUN apt-get update \
@@ -30,15 +31,19 @@ COPY apps/api/requirements.txt apps/api/constraints.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -c constraints.txt
 
 COPY --chown=1000:1000 apps/api/app ./apps/api/app
+COPY --chown=1000:1000 apps/cli ./apps/cli
+COPY --chown=1000:1000 bin ./bin
 COPY --chown=1000:1000 config ./config
+COPY --chown=1000:1000 examples ./examples
 COPY --chown=1000:1000 --from=web /web/dist ./apps/web/dist
 
 RUN groupadd -g 1000 kaodian 2>/dev/null || true \
     && useradd -u 1000 -g 1000 -M -s /usr/sbin/nologin kaodian 2>/dev/null || true \
-    && mkdir -p /data && chown 1000:1000 /data
+    && mkdir -p /data /content && chown 1000:1000 /data
 
 USER 1000:1000
 VOLUME ["/data"]
+# /content 由宿主机内容仓库只读挂载
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

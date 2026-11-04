@@ -7,12 +7,12 @@
 | 我要做什么 | 先读 | 再读 |
 |---|---|---|
 | 了解项目定位与功能 | [`product/overview.md`](product/overview.md) | [`product/roadmap.md`](product/roadmap.md) |
-| 改代码 / 看模块划分 | [`dev/architecture.md`](dev/architecture.md) | [`dev/framework-v2.md`](dev/framework-v2.md) |
+| 改代码 / 看模块划分 | [`dev/architecture.md`](dev/architecture.md) | [`dev/content-packs.md`](dev/content-packs.md) |
 | 本地跑起来 / 跑测试 | [`dev/development.md`](dev/development.md) | [`dev/tech-stack.md`](dev/tech-stack.md) |
 | 调 API | [`dev/api.md`](dev/api.md) | [`ai/pipelines.md`](ai/pipelines.md) |
-| 让 AI / IDE 接进来 | [`ai/integration.md`](ai/integration.md) | [`ai/protocols/agent.md`](ai/protocols/agent.md) |
+| 让 AI / IDE 接进来 | [`ai/integration.md`](ai/integration.md) | [`ai/ide-workflow.md`](ai/ide-workflow.md) |
 | 让 AI 出题、审题、评分 | [`ai/pipelines.md`](ai/pipelines.md) | [`content/format.md`](content/format.md) |
-| 写讲义 / 加图 / 加交互图 | [`content/format.md`](content/format.md) | [`product/overview.md`](product/overview.md) |
+| 写讲义 / 加图 / 加交互图 | [`content/format.md`](content/format.md) | [`dev/content-packs.md`](dev/content-packs.md) |
 
 ## 分区
 

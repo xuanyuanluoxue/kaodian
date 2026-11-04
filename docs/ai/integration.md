@@ -9,7 +9,7 @@ flowchart LR
   Chat["IDE / 对话窗口"] -->|MCP stdio| MCP["apps/mcp/server.py"]
   MCP -->|HTTP| API["apps/api"]
   Browser["浏览器 / 手机"] -->|HTTP| API
-  API --> DB[("user-data/kaodian.db")]
+  API --> DB[("runtime/kaodian.db")]
   API --> Sandbox["gcc + bubblewrap"]
 ```
 

@@ -3,6 +3,8 @@
 > 讲义只有一个来源格式：**Markdown**。网页只多认两种代码块（`mermaid`、`math-graph`），其余按 GFM + KaTeX 渲染。
 > 不写内嵌 HTML、iframe、`<script>`、内联样式。
 
+> 内容仓库：`~/code/kaodian-content`。正文里的 `/media/<pack>/...` 由框架的 `/media` 路由提供。
+
 ## 1. 一课一概念
 
 - 一页只讲**一个**可独立出题、独立复习的最小概念；
@@ -63,20 +65,20 @@
 $$
 f'(x)=\lim_{\Delta x\to0}\frac{\Delta y}{\Delta x}
 $$
-![图](/images/x.svg)
+![图](/media/math/x.svg)
 
 <!-- 正确 -->
 $$f'(x)=\lim_{\Delta x\to0}\frac{\Delta y}{\Delta x}$$
-![图](/images/x.svg)
+![图](/media/math/x.svg)
 ```
 
 ## 3. 图片
 
 ```markdown
-![图 1：割线滑向切线，斜率趋近 2](/images/math-secant-anim.svg)
+![图 1：割线滑向切线，斜率趋近 2](/media/math/math-secant-anim.svg)
 ```
 
-- 路径统一 `/images/xxx.svg`（放在 `apps/web/public/images/`）；
+- 路径统一 `/media/<pack>/xxx.svg`，文件在内容仓库 `packs/<pack>/assets/`；
 - 命名 `科目-主题-序号.svg`，如 `math-deriv-1.svg`；
 - **alt 就是图注**，渲染时自动显示在图下方，必须写清「图几：说明」；
 - 用 `<img>` 引用 SVG 时是独立文档，**不能用 `:root` + `var(--x)`**：
@@ -173,7 +175,7 @@ flowchart LR
 |---|---|
 | `<div>` / `<span>` / 内联 style | Markdown 段落、表格 |
 | `<iframe>` / `<script>` | `math-graph` 或 Mermaid |
-| 远程图片 / CDN | 本地 `/images/` 或 `public/素材库/` |
+| 远程图片 / CDN | 本地 `/media/<pack>/` 或内容仓库 `assets/` |
 | 跨行 `$$` | 合并成单行 |
 | 一页多概念 | 拆成多页，用 `lesson_key` 后缀 |
 | 未注明来源的真题 | 写「改编自 X 年真题」并核对版权 |

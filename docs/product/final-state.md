@@ -62,13 +62,13 @@
 
 ### 7. 数据与运维
 
-- SQLite 单文件，`user-data/kaodian.db`
+- SQLite 单文件，`runtime/kaodian.db`
 - 启动自动迁移 + 备份
 - 支持导出 / 导入（JSON）
 - Docker 非 root、健康检查、TZ 可配
 - CI：pytest + lint + build
-- 加科目只加 `config/subjects/*.json`
-- 加题型只改 `config/question_types.json`
+- 加科目只加内容仓库的 `packs/<id>/`
+- 加题型只改框架的 `config/question_types.json`
 
 ## 二、必须做到的验收
 

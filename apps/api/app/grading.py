@@ -39,7 +39,7 @@ def normalize(text: object) -> str:
         return ""
     s = unicodedata.normalize("NFKC", str(text)).strip().lower()
     s = re.sub(r"\s+", "", s)
-    s = re.sub(r"[，。；：、,.;:!?！？\"'“”‘’（）()\[\]【】]", "", s)
+    s = re.sub(r"[，。；：、,.;:!?！？\"'“”‘’【】]", "", s)
     return s
 
 

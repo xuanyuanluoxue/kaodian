@@ -1,0 +1,26 @@
+[
+  {
+    "code": "D-01",
+    "title": "演示考点一：内容包与自然键",
+    "section": "示例",
+    "requirement": "掌握",
+    "frequency": "1/1",
+    "hours": 1,
+    "stage": "P1",
+    "assessment": null,
+    "kind": "point",
+    "sort": 1
+  },
+  {
+    "code": "D-02",
+    "title": "演示考点二：同步与校验",
+    "section": "示例",
+    "requirement": "了解",
+    "frequency": "1/1",
+    "hours": 1,
+    "stage": "P1",
+    "assessment": null,
+    "kind": "point",
+    "sort": 2
+  }
+]
