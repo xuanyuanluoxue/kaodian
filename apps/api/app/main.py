@@ -9,20 +9,23 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import time
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import content as content_packs
 from . import db as database
 from . import paths
 from . import question_types
+from .blocks import validate_blocks, validate_layout, validate_theme
 from .grading import fingerprint, grade, validate_media, validate_question
 from .review import apply_result
 
@@ -159,7 +162,10 @@ class PageIn(BaseModel):
     lesson_key: str | None = Field(default=None, max_length=20)
     title: str = Field(min_length=1, max_length=120)
     summary: str | None = None
-    body: str = Field(min_length=1)
+    body: str = ""
+    blocks: list[dict[str, Any]] | None = None
+    layout: str = "article"
+    theme: dict[str, Any] | None = None
     outline_codes: list[str] = Field(default_factory=list)
     kind: Literal["outline", "lesson", "daily", "note"] = "lesson"
     status: Literal["draft", "published", "archived"] = "published"
@@ -170,7 +176,10 @@ class PagePatch(BaseModel):
     lesson_key: str | None = Field(default=None, max_length=20)
     title: str | None = Field(default=None, min_length=1, max_length=120)
     summary: str | None = None
-    body: str | None = Field(default=None, min_length=1)
+    body: str | None = None
+    blocks: list[dict[str, Any]] | None = None
+    layout: str | None = None
+    theme: dict[str, Any] | None = None
     outline_codes: list[str] | None = None
     kind: Literal["outline", "lesson", "daily", "note"] | None = None
     status: Literal["draft", "published", "archived"] | None = None
@@ -183,6 +192,19 @@ class ImportIn(BaseModel):
     scope: Literal["content", "progress", "all"] = "content"
     overwrite: bool = False
     data: dict[str, Any] = Field(default_factory=dict)
+
+
+class DraftIn(BaseModel):
+    body: str | None = None
+    blocks: list[dict[str, Any]] | None = None
+    layout: str | None = None
+    theme: dict[str, Any] | None = None
+    base_version: int | None = None
+
+
+class PublishIn(BaseModel):
+    message: str | None = Field(default=None, max_length=200)
+    commit: bool = False
 
 
 # ---------------------------------------------------------------- helpers
@@ -260,6 +282,9 @@ def group_dict(row: sqlite3.Row) -> dict:
 
 
 def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
+    blocks = _decode_json(row["blocks"]) if "blocks" in row.keys() else None
+    theme = _decode_json(row["theme"]) if "theme" in row.keys() else None
+    stored_format = row["format"] if "format" in row.keys() else None
     item = {
         "id": row["id"],
         "subject_id": row["subject_id"],
@@ -269,7 +294,13 @@ def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
         "outline_codes": json.loads(row["outline_codes"]) if row["outline_codes"] else [],
         "kind": row["kind"],
         "status": row["status"],
+        "blocks": blocks,
+        "layout": row["layout"] if "layout" in row.keys() else "article",
+        "theme": theme,
+        # 有 blocks 就是块页；旧数据没有 blocks 时沿用存储的 format。
+        "format": "blocks" if blocks is not None else (stored_format or "markdown"),
         "sort_order": row["sort_order"] if "sort_order" in row.keys() else 1000,
+        "file": row["file"] if "file" in row.keys() else None,
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "completed": row["completed_at"] is not None if "completed_at" in row.keys() else False,
@@ -282,6 +313,49 @@ def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
         body = row["body"] or ""
         item["excerpt"] = body[:180].replace("\n", " ")
     return item
+
+
+def draft_dict(row: sqlite3.Row) -> dict:
+    return {
+        "page_id": row["page_id"],
+        "body": row["body"],
+        "blocks": _decode_json(row["blocks"]),
+        "layout": row["layout"],
+        "theme": _decode_json(row["theme"]),
+        "version": row["version"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def draft_payload(conn: sqlite3.Connection, page_id: str) -> dict:
+    page = conn.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+    if not page:
+        raise HTTPException(404, "学习页不存在")
+    draft = conn.execute(
+        "SELECT * FROM page_draft WHERE page_id = ?", (page_id,)
+    ).fetchone()
+    return {
+        "page": page_dict(page),
+        "draft": draft_dict(draft) if draft else None,
+    }
+
+
+def _git_commit(content_dir: Path, file: str, message: str) -> bool:
+    """在内容仓库提交单个文件；失败时说明文件已经写好。"""
+    def run(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            args, cwd=str(content_dir), capture_output=True, text=True,
+        )
+
+    added = run("git", "add", "--", file)
+    if added.returncode != 0:
+        detail = (added.stderr or added.stdout).strip()
+        raise HTTPException(500, f"文件已写入，但 git add 失败：{detail}")
+    committed = run("git", "commit", "-m", message)
+    if committed.returncode != 0:
+        detail = (committed.stderr or committed.stdout).strip()
+        raise HTTPException(500, f"文件已写入，但 git commit 失败：{detail}")
+    return True
 
 
 def get_quiz(conn: sqlite3.Connection, quiz_id: str) -> dict:
@@ -532,7 +606,8 @@ _EXPORT_SPECS: dict[str, list[tuple[str, str, tuple[str, ...], str]]] = {
         ("questions", "question",
          ("options", "answer", "rubric", "source", "tags", "media"), "created_at, id"),
         ("question_outline", "question_outline", (), "question_id, outline_code"),
-        ("pages", "page", ("outline_codes",), "subject_id, sort_order, created_at, id"),
+        ("pages", "page", ("outline_codes", "blocks", "theme"),
+         "subject_id, sort_order, created_at, id"),
     ],
     "progress": [
         ("page_progress", "page_progress", (), "page_id"),
@@ -600,10 +675,11 @@ _IMPORT_SPECS: dict[str, tuple[str, str, dict[str, Any], tuple[str, ...]]] = {
     }, ()),
     "pages": ("page", "id", {
         "id": _REQUIRED, "subject_id": None, "title": _REQUIRED, "summary": None,
-        "body": _REQUIRED, "lesson_key": None, "outline_codes": None,
+        "body": "", "blocks": None, "layout": "article", "theme": None,
+        "format": "markdown", "lesson_key": None, "outline_codes": None,
         "kind": "lesson", "status": "published", "sort_order": 1000,
         "created_at": _NOW, "updated_at": _NOW,
-    }, ("outline_codes",)),
+    }, ("outline_codes", "blocks", "theme")),
     "page_progress": ("page_progress", "page_id", {
         "page_id": _REQUIRED, "completed_at": _NOW, "xp": 10,
     }, ()),
@@ -860,6 +936,8 @@ def import_data(conn: sqlite3.Connection, body: ImportIn) -> dict:
             for code in codes:
                 _check_ref(conn, "outline_node", "code", code,
                            f"{label}.outline_codes")
+            if values.get("blocks") is not None:
+                values["format"] = "blocks"
             if _store_row(conn, "page", "id", values, body.overwrite):
                 imported["pages"] += 1
             else:
@@ -955,7 +1033,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: blob: https:; media-src 'self' https:; font-src 'self' data:; connect-src 'self'; "
-            "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+            "frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
         )
         return response
 
@@ -967,7 +1045,9 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         elif path.startswith("/media/"):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        elif path.startswith("/api/agent/stream"):
+        elif path.startswith("/sandbox/"):
+            response.headers["Cache-Control"] = "no-store"
+        elif path.endswith("/stream"):
             # SSE：禁止代理缓存，但也不要 no-store（某些代理会直接断流）
             response.headers["Cache-Control"] = "no-cache"
         elif path.startswith("/api/"):
@@ -997,6 +1077,39 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         return FileResponse(
             target,
             headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        )
+
+    @app.get("/sandbox/{page_id}/{index}")
+    def sandbox(page_id: str, index: int):
+        """隔离实验页：独立响应 + 独立 CSP，只允许内联脚本，不能访问 API/Cookie。"""
+        with conn() as c:
+            row = c.execute("SELECT blocks FROM page WHERE id = ?", (page_id,)).fetchone()
+        if not row or not row["blocks"]:
+            raise HTTPException(404, "实验页不存在")
+        try:
+            blocks = json.loads(row["blocks"])
+        except (TypeError, json.JSONDecodeError):
+            raise HTTPException(404, "实验页不存在")
+        if not isinstance(blocks, list) or not 0 <= index < len(blocks):
+            raise HTTPException(404, "实验页不存在")
+        block = blocks[index]
+        if not isinstance(block, dict) or block.get("type") != "sandbox":
+            raise HTTPException(404, "实验页不存在")
+        html = block.get("html")
+        if not isinstance(html, str):
+            raise HTTPException(404, "实验页不存在")
+        return HTMLResponse(
+            html,
+            headers={
+                "Cache-Control": "no-store",
+                "X-Frame-Options": "SAMEORIGIN",
+                "Content-Security-Policy": (
+                    "default-src 'none'; script-src 'unsafe-inline'; "
+                    "style-src 'unsafe-inline'; img-src 'self' data: https:; "
+                    "media-src 'self' https:; font-src data:; connect-src 'none'; "
+                    "frame-ancestors 'self'"
+                ),
+            },
         )
 
     @app.get("/api/subjects")
@@ -1907,13 +2020,28 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                        if not c.execute("SELECT 1 FROM outline_node WHERE code = ?", (code,)).fetchone()]
             if missing:
                 raise HTTPException(422, f"考点编号不存在：{', '.join(missing)}")
+            if body.blocks is None and not body.body.strip():
+                raise HTTPException(422, "正文不能为空")
+            errors = [
+                *validate_layout(body.layout),
+                *validate_theme(body.theme),
+                *(validate_blocks(body.blocks) if body.blocks is not None else []),
+            ]
+            if errors:
+                raise HTTPException(422, "；".join(errors))
+            page_format = "blocks" if body.blocks is not None else "markdown"
             pid = database.new_id("p")
             now = database.now_iso()
             c.execute(
-                """INSERT INTO page(id, subject_id, lesson_key, title, summary, body, outline_codes,
+                """INSERT INTO page(id, subject_id, lesson_key, title, summary, body,
+                                   blocks, layout, theme, format, outline_codes,
                                    kind, status, sort_order, created_at, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (pid, body.subject_id, body.lesson_key, body.title, body.summary, body.body,
+                 json.dumps(body.blocks, ensure_ascii=False) if body.blocks is not None else None,
+                 body.layout,
+                 json.dumps(body.theme, ensure_ascii=False) if body.theme is not None else None,
+                 page_format,
                  json.dumps(body.outline_codes, ensure_ascii=False), body.kind, body.status,
                  body.sort_order, now, now),
             )
@@ -1991,6 +2119,26 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             data = body.model_dump(exclude_unset=True)
             if not data:
                 return page_dict(row)
+            errors: list[str] = []
+            if "blocks" in data:
+                if data["blocks"] is not None:
+                    errors.extend(validate_blocks(data["blocks"]))
+                data["format"] = "blocks" if data["blocks"] is not None else "markdown"
+                data["blocks"] = (
+                    json.dumps(data["blocks"], ensure_ascii=False)
+                    if data["blocks"] is not None else None
+                )
+            if "layout" in data:
+                data["layout"] = data["layout"] or "article"
+                errors.extend(validate_layout(data["layout"]))
+            if "theme" in data:
+                errors.extend(validate_theme(data["theme"]))
+                data["theme"] = (
+                    json.dumps(data["theme"], ensure_ascii=False)
+                    if data["theme"] is not None else None
+                )
+            if errors:
+                raise HTTPException(422, "；".join(errors))
             if "outline_codes" in data and data["outline_codes"] is not None:
                 missing = [code for code in data["outline_codes"]
                            if not c.execute("SELECT 1 FROM outline_node WHERE code = ?", (code,)).fetchone()]
@@ -2001,6 +2149,214 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             c.execute(f"UPDATE page SET {fields}, updated_at = ? WHERE id = ?",
                       [*data.values(), database.now_iso(), page_id])
             return page_dict(c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone())
+
+    # -------- 网页编辑：草稿与发布
+
+    @app.get("/api/pages/{page_id}/draft")
+    def get_page_draft(page_id: str):
+        with conn() as c:
+            return draft_payload(c, page_id)
+
+    @app.put("/api/pages/{page_id}/draft")
+    def save_page_draft(page_id: str, body: DraftIn):
+        provided = body.model_dump(exclude_unset=True)
+        base_version = provided.pop("base_version", None)
+        with conn() as c:
+            page = c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+            if not page:
+                raise HTTPException(404, "学习页不存在")
+            existing = c.execute(
+                "SELECT * FROM page_draft WHERE page_id = ?", (page_id,)
+            ).fetchone()
+            if existing:
+                current = existing["version"]
+                if base_version is not None and base_version != current:
+                    raise HTTPException(409, f"草稿版本冲突：当前版本 {current}")
+                merged = {
+                    "body": existing["body"],
+                    "blocks": _decode_json(existing["blocks"]),
+                    "layout": existing["layout"],
+                    "theme": _decode_json(existing["theme"]),
+                }
+                version = current + 1
+            else:
+                if base_version not in (None, 0):
+                    raise HTTPException(409, "草稿版本冲突：当前没有草稿")
+                merged = {
+                    "body": page["body"],
+                    "blocks": _decode_json(page["blocks"]),
+                    "layout": page["layout"] if "layout" in page.keys() else "article",
+                    "theme": _decode_json(page["theme"]),
+                }
+                version = 1
+
+            for key in ("body", "blocks", "layout", "theme"):
+                if key in provided:
+                    merged[key] = provided[key]
+
+            if not merged.get("layout"):
+                merged["layout"] = "article"
+            errors = [
+                *validate_layout(merged["layout"]),
+                *validate_theme(merged["theme"]),
+                *(validate_blocks(merged["blocks"]) if merged["blocks"] is not None else []),
+            ]
+            if errors:
+                raise HTTPException(422, "；".join(errors))
+
+            now = database.now_iso()
+            values = (
+                merged["body"], _json_text(merged["blocks"]), merged["layout"],
+                _json_text(merged["theme"]), version, now,
+            )
+            if existing:
+                c.execute(
+                    """UPDATE page_draft
+                       SET body=?, blocks=?, layout=?, theme=?, version=?, updated_at=?
+                       WHERE page_id=?""",
+                    (*values, page_id),
+                )
+            else:
+                c.execute(
+                    """INSERT INTO page_draft
+                       (body, blocks, layout, theme, version, updated_at, page_id)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    (*values, page_id),
+                )
+            return draft_payload(c, page_id)
+
+    @app.delete("/api/pages/{page_id}/draft")
+    def discard_page_draft(page_id: str):
+        with conn() as c:
+            if not c.execute("SELECT 1 FROM page WHERE id = ?", (page_id,)).fetchone():
+                raise HTTPException(404, "学习页不存在")
+            c.execute("DELETE FROM page_draft WHERE page_id = ?", (page_id,))
+        return {"ok": True, "page_id": page_id}
+
+    @app.get("/api/pages/{page_id}/draft/stream")
+    async def page_draft_stream(page_id: str, request: Request):
+        with database.session(app.state.db_file) as c:
+            if not c.execute("SELECT 1 FROM page WHERE id = ?", (page_id,)).fetchone():
+                raise HTTPException(404, "学习页不存在")
+
+        async def events():
+            last: tuple[Any, Any] | None = None
+            last_ping = time.monotonic()
+            while True:
+                if await request.is_disconnected():
+                    break
+                with database.session(app.state.db_file) as c:
+                    row = c.execute(
+                        "SELECT version, updated_at FROM page_draft WHERE page_id = ?",
+                        (page_id,),
+                    ).fetchone()
+                version = row["version"] if row else None
+                updated_at = row["updated_at"] if row else None
+                if (version, updated_at) != last:
+                    last = (version, updated_at)
+                    yield "data: " + json.dumps(
+                        {"version": version, "updated_at": updated_at},
+                        ensure_ascii=False,
+                    ) + "\n\n"
+                    last_ping = time.monotonic()
+                elif time.monotonic() - last_ping >= 15:
+                    yield ": ping\n\n"
+                    last_ping = time.monotonic()
+                await asyncio.sleep(1)
+
+        return StreamingResponse(
+            events(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    @app.post("/api/pages/{page_id}/publish")
+    def publish_page_draft(page_id: str, body: PublishIn):
+        content_dir = paths.content_dir()
+        with conn() as c:
+            page = c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+            if not page:
+                raise HTTPException(404, "学习页不存在")
+            draft = c.execute(
+                "SELECT * FROM page_draft WHERE page_id = ?", (page_id,)
+            ).fetchone()
+            if not draft:
+                raise HTTPException(422, "没有草稿可发布")
+
+            now = database.now_iso()
+            # 本地页：没有内容文件，直接更新数据库。
+            if not page["pack_id"]:
+                blocks = _decode_json(draft["blocks"])
+                page_format = "blocks" if blocks is not None else "markdown"
+                c.execute(
+                    """UPDATE page SET body=?, blocks=?, layout=?, theme=?,
+                         format=?, updated_at=? WHERE id=?""",
+                    (
+                        draft["body"] or "", _json_text(blocks),
+                        draft["layout"] or "article",
+                        _json_text(_decode_json(draft["theme"])),
+                        page_format, now, page_id,
+                    ),
+                )
+                c.execute("DELETE FROM page_draft WHERE page_id = ?", (page_id,))
+                updated = c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+                return {"page": page_dict(updated), "file": None, "committed": False}
+
+            file_value = page["file"]
+            if not file_value:
+                raise HTTPException(422, "页面没有内容文件，无法写回")
+
+            errors = content_packs.validate_page_draft(content_dir, page, draft)
+            if errors:
+                raise HTTPException(422, {
+                    "message": "发布前校验失败，文件未修改",
+                    "errors": errors,
+                })
+            try:
+                content_packs.write_lesson_file(content_dir, page, draft)
+            except content_packs.PackError as exc:
+                raise HTTPException(422, str(exc)) from exc
+
+            try:
+                content_packs.sync_content(c)
+            except content_packs.PackError as exc:
+                raise HTTPException(500, f"文件已写入，但同步失败：{exc}") from exc
+
+            c.execute("DELETE FROM page_draft WHERE page_id = ?", (page_id,))
+            updated = c.execute("SELECT * FROM page WHERE id = ?", (page_id,)).fetchone()
+
+            committed = False
+            commit_error: HTTPException | None = None
+            if body.commit:
+                message = body.message or f"更新 {page['lesson_key'] or page['title']}"
+                try:
+                    committed = _git_commit(content_dir, file_value, message)
+                except HTTPException as exc:
+                    # 文件与数据库都已更新，只把提交失败报告给调用方。
+                    commit_error = exc
+            result = {
+                "page": page_dict(updated),
+                "file": file_value,
+                "committed": committed,
+            }
+        if commit_error is not None:
+            raise commit_error
+        return result
+
+    @app.post("/api/content/validate")
+    def validate_content():
+        packs = content_packs.validate_all()
+        return {
+            "ok": all(pack["ok"] for pack in packs),
+            "packs": [
+                {"id": pack["id"], "ok": pack["ok"], "errors": pack["errors"]}
+                for pack in packs
+            ],
+        }
 
     @app.post("/api/pages/{page_id}/complete")
     def complete_page(page_id: str, xp: int = 10):

@@ -396,6 +396,58 @@ def update_page(
 
 
 @mcp.tool()
+def get_page_draft(page_id: str) -> dict:
+    """读取一页学习内容的草稿。返回 page 与 draft；draft 为 null 表示还没改过。"""
+    return _call("GET", f"/api/pages/{page_id}/draft")
+
+
+@mcp.tool()
+def save_page_draft(
+    page_id: str,
+    body: str | None = None,
+    blocks: list[dict] | None = None,
+    layout: str | None = None,
+    theme: dict | None = None,
+) -> dict:
+    """保存网页编辑草稿（不写内容文件、不触发同步）。
+
+    只传要改的字段。blocks 传 [] 表示清空块；Markdown 页通常只改 body。
+    layout 可选 article/wide/split/slides/dashboard；theme 支持 accent/density/font。
+    """
+    payload: dict[str, Any] = {}
+    if body is not None:
+        payload["body"] = body
+    if blocks is not None:
+        payload["blocks"] = blocks
+    if layout:
+        payload["layout"] = layout
+    if theme is not None:
+        payload["theme"] = theme
+    if not payload:
+        raise RuntimeError("没有要保存的字段")
+    return _call("PUT", f"/api/pages/{page_id}/draft", json=payload)
+
+
+@mcp.tool()
+def publish_page_draft(page_id: str, message: str = "", commit: bool = False) -> dict:
+    """把草稿写回内容文件（Markdown 或 JSON），校验并同步后删除草稿。
+
+    本地页（没有内容文件）直接更新数据库。commit=true 时在内容仓库执行 git 提交；
+    默认 false，由主 Agent/IDE 统一提交。
+    """
+    payload: dict[str, Any] = {"commit": commit}
+    if message:
+        payload["message"] = message
+    return _call("POST", f"/api/pages/{page_id}/publish", json=payload)
+
+
+@mcp.tool()
+def validate_content() -> dict:
+    """校验所有内容包：frontmatter、考点、块结构、媒体地址等。"""
+    return _call("POST", "/api/content/validate")
+
+
+@mcp.tool()
 def list_pages(subject_id: str = "") -> list[dict]:
     """列出控制台里已发布的学习页，按时间倒序。"""
     path = "/api/pages" + (f"?subject_id={subject_id}" if subject_id else "")

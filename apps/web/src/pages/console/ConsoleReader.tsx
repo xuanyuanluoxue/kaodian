@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CodeTerminal } from "../../components/CodeTerminal";
-import { Markdown } from "../../components/Markdown";
+import { LessonBody } from "../../components/blocks/LessonBody";
 import type {
   PageDetail,
   PageQuestionCount,
@@ -115,19 +115,26 @@ export function ConsoleReader({
           <Link to={`/console?subject=${pageSubject}`} className="back-link">
             ← 学习路径
           </Link>
-          <select
-            className="lesson-select"
-            value={page?.id || ""}
-            onChange={(e) => onSelectPage(e.target.value)}
-            aria-label="切换课程"
-          >
-            {readingLessons.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.title}
-                {item.completed ? " ✓" : ""}
-              </option>
-            ))}
-          </select>
+          <div className="lesson-toolbar-actions">
+            <select
+              className="lesson-select"
+              value={page?.id || ""}
+              onChange={(e) => onSelectPage(e.target.value)}
+              aria-label="切换课程"
+            >
+              {readingLessons.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title}
+                  {item.completed ? " ✓" : ""}
+                </option>
+              ))}
+            </select>
+            {page && (
+              <Link className="btn btn-ghost lesson-edit" to={`/edit/${page.id}`}>
+                编辑
+              </Link>
+            )}
+          </div>
         </div>
         {error && <div className="alert">{error}</div>}
         {page ? (
@@ -157,7 +164,7 @@ export function ConsoleReader({
               )}
             </header>
 
-            <Markdown>{page.body}</Markdown>
+            <LessonBody page={page} />
 
             <footer className="lesson-actions">
               {!page.completed ? (

@@ -12,7 +12,8 @@
 | 调 API | [`dev/api.md`](dev/api.md) | [`ai/pipelines.md`](ai/pipelines.md) |
 | 让 AI / IDE 接进来 | [`ai/integration.md`](ai/integration.md) | [`ai/ide-workflow.md`](ai/ide-workflow.md) |
 | 让 AI 出题、审题、评分 | [`ai/pipelines.md`](ai/pipelines.md) | [`content/format.md`](content/format.md) |
-| 写讲义 / 加图 / 加交互图 | [`content/format.md`](content/format.md) | [`dev/content-packs.md`](dev/content-packs.md) |
+| 写讲义 / 加图 / 加交互图 | [`content/format.md`](content/format.md) | [`dev/blocks.md`](dev/blocks.md) |
+| 网页编辑 / 草稿 / 发布 | [`dev/editing.md`](dev/editing.md) | [`dev/blocks.md`](dev/blocks.md) |
 
 ## 分区
 

@@ -7,13 +7,16 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from . import paths
+from .blocks import iter_media_urls, validate_blocks, validate_layout, validate_theme
 from .grading import fingerprint, validate_media, validate_question
 
 PACK_SCHEMA = 1
@@ -21,7 +24,9 @@ KINDS = {"lesson", "outline", "note", "daily"}
 STATUSES = {"draft", "published", "archived"}
 LESSON_FIELDS = {
     "lesson_key", "title", "summary", "kind", "status", "sort_order", "outline_codes",
+    "layout", "theme", "blocks",
 }
+LESSON_FORMATS = {"markdown", "blocks"}
 _MEDIA_RE = re.compile(r"/media/([A-Za-z0-9._-]+)/([^\s)\]\}\"'<>]+)")
 
 
@@ -100,6 +105,69 @@ def parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     return meta, body.lstrip("\r\n")
 
 
+def _parse_theme(value: Any, label: str) -> dict[str, Any] | None:
+    """frontmatter 里 theme 可以是对象，也可以是 JSON 字符串。"""
+    if value in (None, ""):
+        return None
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise PackError(f"{label} 的 theme 不是合法 JSON：{exc}") from exc
+        if isinstance(parsed, dict):
+            return parsed
+    raise PackError(f"{label} 的 theme 必须是对象")
+
+
+def _lesson_from_markdown(file: Path) -> dict[str, Any]:
+    meta, body = parse_frontmatter(file.read_text(encoding="utf-8"))
+    label = str(file)
+    return {
+        **meta,
+        "body": body,
+        "blocks": None,
+        "layout": meta.get("layout") or "article",
+        "theme": _parse_theme(meta.get("theme"), label),
+        "format": "markdown",
+        "file": file,
+        "source_key": meta.get("lesson_key") or file.stem,
+    }
+
+
+def _lesson_from_json(file: Path) -> dict[str, Any]:
+    data = _read_json(file)
+    if not isinstance(data, dict):
+        raise PackError(f"{file} 必须是 lesson 对象")
+    label = str(file)
+    return {
+        **data,
+        "body": data.get("body") or "",
+        "blocks": data.get("blocks"),
+        "layout": data.get("layout") or "article",
+        "theme": _parse_theme(data.get("theme"), label),
+        "format": "blocks",
+        "file": file,
+        "source_key": data.get("lesson_key") or file.stem,
+    }
+
+
+def _load_lessons(root: Path) -> list[dict[str, Any]]:
+    lessons_dir = root / "lessons"
+    files = sorted(
+        (*lessons_dir.glob("*.md"), *lessons_dir.glob("*.json")),
+        key=lambda path: (path.stem, path.suffix),
+    ) if lessons_dir.is_dir() else []
+    lessons: list[dict[str, Any]] = []
+    for file in files:
+        if file.suffix == ".md":
+            lessons.append(_lesson_from_markdown(file))
+        else:
+            lessons.append(_lesson_from_json(file))
+    return lessons
+
+
 # ---------------------------------------------------------------- load
 
 def _read_json(file: Path) -> Any:
@@ -134,15 +202,7 @@ def load_pack(entry: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(nodes, list):
         raise PackError(f"{outline_file} 必须是数组")
 
-    lessons: list[dict[str, Any]] = []
-    for file in sorted((root / "lessons").glob("*.md")):
-        meta_lesson, body = parse_frontmatter(file.read_text(encoding="utf-8"))
-        lessons.append({
-            **meta_lesson,
-            "body": body,
-            "file": file,
-            "source_key": meta_lesson.get("lesson_key") or file.stem,
-        })
+    lessons: list[dict[str, Any]] = _load_lessons(root)
 
     questions: list[dict[str, Any]] = []
     for file in sorted((root / "questions").glob("*.json")):
@@ -243,7 +303,9 @@ def validate_pack(pack: dict[str, Any]) -> list[str]:
         file = lesson.get("file")
         if file:
             label = str(file.relative_to(pack["path"])) if file.is_relative_to(pack["path"]) else str(file)
-        unknown = set(lesson) - LESSON_FIELDS - {"body", "file", "source_key"}
+        unknown = set(lesson) - LESSON_FIELDS - {
+            "body", "file", "source_key", "format",
+        }
         if unknown:
             errors.append(f"{label} 含不支持的 frontmatter 字段：{', '.join(sorted(unknown))}")
         for key in ("title", "kind", "status", "sort_order", "outline_codes"):
@@ -275,6 +337,18 @@ def validate_pack(pack: dict[str, Any]) -> list[str]:
                 errors.append(f"lesson_key 重复：{lesson_key}")
             else:
                 lesson_keys.add(lesson_key)
+        fmt = lesson.get("format") or "markdown"
+        if fmt not in LESSON_FORMATS:
+            errors.append(f"{label} 的 format 必须是 markdown/blocks")
+        errors.extend(f"{label}: {err}" for err in validate_layout(lesson.get("layout")))
+        errors.extend(f"{label}: {err}" for err in validate_theme(lesson.get("theme")))
+        if fmt == "blocks" or lesson.get("blocks") is not None:
+            errors.extend(
+                f"{label}: {err}"
+                for err in validate_blocks(lesson.get("blocks"), label=f"{label} blocks")
+            )
+            for index, url in enumerate(iter_media_urls(lesson.get("blocks"))):
+                _check_media(pack, url, f"{label} 块媒体[{index}]", errors)
         _check_media(pack, lesson.get("body"), f"{label} 正文", errors)
 
     question_ids: set[str] = set()
@@ -474,6 +548,14 @@ def _sync_question(
         )
 
 
+def _relative_content_file(file: Path) -> str | None:
+    """内容文件相对 content/ 的路径；不在内容目录内时返回 None。"""
+    try:
+        return file.resolve().relative_to(paths.content_dir().resolve()).as_posix()
+    except (OSError, ValueError):
+        return None
+
+
 def _sync_page(
     conn: sqlite3.Connection, pack: dict[str, Any], subject_id: str,
     lesson: dict[str, Any],
@@ -499,17 +581,22 @@ def _sync_page(
             (subject_id, source_key, pack["id"]),
         ).fetchone()
 
+    file = _relative_content_file(lesson["file"]) if lesson.get("file") else None
     values = (
         subject_id, lesson.get("title"), lesson.get("summary"),
-        lesson["body"], source_key, _json(lesson.get("outline_codes") or []),
+        lesson["body"], _json(lesson.get("blocks")),
+        lesson.get("layout") or "article", _json(lesson.get("theme")),
+        lesson.get("format") or "markdown",
+        source_key, _json(lesson.get("outline_codes") or []),
         kind, lesson.get("status") or "published",
-        lesson.get("sort_order", 1000), pack["id"], source_key,
+        lesson.get("sort_order", 1000), pack["id"], source_key, file,
     )
     if existing:
         conn.execute(
-            """UPDATE page SET subject_id=?, title=?, summary=?, body=?,
-                 lesson_key=?, outline_codes=?, kind=?, status=?, sort_order=?,
-                 pack_id=?, source_key=?, updated_at=?
+            """UPDATE page SET subject_id=?, title=?, summary=?, body=?, blocks=?,
+                 layout=?, theme=?, format=?, lesson_key=?, outline_codes=?,
+                 kind=?, status=?, sort_order=?, pack_id=?, source_key=?, file=?,
+                 updated_at=?
                WHERE id=?""",
             (*values, _now(), existing["id"]),
         )
@@ -519,15 +606,19 @@ def _sync_page(
     page_id = f"p_{pack['id']}_{slug}"
     now = _now()
     conn.execute(
-        """INSERT INTO page(id, subject_id, title, summary, body, lesson_key,
-                            outline_codes, kind, status, sort_order, created_at,
-                            updated_at, pack_id, source_key)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        """INSERT INTO page(id, subject_id, title, summary, body, blocks, layout,
+                            theme, format, lesson_key, outline_codes, kind, status,
+                            sort_order, created_at, updated_at, pack_id, source_key,
+                            file)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             page_id, subject_id, lesson.get("title"), lesson.get("summary"),
-            lesson["body"], source_key, _json(lesson.get("outline_codes") or []),
+            lesson["body"], _json(lesson.get("blocks")),
+            lesson.get("layout") or "article", _json(lesson.get("theme")),
+            lesson.get("format") or "markdown",
+            source_key, _json(lesson.get("outline_codes") or []),
             kind, lesson.get("status") or "published",
-            lesson.get("sort_order", 1000), now, now, pack["id"], source_key,
+            lesson.get("sort_order", 1000), now, now, pack["id"], source_key, file,
         ),
     )
 
@@ -567,3 +658,204 @@ def sync_content(conn: sqlite3.Connection) -> list[dict[str, int]]:
             raise PackError(f"内容包 {entry['id']} 校验失败：\n" + "\n".join(errors))
         totals.append({"id": pack["id"], **_sync_pack(conn, pack)})
     return totals
+
+
+# ---------------------------------------------------------------- editing（网页草稿写回）
+
+def _field(obj: Any, key: str, default: Any = None) -> Any:
+    """从 sqlite3.Row 或 dict 里取字段。"""
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    try:
+        return obj[key]
+    except (IndexError, KeyError):
+        return default
+
+
+def _json_value(value: Any, label: str) -> Any:
+    if value is None or value == "":
+        return None
+    if isinstance(value, (list, dict)):
+        return value
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise PackError(f"{label} 不是合法 JSON：{exc}") from exc
+
+
+def page_file_path(content_dir: Path, page_row: Any) -> Path:
+    """``page.file`` 解析为绝对路径，并保证仍在内容目录内。"""
+    raw = _field(page_row, "file")
+    if not raw:
+        raise PackError("页面没有可写的内容文件")
+    base = Path(content_dir).resolve()
+    target = (base / str(raw)).resolve()
+    if not target.is_relative_to(base):
+        raise PackError(f"内容文件路径越界：{raw}")
+    return target
+
+
+def lesson_from_draft(page_row: Any, draft: Any, file: Path | None = None) -> dict[str, Any]:
+    """把 page + 草稿合成一个 lesson dict（用于校验与写文件）。"""
+    blocks = _json_value(_field(draft, "blocks"), "草稿 blocks")
+    theme = _parse_theme(_field(draft, "theme"), "草稿")
+    body = _field(draft, "body")
+    body = body if isinstance(body, str) else ""
+
+    fmt = "blocks" if blocks is not None else "markdown"
+    if file is not None:
+        suffix = file.suffix.lower()
+        if suffix == ".json":
+            fmt = "blocks"
+        elif suffix == ".md":
+            fmt = "markdown"
+
+    codes = _json_value(_field(page_row, "outline_codes"), "页面 outline_codes") or []
+    if not isinstance(codes, list):
+        raise PackError("页面 outline_codes 不是数组")
+    lesson_key = _field(page_row, "lesson_key")
+    return {
+        "lesson_key": lesson_key,
+        "title": _field(page_row, "title"),
+        "summary": _field(page_row, "summary"),
+        "kind": _field(page_row, "kind") or "lesson",
+        "status": _field(page_row, "status") or "published",
+        "sort_order": _field(page_row, "sort_order", 1000),
+        "outline_codes": codes,
+        "layout": _field(draft, "layout") or _field(page_row, "layout") or "article",
+        "theme": theme,
+        "body": body if fmt == "markdown" else "",
+        "blocks": blocks if fmt == "blocks" else None,
+        "format": fmt,
+        "file": file,
+        "source_key": _field(page_row, "source_key") or lesson_key or "",
+    }
+
+
+def _yaml_scalar(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, dict):
+        text = json.dumps(value, ensure_ascii=False)
+        return f"'{text}'" if "'" not in text else json.dumps(text, ensure_ascii=False)
+    text = str(value).replace("\r", " ").replace("\n", " ")
+    return f"'{text}'" if "'" not in text else json.dumps(text, ensure_ascii=False)
+
+
+def _render_markdown(lesson: dict[str, Any]) -> str:
+    lines = ["---"]
+    for key in (
+        "lesson_key", "title", "summary", "kind", "status", "sort_order",
+        "layout", "theme", "outline_codes",
+    ):
+        value = lesson.get(key)
+        if value is None or value == "":
+            continue
+        lines.append(f"{key}: {_yaml_scalar(value)}")
+    lines.append("---")
+    body = (lesson.get("body") or "").lstrip("\r\n")
+    if body and not body.endswith("\n"):
+        body += "\n"
+    return "\n".join(lines) + "\n\n" + body
+
+
+_JSON_LESSON_FIELDS = (
+    "lesson_key", "title", "summary", "kind", "status", "sort_order", "outline_codes",
+)
+
+
+def _lesson_json_data(lesson: dict[str, Any], target: Path) -> dict[str, Any]:
+    """保留原 JSON 的其它字段，只覆盖页面可编辑的元信息与块。"""
+    data: dict[str, Any] = {}
+    if target.is_file():
+        try:
+            existing = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            existing = None
+        if isinstance(existing, dict):
+            data = existing
+    for key in _JSON_LESSON_FIELDS:
+        if lesson.get(key) is not None:
+            data[key] = lesson[key]
+    data["layout"] = lesson.get("layout") or "article"
+    if lesson.get("theme") is not None:
+        data["theme"] = lesson["theme"]
+    else:
+        data.pop("theme", None)
+    data["blocks"] = lesson.get("blocks") or []
+    for key in ("body", "file", "format", "source_key"):
+        data.pop(key, None)
+    return data
+
+
+def _atomic_write(target: Path, text: str) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(
+        prefix=f".{target.name}.", suffix=".tmp", dir=str(target.parent),
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, target)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def write_lesson_file(content_dir: Path, page_row: Any, draft: Any) -> Path:
+    """把草稿写回内容文件（Markdown 或 JSON），原子替换。"""
+    target = page_file_path(content_dir, page_row)
+    lesson = lesson_from_draft(page_row, draft, target)
+    suffix = target.suffix.lower()
+    if suffix == ".md":
+        text = _render_markdown(lesson)
+    elif suffix == ".json":
+        text = json.dumps(
+            _lesson_json_data(lesson, target), ensure_ascii=False, indent=2,
+        ) + "\n"
+    else:
+        raise PackError(f"不支持的内容文件类型：{target.name}")
+    _atomic_write(target, text)
+    return target
+
+
+def validate_page_draft(content_dir: Path, page_row: Any, draft: Any) -> list[str]:
+    """用磁盘上的 pack 加上草稿后的 lesson 做一次完整校验。"""
+    try:
+        target = page_file_path(content_dir, page_row)
+        lesson = lesson_from_draft(page_row, draft, target)
+    except PackError as exc:
+        return [str(exc)]
+
+    pack_id = _field(page_row, "pack_id")
+    entry = next((item for item in paths.packs() if item["id"] == pack_id), None)
+    if entry is None:
+        return [f"找不到内容包：{pack_id}"]
+    try:
+        pack = load_pack(entry)
+    except PackError as exc:
+        return [str(exc)]
+
+    lessons: list[dict[str, Any]] = []
+    replaced = False
+    for item in pack["lessons"]:
+        item_file = item.get("file")
+        if item_file is not None and Path(item_file).resolve() == target:
+            lessons.append(lesson)
+            replaced = True
+        else:
+            lessons.append(item)
+    if not replaced:
+        return [f"内容包里找不到文件：{_field(page_row, 'file')}"]
+    return validate_pack({**pack, "lessons": lessons})

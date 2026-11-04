@@ -18,7 +18,7 @@ flowchart LR
 | 角色 | 跑在哪 | 做什么 |
 |---|---|---|
 | 对话 Agent | IDE 插件 / 终端 / Claude Desktop | 决定学什么、出题、给提示、读结果、评分 |
-| MCP 桥 | 本机 Python 进程（由 Agent 启动） | 把 API 包装成 19 个工具 |
+| MCP 桥 | 本机 Python 进程（由 Agent 启动） | 把 API 包装成 25 个工具 |
 | 学习终端 | 浏览器 | 显示讲义、答题、计时、把事件写回 API |
 
 ## 常见 IDE / 客户端
@@ -61,7 +61,7 @@ Claude Desktop 的等价配置：
 
 > 改完配置后 OpenCode 一般会自动重载；工具列表没更新就 `/reload` 或开新会话。
 
-## 工具（19 个）
+## 工具（25 个）
 
 | 分类 | 工具 |
 |---|---|
@@ -71,6 +71,7 @@ Claude Desktop 的等价配置：
 | 协作 | `send_hint` `read_inbox` |
 | 评分 | `get_grading_queue` `grade_answer` |
 | 讲义 | `publish_page` `update_page` |
+| 网页编辑 | `get_page_draft` `save_page_draft` `publish_page_draft` `validate_content` |
 
 ## 一次典型循环
 

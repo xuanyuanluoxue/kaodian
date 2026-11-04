@@ -78,6 +78,33 @@ def test_validate_pack_reports_duplicate_key_and_missing_asset(tmp_path, monkeyp
     assert any("missing.svg" in error for error in errors)
 
 
+def test_markdown_lesson_layout_and_theme(tmp_path, monkeypatch):
+    root = tmp_path / "content"
+    shutil.copytree(DEMO, root)
+    (root / "packs" / "demo" / "lessons" / "99-版式.md").write_text(
+        "---\n"
+        'lesson_key: "D-03"\n'
+        'title: "版式测试"\n'
+        'kind: "lesson"\n'
+        'status: "published"\n'
+        "sort_order: 99\n"
+        'outline_codes: ["D-01"]\n'
+        'layout: "wide"\n'
+        'theme: \'{"accent":"math","density":"compact"}\'\n'
+        "---\n\n"
+        "# 正文\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("KAODIAN_CONTENT_DIR", str(root))
+    pack = content.load_all()[0]
+    assert content.validate_pack(pack) == []
+    lesson = next(item for item in pack["lessons"] if item.get("lesson_key") == "D-03")
+    assert lesson["format"] == "markdown"
+    assert lesson["layout"] == "wide"
+    assert lesson["theme"] == {"accent": "math", "density": "compact"}
+    assert lesson["blocks"] is None
+
+
 def test_paths_env_overrides_and_data_dir(tmp_path, monkeypatch):
     target = tmp_path / "content"
     target.mkdir()

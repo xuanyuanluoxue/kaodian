@@ -58,13 +58,39 @@ Base：`http://127.0.0.1:8010/api`（本地）
 
 | 方法 | 路径 | 作用 |
 |---|---|---|
-| GET | `/pages?subject_id=&status=` | 页面列表（不含正文） |
+| GET | `/pages?subject_id=&status=` | 页面列表（不含正文，含块字段） |
 | GET | `/pages/{id}` | 页面全文 |
 | GET | `/pages/{id}/question-count` | 这一页挂的考点有多少道 approved 题（去重） |
 | POST | `/pages` | 发布页面（`status` 可为 draft/archived，支持 `sort_order`） |
-| PATCH | `/pages/{id}` | 更新标题/正文/状态 |
+| PATCH | `/pages/{id}` | 更新标题/正文/块/版式/状态 |
 | DELETE | `/pages/{id}` | 删除 |
 | POST | `/pages/{id}/complete` | 标记完成，+10 XP |
+| GET | `/pages/{id}/draft` | 读 `{page, draft}`；没有草稿时 `draft=null` |
+| PUT | `/pages/{id}/draft` | 保存草稿（`body/blocks/layout/theme` 任意字段，可带 `base_version`） |
+| DELETE | `/pages/{id}/draft` | 丢弃草稿 |
+| GET | `/pages/{id}/draft/stream` | SSE：草稿版本变化时推送 `{version, updated_at}` |
+| POST | `/pages/{id}/publish` | 草稿写回内容文件/本地页，校验并同步；`{message, commit}` |
+| POST | `/content/validate` | 校验全部 pack，返回 `{ok, packs:[{id, ok, errors}]}` |
+
+页面响应在原有字段外增加：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `blocks` | `Block[] \| null` | JSON 块数组；Markdown 页为 `null` |
+| `layout` | `string` | 默认 `article`；取值见 `blocks.md` |
+| `theme` | `object \| null` | 主题对象；无则 `null` |
+| `format` | `"markdown" \| "blocks"` | 有 `blocks` 即为 `blocks`，否则沿用存储值 |
+| `file` | `string \| null` | 内容文件相对 `content/` 的路径；本地页为 `null` |
+
+`POST /api/pages` 与 `PATCH /api/pages/{id}` 接受 `blocks/layout/theme`：
+
+- `body` 对块页可为空；`blocks` 存在（含空数组）时 `format` 推导为 `blocks`，
+  `blocks: null` 时回到 `markdown`；
+- `blocks` 按 `blocks.md` 校验，未知类型、列数/嵌套/沙箱/媒体地址不合法返回 422；
+- `layout` 与 `theme` 同样校验，不接受任意 CSS。
+
+网页编辑流程见 [`editing.md`](editing.md)：保存草稿只写 `page_draft`；发布时先校验，
+失败返回 422 且不改文件；`commit=true` 时在内容仓库执行 git 提交。
 
 页面可练题量（`/pages/{id}/question-count`）：
 
@@ -167,7 +193,7 @@ data: {"id":42,"session_id":"s_x","kind":"note","role":"agent","body":"...","ref
 ```json
 {
   "format": "kaodian-export",
-  "version": 4,
+  "version": 5,
   "exported_at": "2026-11-04T18:30:00",
   "scope": "content",
   "data": {
@@ -179,18 +205,19 @@ data: {"id":42,"session_id":"s_x","kind":"note","role":"agent","body":"...","ref
 ```
 
 - 题目包含 `answer/explanation/reference_answer/rubric`，是本地备份，不脱敏。
+- `pages` 包含 `blocks/layout/theme/format`，导入时 `blocks` 非空则 `format` 置为 `blocks`。
 - 响应头带 `Content-Disposition: attachment; filename="kaodian-export-YYYYMMDD.json"`。
 - 导入只接收 JSON body，不接受文件路径或上传文件。
 
 导入 body：
 
 ```json
-{"format":"kaodian-export","version":4,"scope":"content","overwrite":false,"data":{}}
+{"format":"kaodian-export","version":5,"scope":"content","overwrite":false,"data":{}}
 ```
 
 规则：
 
-- `format` 必须为 `kaodian-export`；`version` 高于当前 `SCHEMA_VERSION`（当前 4） 返回 422；
+- `format` 必须为 `kaodian-export`；`version` 高于当前 `SCHEMA_VERSION`（当前 5） 返回 422；
 - 整个导入在单个事务里，任一记录失败全部回滚；
 - `overwrite=false`：按主键跳过已存在记录；题目同时按 `fingerprint` 去重；
 - `overwrite=true`：UPSERT（页面标题、题目字段等以导入文件为准）；

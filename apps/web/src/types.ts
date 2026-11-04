@@ -193,8 +193,176 @@ export interface PageSummary {
   xp: number;
 }
 
+export type BlockType =
+  | "markdown"
+  | "callout"
+  | "columns"
+  | "tabs"
+  | "steps"
+  | "cards"
+  | "timeline"
+  | "image"
+  | "video"
+  | "audio"
+  | "code"
+  | "mermaid"
+  | "math-graph"
+  | "sandbox"
+  | "divider";
+
+export type CalloutTone = "info" | "warn" | "danger" | "success";
+
+export interface MarkdownBlock {
+  type: "markdown";
+  text: string;
+}
+
+export interface CalloutBlock {
+  type: "callout";
+  tone: CalloutTone;
+  title?: string;
+  text: string;
+}
+
+export interface ColumnsBlock {
+  type: "columns";
+  cols: Block[][];
+}
+
+export interface TabsBlock {
+  type: "tabs";
+  items: { label: string; blocks: Block[] }[];
+}
+
+export interface StepsBlock {
+  type: "steps";
+  items: { title: string; text: string }[];
+}
+
+export interface CardsBlock {
+  type: "cards";
+  items: { title: string; text: string; link?: string }[];
+}
+
+export interface TimelineBlock {
+  type: "timeline";
+  items: { time: string; title: string; text: string }[];
+}
+
+export interface ImageBlock {
+  type: "image";
+  url: string;
+  alt?: string;
+  caption?: string;
+  license?: string;
+}
+
+export interface VideoBlock {
+  type: "video";
+  url: string;
+  poster?: string;
+}
+
+export interface AudioBlock {
+  type: "audio";
+  url: string;
+  title?: string;
+}
+
+export interface CodeBlock {
+  type: "code";
+  language: string;
+  code: string;
+  title?: string;
+}
+
+export interface MermaidBlock {
+  type: "mermaid";
+  code: string;
+}
+
+export interface MathGraphBlock {
+  type: "math-graph";
+  spec: string | Record<string, unknown>;
+}
+
+export interface SandboxBlock {
+  type: "sandbox";
+  html: string;
+  height?: number;
+  title?: string;
+}
+
+export interface DividerBlock {
+  type: "divider";
+}
+
+/** 讲义 JSON 块；Markdown 页不会用到。契约见 docs/dev/blocks.md。 */
+export type Block =
+  | MarkdownBlock
+  | CalloutBlock
+  | ColumnsBlock
+  | TabsBlock
+  | StepsBlock
+  | CardsBlock
+  | TimelineBlock
+  | ImageBlock
+  | VideoBlock
+  | AudioBlock
+  | CodeBlock
+  | MermaidBlock
+  | MathGraphBlock
+  | SandboxBlock
+  | DividerBlock;
+
+export interface PageTheme {
+  accent?: string;
+  density?: string;
+  font?: string;
+}
+
+/** 网页编辑器保存草稿的请求体；base_version 用于并发检测。 */
+export interface PageDraftInput {
+  body?: string;
+  blocks?: Block[] | null;
+  layout?: string;
+  theme?: PageTheme | null;
+  base_version?: number;
+}
+
+export interface PageDraft {
+  page_id: string;
+  body: string | null;
+  blocks: Block[] | null;
+  layout: string | null;
+  theme: PageTheme | null;
+  version: number;
+  updated_at: string;
+}
+
+export interface PageDraftResponse {
+  page: PageDetail;
+  draft: PageDraft | null;
+}
+
+export interface PublishResult {
+  page: PageDetail;
+  file: string | null;
+  committed: boolean;
+}
+
+export interface ContentValidation {
+  ok: boolean;
+  packs: { id: string; ok: boolean; errors: string[] }[];
+}
+
 export interface PageDetail extends PageSummary {
   body: string;
+  /** 块页为 Block[]，Markdown 页为 null / 缺省。 */
+  blocks?: Block[] | null;
+  layout?: string;
+  theme?: PageTheme | null;
+  format?: "markdown" | "blocks";
 }
 
 /** 本课考点下可用于组卷的题量；codes 为页面考点（缺省时回退页面自身）。 */

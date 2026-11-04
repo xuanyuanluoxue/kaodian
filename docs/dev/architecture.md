@@ -13,7 +13,7 @@ kaodian/                       # 框架仓库（无学科内容）
 │   │   │   ├── main.py        # 路由（含 /media）
 │   │   │   ├── paths.py       # 内容/数据/数据库路径解析
 │   │   │   ├── content.py     # pack 读取、校验、同步
-│   │   │   ├── schema.sql     # 表结构（v4）
+│   │   │   ├── schema.sql     # 表结构（v6）
 │   │   │   ├── grading.py     # 判分与题目校验
 │   │   │   ├── review.py      # 掌握度与复习间隔
 │   │   │   └── db.py          # 连接、迁移
@@ -86,13 +86,13 @@ flowchart LR
 | `quiz` / `quiz_item` | 练习单 |
 | `attempt` / `answer` | 作答、逐题得分、`grading_status` |
 | `review` | 每题的掌握度、下次复习 |
-| `page` / `page_progress` | 讲义（`sort_order`/`archived`）、完成状态；`page` 带 `pack_id/source_key` |
+| `page` / `page_progress` | 讲义（`sort_order`/`archived`、`blocks/layout/theme/format`）、完成状态；`page` 带 `pack_id/source_key` |
 | `study_time` | 阅读/练习时长（按天） |
 | `agent_session` / `agent_event` | AI 会话与事件流 |
 
 ## 版本与内容同步
 
-- `PRAGMA user_version = 4`；旧库启动时先备份为 `*.bak-v{old}-{时间}`，再增量加列/建表。
+- `PRAGMA user_version = 5`；旧库启动时先备份为 `*.bak-v{old}-{时间}`，再增量加列/建表。
 - 启动时 `init_db` 顺序：迁移 → 执行 `schema.sql`（幂等）→ `content sync`。
 - 内容包按自然键 UPSERT：subject `id`、outline `code`、question `id`（无则
   `fingerprint`）、page `subject_id + lesson_key`（大纲页用 `subject_id + kind='outline'`）。
@@ -100,6 +100,9 @@ flowchart LR
   页面/题目（`pack_id IS NULL`）不动、不删。pack 内删除内容时改 frontmatter
   `status: archived`，不自动删库。
 - 新增科目/内容只需改内容仓库；新增题型改 `config/question_types.json`。
+- v5 → v6 给 `page` 加 `file`（内容文件相对路径）并新增 `page_draft` 草稿表；
+- v4 → v5 给 `page` 加 `blocks/layout/theme/format`，Markdown 页保持
+  `format='markdown'`、`blocks=NULL`；
 - v3 → v4 新增 `content_pack` 表与 `pack_id/source_key` 列、partial unique index；
   v2 → v3 新增 `question_group`、`question_outline` 与题目媒体列。
 

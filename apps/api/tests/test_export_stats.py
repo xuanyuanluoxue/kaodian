@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from apps.api.app import db as database
 from apps.api.app.main import create_app
 
 CONTENT_KEYS = [
@@ -82,7 +83,7 @@ def test_export_content_import_into_empty_db(client, tmp_path, monkeypatch):
     assert "kaodian-export-" in r.headers["content-disposition"]
     payload = r.json()
     assert payload["format"] == "kaodian-export"
-    assert payload["version"] == 4
+    assert payload["version"] == database.SCHEMA_VERSION
     assert payload["scope"] == "content"
     assert set(payload["data"]) == set(CONTENT_KEYS)
     assert payload["data"]["questions"]

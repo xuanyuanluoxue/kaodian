@@ -204,6 +204,10 @@ CREATE TABLE IF NOT EXISTS page (
     title         TEXT NOT NULL,
     summary       TEXT,
     body          TEXT NOT NULL,
+    blocks        TEXT,
+    layout        TEXT NOT NULL DEFAULT 'article',
+    theme         TEXT,
+    format        TEXT NOT NULL DEFAULT 'markdown',
     lesson_key    TEXT,
     outline_codes TEXT,
     kind          TEXT NOT NULL DEFAULT 'lesson',
@@ -212,7 +216,8 @@ CREATE TABLE IF NOT EXISTS page (
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL,
     pack_id       TEXT,
-    source_key    TEXT
+    source_key    TEXT,
+    file          TEXT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_page_pack_source
@@ -220,6 +225,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_page_pack_source
 
 CREATE INDEX IF NOT EXISTS idx_page_subject ON page(subject_id, sort_order, created_at);
 CREATE INDEX IF NOT EXISTS idx_page_status ON page(status, subject_id);
+
+
+-- 网页编辑草稿：只保存未发布的修改，发布后删除。version 用于并发冲突检测。
+CREATE TABLE IF NOT EXISTS page_draft (
+    page_id    TEXT PRIMARY KEY REFERENCES page(id) ON DELETE CASCADE,
+    body       TEXT,
+    blocks     TEXT,
+    layout     TEXT,
+    theme      TEXT,
+    version    INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL
+);
 
 
 CREATE TABLE IF NOT EXISTS page_progress (

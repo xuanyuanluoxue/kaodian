@@ -31,7 +31,7 @@ registry.json
 packs/<id>/
   pack.json
   outline.json
-  lessons/*.md
+  lessons/*.md|*.json
   questions/*.json
   assets/*
   LICENSES.md
@@ -72,17 +72,41 @@ kind: "lesson"          # lesson | outline | note | daily
 status: "published"     # draft | published | archived
 sort_order: 201
 outline_codes: ["M-09"]
+layout: "article"       # article | wide | split | slides | dashboard（可选）
+theme: '{"accent":"math","density":"comfortable"}'  # 可选，JSON 字符串或对象
 ---
 ```
+
+`lessons/*.json`：整个文件是一个 lesson 对象，字段与 Markdown frontmatter 相同，
+额外带 `blocks`（块数组）；`format` 固定为 `blocks`。同一个 pack 里 `lesson_key`
+跨 `.md`/`.json` 唯一，两种文件二选一。
+
+```json
+{
+  "lesson_key": "M02-2",
+  "title": "导数 2/7 · 四则运算",
+  "kind": "lesson",
+  "status": "published",
+  "sort_order": 202,
+  "outline_codes": ["M-09"],
+  "layout": "wide",
+  "theme": {"accent": "math"},
+  "blocks": [{"type": "markdown", "text": "# 块页"}]
+}
+```
+
+Markdown 页同步为 `format='markdown'`、`blocks=NULL`；JSON 块页同步为
+`format='blocks'`，并写入 `blocks/layout/theme`。块结构见
+[`blocks.md`](blocks.md)。
 
 `questions/*.json`：题目数组，字段与 `QuestionIn` 一致；`id` 用作稳定 key。
 
 素材：正文写 `/media/<pack>/<file>`，文件在 `packs/<pack>/assets/`。
 框架前端只保留 UI 素材（favicon、图标），不再放任何学科图片。
 
-## 3. 数据库 v4
+## 3. 数据库 v6
 
-新增：
+v4 新增：
 
 | 表 | 列 |
 |---|---|
@@ -92,6 +116,26 @@ outline_codes: ["M-09"]
 | `page` | `pack_id`, `source_key` |
 
 新增 `content_pack(id, name, version, schema, path, synced_at)`。
+
+v5 只给 `page` 加列，不重建表：
+
+| 列 | 类型/默认值 | 说明 |
+|---|---|---|
+| `blocks` | `TEXT` | JSON 块数组；Markdown 页为 `NULL` |
+| `layout` | `TEXT NOT NULL DEFAULT 'article'` | article / wide / split / slides / dashboard |
+| `theme` | `TEXT` | JSON 对象；无主题为 `NULL` |
+| `format` | `TEXT NOT NULL DEFAULT 'markdown'` | markdown / blocks |
+
+v6 只给 `page` 加一列并新增草稿表，不重建表：
+
+| 对象 | 说明 |
+|---|---|
+| `page.file` | `TEXT`；内容文件相对 `content/` 的路径，例如 `packs/math/lessons/M02-1.md`；本地页为 `NULL` |
+| `page_draft` | `page_id, body, blocks, layout, theme, version, updated_at`；只存未发布的修改，发布后删除 |
+
+草稿与发布契约见 [`editing.md`](editing.md)。
+
+旧库迁移前自动备份为 `*.bak-v{old}-{时间}`。
 
 唯一索引（partial，`pack_id IS NOT NULL`）：
 
@@ -126,7 +170,7 @@ pack 里删除的内容不自动删库，改 frontmatter `status: archived`。
 |---|---|
 | `kaodian serve [--host --port --reload]` | 起 API + Web |
 | `kaodian content list [--json]` | 列出 pack/版本/页数/题数 |
-| `kaodian content validate [--json]` | 校验 frontmatter、考点、题型、答案、素材、重复 key |
+| `kaodian content validate [--json]` | 校验 frontmatter、考点、题型、答案、素材、重复 key、块 schema/嵌套/媒体地址 |
 | `kaodian content sync [--json]` | 文件 → DB 索引 |
 | `kaodian doctor [--json]` | 打印路径、DB 版本、pack 状态 |
 | `kaodian backup [--out]` | SQLite backup 到 data_dir/exports |

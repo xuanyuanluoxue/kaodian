@@ -6,6 +6,7 @@ import { QuizPage } from "./pages/Quiz";
 import { Result } from "./pages/Result";
 import { Review } from "./pages/Review";
 import { Console } from "./pages/Console";
+import { PageEditor } from "./pages/PageEditor";
 import { Stats } from "./pages/Stats";
 import { ThemeToggle } from "./components/ThemeToggle";
 
@@ -44,6 +45,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Today />} />
           <Route path="/console" element={<Console />} />
+          <Route path="/edit/:pageId" element={<PageEditor />} />
           <Route path="/build" element={<Build />} />
           <Route path="/quiz/:quizId" element={<QuizPage />} />
           <Route path="/result/:attemptId" element={<Result />} />

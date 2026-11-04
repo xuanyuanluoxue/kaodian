@@ -11,7 +11,7 @@ from . import paths
 
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA = Path(__file__).with_name("schema.sql")
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 6
 
 _QUESTION_GROUP_DDL = """
 CREATE TABLE IF NOT EXISTS question_group (
@@ -40,6 +40,17 @@ CREATE TABLE IF NOT EXISTS content_pack (
     schema     INTEGER NOT NULL,
     path       TEXT,
     synced_at  TEXT NOT NULL
+)"""
+
+_PAGE_DRAFT_DDL = """
+CREATE TABLE IF NOT EXISTS page_draft (
+    page_id    TEXT PRIMARY KEY REFERENCES page(id) ON DELETE CASCADE,
+    body       TEXT,
+    blocks     TEXT,
+    layout     TEXT,
+    theme      TEXT,
+    version    INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL
 )"""
 
 
@@ -188,6 +199,16 @@ def migrate(conn: sqlite3.Connection) -> None:
     _add_columns(conn, "outline_node", {"pack_id": "TEXT"})
     _add_columns(conn, "question", {"pack_id": "TEXT", "source_key": "TEXT"})
     _add_columns(conn, "page", {"pack_id": "TEXT", "source_key": "TEXT"})
+    # v5：讲义块页。旧 Markdown 页保持 format='markdown'、blocks 为空。
+    _add_columns(conn, "page", {
+        "blocks": "TEXT",
+        "layout": "TEXT NOT NULL DEFAULT 'article'",
+        "theme": "TEXT",
+        "format": "TEXT NOT NULL DEFAULT 'markdown'",
+    })
+    # v6：网页编辑草稿。page.file 记录内容文件相对 content/ 的路径。
+    _add_columns(conn, "page", {"file": "TEXT"})
+    conn.execute(_PAGE_DRAFT_DDL)
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_subject_pack_source "
         "ON subject(pack_id, source_key) WHERE pack_id IS NOT NULL"

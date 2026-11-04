@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from apps.api.app import db as database
 from apps.api.app.main import create_app
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -704,7 +705,7 @@ def test_v3_database_upgrades_without_data_loss(tmp_path, monkeypatch):
     with database.session(path) as conn:
         for table in before:
             assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] >= before[table]
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
         tables = {
             r["name"] for r in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"

@@ -1,4 +1,4 @@
-import type { AgentEvent, Attempt, DailyStats, HeatmapDay, LibraryStats, OutlineNode, PageDetail, PageQuestionCount, PageSummary, Progress, Question, QuestionType, Quiz, QuizSummary, Subject, SubjectStats, TypeStats } from "./types";
+import type { AgentEvent, Attempt, ContentValidation, DailyStats, HeatmapDay, LibraryStats, OutlineNode, PageDetail, PageDraftInput, PageDraftResponse, PageQuestionCount, PageSummary, Progress, PublishResult, Question, QuestionType, Quiz, QuizSummary, Subject, SubjectStats, TypeStats } from "./types";
 
 const BASE = "/api";
 
@@ -108,6 +108,24 @@ export const api = {
   pages: (subjectId?: string) =>
     request<PageSummary[]>(`/pages${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   page: (pageId: string) => request<PageDetail>(`/pages/${pageId}`),
+  pageDraft: (pageId: string) => request<PageDraftResponse>(`/pages/${pageId}/draft`),
+  savePageDraft: (pageId: string, body: PageDraftInput, keepalive = false) =>
+    request<PageDraftResponse>(`/pages/${pageId}/draft`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      keepalive,
+    }),
+  discardPageDraft: (pageId: string) =>
+    request<{ ok: boolean; page_id: string }>(`/pages/${pageId}/draft`, { method: "DELETE" }),
+  publishPageDraft: (pageId: string, message?: string, commit = false) =>
+    request<PublishResult>(`/pages/${pageId}/publish`, {
+      method: "POST",
+      body: JSON.stringify({ message, commit }),
+    }),
+  /** 草稿版本 SSE；page_id 只用于拼地址。 */
+  pageDraftStreamUrl: (pageId: string) =>
+    `${BASE}/pages/${encodeURIComponent(pageId)}/draft/stream`,
+  validateContent: () => request<ContentValidation>("/content/validate", { method: "POST" }),
   pageQuestionCount: (pageId: string) =>
     request<PageQuestionCount>(`/pages/${pageId}/question-count`),
   completePage: (pageId: string) =>
