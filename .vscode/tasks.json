@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "kaodian: validate content",
+      "type": "shell",
+      "command": "bin/kaodian content validate",
+      "options": { "cwd": "${workspaceFolder:framework}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "kaodian: sync content",
+      "type": "shell",
+      "command": "bin/kaodian content sync",
+      "options": { "cwd": "${workspaceFolder:framework}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "kaodian: serve",
+      "type": "shell",
+      "command": "bin/kaodian serve",
+      "options": { "cwd": "${workspaceFolder:framework}" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "kaodian: check",
+      "type": "shell",
+      "command": "make check",
+      "options": { "cwd": "${workspaceFolder:framework}" },
+      "problemMatcher": []
+    }
+  ]
+}

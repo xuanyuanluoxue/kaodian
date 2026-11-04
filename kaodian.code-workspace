@@ -1,0 +1,21 @@
+{
+  "folders": [
+    { "name": "framework", "path": "." },
+    { "name": "content", "path": "../kaodian-content" },
+    { "name": "runtime", "path": "../../kaodian-runtime" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "apps/web/dist": true,
+      "apps/web/node_modules": true
+    },
+    "search.exclude": {
+      "apps/web/node_modules": true,
+      "apps/web/dist": true,
+      "runtime": true
+    },
+    "python.defaultInterpreterPath": "${workspaceFolder:framework}/.venv/bin/python"
+  }
+}
