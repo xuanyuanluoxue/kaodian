@@ -11,6 +11,7 @@
 ## 备份
 
 ```bash
+mkdir -p user-data/exports
 cp user-data/kaodian.db "user-data/exports/kaodian-$(date +%F).db"
 ```
 

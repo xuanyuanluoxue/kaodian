@@ -30,7 +30,11 @@ AI **不在网页里跑**：它是 IDE 里的 MCP 客户端，通过 stdio 启�
 需要 Python 3.11+、Node 20.19+；代码练习另需 `gcc` 与 `bubblewrap`。
 
 ```bash
-make setup          # 建 venv、装后端依赖、npm install
+make check   # pytest + 前端 lint + 构建，提交前跑一遍
+```
+
+```bash
+make setup          # 建 venv、装后端 + MCP 依赖、npm ci
 
 # 终端 1：后端
 make dev-api        # http://127.0.0.1:8000
@@ -43,7 +47,7 @@ make dev-web        # http://127.0.0.1:5173
 
 ```bash
 make build && cd apps/api && ../../.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010
-docker compose up --build   # 两者都是 http://127.0.0.1:8010
+make docker                 # 非 root 容器，自动用当前 UID/GID，http://127.0.0.1:8010
 ```
 
 ## 接入 AI（MCP）
@@ -95,4 +99,6 @@ user-data/  用户数据（作答、进度、复习），不进 Git
 
 ## License
 
-MIT，见 [`LICENSE`](LICENSE)。
+- 代码：MIT，见 [`LICENSE`](LICENSE)。
+- 素材：`apps/web/public/素材库/` 按该目录的 [`LICENSE-素材.md`](apps/web/public/素材库/LICENSE-素材.md)，含 CC0 / CC BY / CC BY-SA，发布页面时保留署名。
+- 种子题：`config/questions/` 为公开真题改编的教学示例，不是原卷；正式使用前请自行核对来源与版权。

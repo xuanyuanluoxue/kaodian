@@ -1,7 +1,14 @@
 .venv
 .git
+.github
+docs
+scripts
 user-data
 apps/web/node_modules
 apps/web/dist
+apps/api/tests
+apps/mcp
 **/__pycache__
 **/*.pyc
+**/*.md
+!apps/web/public/**/*.md

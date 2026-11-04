@@ -1,6 +1,9 @@
 services:
   kaodian:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_SANDBOX: "${INSTALL_SANDBOX:-0}"
     image: kaodian:latest
     ports:
       - "127.0.0.1:8010:8000"
@@ -8,5 +11,14 @@ services:
       - ./user-data:/data
     environment:
       KAODIAN_DB: /data/kaodian.db
-      KAODIAN_ALLOW_CODE_RUN: "0"
+      KAODIAN_ALLOW_CODE_RUN: "${KAODIAN_ALLOW_CODE_RUN:-0}"
+      TZ: "${TZ:-Asia/Shanghai}"
+    # 宿主机 UID/GID 不是 1000 时：KAODIAN_UID=$(id -u) KAODIAN_GID=$(id -g) docker compose up --build
+    user: "${KAODIAN_UID:-1000}:${KAODIAN_GID:-1000}"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m
     restart: unless-stopped
