@@ -2159,3 +2159,19 @@ kbd {
   .heat-months { font-size: 9px; }
 }
 
+
+.question-code {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.question-code code {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  white-space: pre;
+}
