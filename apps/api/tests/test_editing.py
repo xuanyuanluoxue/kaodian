@@ -293,7 +293,7 @@ def test_v5_database_upgrades_to_v6_without_data_loss(tmp_path, monkeypatch):
     database.init_db(path)
 
     with database.session(path) as conn:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
         after = [tuple(row) for row in conn.execute(
             "SELECT id, title, body FROM page ORDER BY id"
         )]

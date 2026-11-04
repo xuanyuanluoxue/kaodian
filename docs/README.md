@@ -14,6 +14,7 @@
 | 让 AI 出题、审题、评分 | [`ai/pipelines.md`](ai/pipelines.md) | [`content/format.md`](content/format.md) |
 | 写讲义 / 加图 / 加交互图 | [`content/format.md`](content/format.md) | [`dev/blocks.md`](dev/blocks.md) |
 | 网页编辑 / 草稿 / 发布 | [`dev/editing.md`](dev/editing.md) | [`dev/blocks.md`](dev/blocks.md) |
+| 学习画像 / 目标 / 学情 | [`dev/profile.md`](dev/profile.md) | [`dev/api.md`](dev/api.md) |
 
 ## 分区
 

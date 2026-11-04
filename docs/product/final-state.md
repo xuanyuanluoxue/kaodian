@@ -60,7 +60,13 @@
 | 评分 | `get_grading_queue` `grade_answer` |
 | 看结果 | `get_attempt` `get_due_reviews` `get_stats_today` `get_progress` |
 
-### 7. 数据与运维
+### 7. 学习画像
+
+- 静态目标：考试、日期、分数、每日时长、科目、备注
+- 动态学情：正确率、时长、连续天数、薄弱考点、到期复习、近 7 天
+- Agent 通过 `get_profile` 读取，用于安排当天内容
+
+### 8. 数据与运维
 
 - SQLite 单文件，`data/api/kaodian.db`
 - 启动自动迁移 + 备份

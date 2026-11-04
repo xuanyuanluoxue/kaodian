@@ -255,3 +255,18 @@ CREATE TABLE IF NOT EXISTS study_time (
     updated_at TEXT NOT NULL,
     PRIMARY KEY (day, source, ref)
 );
+
+
+-- 学习画像：静态目标只存这一行，动态学情实时查询、不落库。
+CREATE TABLE IF NOT EXISTS profile (
+    id                 INTEGER PRIMARY KEY CHECK (id = 1),
+    target_exam        TEXT,
+    target_date        TEXT,
+    target_score       REAL,
+    daily_minutes      INTEGER NOT NULL DEFAULT 30,
+    subjects           TEXT NOT NULL DEFAULT '[]',
+    notes              TEXT NOT NULL DEFAULT '',
+    preferred_tone     TEXT NOT NULL DEFAULT '',
+    preferred_examples TEXT NOT NULL DEFAULT '',
+    updated_at         TEXT
+);

@@ -11,7 +11,7 @@ from . import paths
 
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA = Path(__file__).with_name("schema.sql")
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 _QUESTION_GROUP_DDL = """
 CREATE TABLE IF NOT EXISTS question_group (
@@ -51,6 +51,20 @@ CREATE TABLE IF NOT EXISTS page_draft (
     theme      TEXT,
     version    INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL
+)"""
+
+_PROFILE_DDL = """
+CREATE TABLE IF NOT EXISTS profile (
+    id                 INTEGER PRIMARY KEY CHECK (id = 1),
+    target_exam        TEXT,
+    target_date        TEXT,
+    target_score       REAL,
+    daily_minutes      INTEGER NOT NULL DEFAULT 30,
+    subjects           TEXT NOT NULL DEFAULT '[]',
+    notes              TEXT NOT NULL DEFAULT '',
+    preferred_tone     TEXT NOT NULL DEFAULT '',
+    preferred_examples TEXT NOT NULL DEFAULT '',
+    updated_at         TEXT
 )"""
 
 
@@ -104,6 +118,9 @@ def init_db(path: Path | None = None) -> None:
         conn.executescript(SCHEMA.read_text(encoding="utf-8"))
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         sync_content(conn)
+        from .profile import ensure_profile
+
+        ensure_profile(conn)
 
 
 def _has_schema(path: Path) -> bool:
@@ -209,6 +226,8 @@ def migrate(conn: sqlite3.Connection) -> None:
     # v6：网页编辑草稿。page.file 记录内容文件相对 content/ 的路径。
     _add_columns(conn, "page", {"file": "TEXT"})
     conn.execute(_PAGE_DRAFT_DDL)
+    # v7：学习画像单行表；动态学情不落库。
+    conn.execute(_PROFILE_DDL)
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_subject_pack_source "
         "ON subject(pack_id, source_key) WHERE pack_id IS NOT NULL"

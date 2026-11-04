@@ -429,3 +429,59 @@ export interface TypeStats {
   answered: number;
   correct: number;
 }
+
+/** 学习画像静态目标，存 profile 单行表。 */
+export interface ProfileStatic {
+  target_exam: string | null;
+  target_date: string | null;
+  target_score: number | null;
+  daily_minutes: number;
+  subjects: string[];
+  notes: string;
+  preferred_tone: string;
+  preferred_examples: string;
+}
+
+export interface SubjectProfile {
+  id: string;
+  name: string;
+  short: string;
+  color: string | null;
+  answered: number;
+  correct: number;
+  accuracy: number | null;
+  seconds: number;
+}
+
+export interface WeakCode {
+  code: string;
+  title: string;
+  wrong: number;
+}
+
+export interface RecentDay {
+  date: string;
+  seconds: number;
+  answered: number;
+}
+
+/** 动态学情实时计算，不落库。 */
+export interface ProfileDynamic {
+  days_to_exam: number | null;
+  today_minutes: number;
+  streak: number;
+  xp: number;
+  completed_pages: number;
+  answered: number;
+  correct: number;
+  accuracy: number | null;
+  due_reviews: number;
+  subjects: SubjectProfile[];
+  weak_codes: WeakCode[];
+  recent: RecentDay[];
+}
+
+export interface Profile {
+  static: ProfileStatic;
+  dynamic: ProfileDynamic;
+}

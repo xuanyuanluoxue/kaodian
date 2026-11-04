@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from . import content as content_packs
 from . import db as database
 from . import paths
+from . import profile as profiles
 from . import question_types
 from .blocks import validate_blocks, validate_layout, validate_theme
 from .grading import fingerprint, grade, validate_media, validate_question
@@ -205,6 +206,17 @@ class DraftIn(BaseModel):
 class PublishIn(BaseModel):
     message: str | None = Field(default=None, max_length=200)
     commit: bool = False
+
+
+class ProfileIn(BaseModel):
+    target_exam: str | None = None
+    target_date: str | None = None
+    target_score: float | None = None
+    daily_minutes: int | None = Field(default=None, ge=1, le=600)
+    subjects: list[str] | None = None
+    notes: str | None = Field(default=None, max_length=2000)
+    preferred_tone: str | None = Field(default=None, max_length=200)
+    preferred_examples: str | None = Field(default=None, max_length=200)
 
 
 # ---------------------------------------------------------------- helpers
@@ -2424,6 +2436,21 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             "total_pages": pages_total,
             "days": days,
         }
+
+    # -------- 学习画像
+
+    @app.get("/api/profile")
+    def read_profile():
+        with conn() as c:
+            return profiles.get_profile(c)
+
+    @app.put("/api/profile")
+    def write_profile(body: ProfileIn):
+        with conn() as c:
+            try:
+                return profiles.update_profile(c, body.model_dump(exclude_unset=True))
+            except profiles.ProfileError as exc:
+                raise HTTPException(422, str(exc)) from exc
 
     # -------- agent 协作
 

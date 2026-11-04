@@ -8,6 +8,7 @@ import { Review } from "./pages/Review";
 import { Console } from "./pages/Console";
 import { PageEditor } from "./pages/PageEditor";
 import { Stats } from "./pages/Stats";
+import { Profile } from "./pages/Profile";
 import { ThemeToggle } from "./components/ThemeToggle";
 
 function ScrollTop() {
@@ -30,6 +31,7 @@ export function App() {
           <NavLink to="/" end>
             今天
           </NavLink>
+          <NavLink to="/profile">画像</NavLink>
           <NavLink to="/console">控制台</NavLink>
           <NavLink to="/build">组卷</NavLink>
           <NavLink to="/review">复习</NavLink>
@@ -44,6 +46,7 @@ export function App() {
       <main className="shell">
         <Routes>
           <Route path="/" element={<Today />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/console" element={<Console />} />
           <Route path="/edit/:pageId" element={<PageEditor />} />
           <Route path="/build" element={<Build />} />

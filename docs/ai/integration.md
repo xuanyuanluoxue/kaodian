@@ -18,7 +18,7 @@ flowchart LR
 | 角色 | 跑在哪 | 做什么 |
 |---|---|---|
 | 对话 Agent | IDE 插件 / 终端 / Claude Desktop | 决定学什么、出题、给提示、读结果、评分 |
-| MCP 桥 | 本机 Python 进程（由 Agent 启动） | 把 API 包装成 25 个工具 |
+| MCP 桥 | 本机 Python 进程（由 Agent 启动） | 把 API 包装成 27 个工具 |
 | 学习终端 | 浏览器 | 显示讲义、答题、计时、把事件写回 API |
 
 ## 常见 IDE / 客户端
@@ -70,11 +70,12 @@ Claude Desktop 的等价配置：
 
 > 改完配置后 OpenCode 一般会自动重载；工具列表没更新就 `/reload` 或开新会话。
 
-## 工具（25 个）
+## 工具（27 个）
 
 | 分类 | 工具 |
 |---|---|
-| 读 | `list_subjects` `list_outline` `list_pages` `list_quizzes` `get_attempt` `get_due_reviews` `get_stats_today` `get_progress` |
+| 读 | `list_subjects` `list_outline` `list_pages` `list_quizzes` `get_attempt` `get_due_reviews` `get_stats_today` `get_progress` `get_profile` |
+| 画像 | `update_profile` |
 | 出题 | `create_questions` `list_pending_questions` `review_questions` |
 | 组卷 | `create_agent_session` `build_quiz` |
 | 协作 | `send_hint` `read_inbox` |
@@ -85,7 +86,7 @@ Claude Desktop 的等价配置：
 ## 一次典型循环
 
 1. 你说「按 C-08 出 6 道」；
-2. Agent 调 `list_outline` 确认编号，`build_quiz` 组卷，把链接发你；
+2. Agent 先 `get_profile` 看目标、每日时长和薄弱考点，再用 `list_outline` 确认编号，`build_quiz` 组卷，把链接发你；
 3. 你打开链接作答，卡住点「卡住了」；
 4. Agent 用 `read_inbox` 读到求助，用 `send_hint` 推提示；
 5. 交卷后 Agent 用 `read_inbox` / `get_attempt` 读结果；

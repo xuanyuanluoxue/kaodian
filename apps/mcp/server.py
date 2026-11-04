@@ -26,7 +26,8 @@ mcp = MCPServer(
     "kaodian",
     version="0.1.0",
     instructions=(
-        "考点是 Agent 的作答终端。先用 list_outline 确认考点编号，"
+        "考点是 Agent 的作答终端。每次开工先 get_profile，看清目标、每日时长和薄弱考点，"
+        "再决定今天学什么。先用 list_outline 确认考点编号，"
         "题库是实时生成的：create_questions 入库存为 pending，review_questions 审查后才可组卷；"
         "材料题先用 create_question_group 建组，再用 create_questions 传 group_id/group_position 挂题；"
         "用 build_quiz 组卷并把 url 发给用户；用 publish_page 写讲解页，用户在控制台阅读；"
@@ -494,6 +495,56 @@ def get_stats_today() -> dict:
 def get_progress() -> dict:
     """学习路径进度：连续天数、今日目标、XP、完成课数、最近 7 天。"""
     return _call("GET", "/api/progress")
+
+
+@mcp.tool()
+def get_profile() -> dict:
+    """读取学习画像：静态目标 + 实时学情（倒计时、正确率、分科时长、薄弱考点）。
+
+    每次开工先调这个，再决定学什么。
+    """
+    return _call("GET", "/api/profile")
+
+
+@mcp.tool()
+def update_profile(
+    target_exam: str | None = None,
+    target_date: str | None = None,
+    target_score: float | None = None,
+    daily_minutes: int | None = None,
+    subjects: list[str] | None = None,
+    notes: str | None = None,
+    preferred_tone: str | None = None,
+    preferred_examples: str | None = None,
+) -> dict:
+    """更新学习画像的静态字段，只传要改的；返回与 get_profile 相同结构。
+
+    Args:
+        target_exam: 目标考试，如「2028 广东专升本」。
+        target_date: 考试日期，严格 YYYY-MM-DD；传空字符串可清除。
+        target_score: 目标分。
+        daily_minutes: 每日目标分钟，1–600。
+        subjects: 科目 id 数组，来自 list_subjects。
+        notes: 备注，≤2000 字。
+        preferred_tone: 讲解语气偏好，≤200 字。
+        preferred_examples: 例子偏好，≤200 字。
+    """
+    payload: dict[str, Any] = {}
+    for name, value in (
+        ("target_exam", target_exam),
+        ("target_date", target_date),
+        ("target_score", target_score),
+        ("daily_minutes", daily_minutes),
+        ("subjects", subjects),
+        ("notes", notes),
+        ("preferred_tone", preferred_tone),
+        ("preferred_examples", preferred_examples),
+    ):
+        if value is not None:
+            payload[name] = value
+    if not payload:
+        raise RuntimeError("没有要更新的字段")
+    return _call("PUT", "/api/profile", json=payload)
 
 
 if __name__ == "__main__":

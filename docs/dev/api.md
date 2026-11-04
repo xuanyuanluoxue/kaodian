@@ -173,6 +173,69 @@ data: {"id":42,"session_id":"s_x","kind":"note","role":"agent","body":"...","ref
 `/stats/heatmap` 返回按日期升序的 `{date,seconds,answered}`，长度恒等于 `days`。  
 `/stats/types` 返回有作答的题型：`{type,label,answered,correct}`。
 
+## 学习画像
+
+| 方法 | 路径 | 作用 |
+|---|---|---|
+| GET | `/profile` | 静态目标 + 实时学情 |
+| PUT | `/profile` | 更新静态字段，返回与 GET 相同结构 |
+
+Schema v7 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自动插入默认画像：
+`daily_minutes=30`、`subjects` 为当前全部科目 id，其余为空；已有画像不会被覆盖。
+静态字段只存库，动态字段全部实时查询、不落库。
+
+```json
+{
+  "static": {
+    "target_exam": "2028 广东专升本",
+    "target_date": "2028-03-28",
+    "target_score": 425,
+    "daily_minutes": 120,
+    "subjects": ["computer", "math"],
+    "notes": "",
+    "preferred_tone": "",
+    "preferred_examples": ""
+  },
+  "dynamic": {
+    "days_to_exam": 508,
+    "today_minutes": 44,
+    "streak": 3,
+    "xp": 120,
+    "completed_pages": 7,
+    "answered": 180,
+    "correct": 120,
+    "accuracy": 0.667,
+    "due_reviews": 6,
+    "subjects": [
+      {"id": "math", "name": "高等数学", "short": "高数", "color": "#2f5d8a",
+       "answered": 50, "correct": 35, "accuracy": 0.7, "seconds": 3600}
+    ],
+    "weak_codes": [{"code": "M-09", "title": "导数定义", "wrong": 4}],
+    "recent": [{"date": "2026-11-04", "seconds": 2700, "answered": 12}]
+  }
+}
+```
+
+动态字段口径：
+
+- `days_to_exam` = `target_date - today`，未设置目标为 `null`；
+- `today_minutes` / `streak` / `xp` / `completed_pages` 与 `/api/progress` 一致；
+- `answered` / `correct` / `accuracy` 统计全库 `answer.correct IS NOT NULL`，
+  `accuracy` 为 0–1 的三位小数，无作答为 `null`；
+- `due_reviews` = `review.due_date <= today` 的数量；
+- `subjects` 返回全部科目，`seconds` 含 `attempt.active_seconds` 与 `study_time`，
+  归属规则同 `/api/stats/subjects`；
+- `weak_codes` 按答错次数取 Top 5；
+- `recent` 为近 7 天（含今天）`{date,seconds,answered}`，缺失日期补 0。
+
+`PUT /api/profile` 只更新传入的静态字段：
+
+- `target_date` 必须是有效 `YYYY-MM-DD`（空字符串或 `null` 表示清除）；
+- `daily_minutes` 1–600；
+- `subjects` 必须是已存在科目 id；
+- `notes` ≤2000 字，`preferred_tone` / `preferred_examples` ≤200 字；
+- 校验失败返回 422，且不写库。
+
 ## 备份：导出 / 导入
 
 | 方法 | 路径 | 作用 |
