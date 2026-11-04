@@ -22,15 +22,22 @@ kaodian/                       # 框架仓库（无学科内容）
 │   └── mcp/                   # stdio MCP 服务（HTTP 的薄包装）
 ├── bin/kaodian                # CLI shell wrapper
 ├── config/                    # 框架默认配置（题型注册表）
+├── content/                   # 内容仓库（独立 git，公开，框架 .gitignore）
+│   ├── registry.json
+│   └── packs/<科目>/          # 大纲 / 讲义 / 题库 / 素材
+├── data/                      # 运行时数据（不进 Git）
+│   ├── api/                   # kaodian.db / backups / exports
+│   ├── web/                   # uploads
+│   ├── mcp/                   # logs
+│   ├── cli/                   # cache
+│   └── shared/                # logs / sandbox
 ├── examples/demo-content/     # 示例内容包（首次启动 / 测试）
 ├── docs/
-├── runtime/                   # 运行时数据（不进 Git，默认）
 ├── kaodian.example.toml       # 本机路径配置示例
 └── AGENTS.md
 ```
 
-内容仓库是独立目录（默认 `../kaodian-content`，用 `KAODIAN_CONTENT_DIR`
-或 `kaodian.toml` 指定），结构见 [`content-packs.md`](content-packs.md)。
+内容包结构见 [`content-packs.md`](content-packs.md)。
 
 
 ## 三个运行进程
@@ -51,7 +58,7 @@ flowchart LR
   Browser["浏览器"] -->|HTTP| WEB["apps/web"]
   WEB -->|HTTP| API["apps/api"]
   MCP -->|HTTP| API
-  API --> DB[("runtime/kaodian.db")]
+  API --> DB[("data/api/kaodian.db")]
   API --> Sandbox["gcc + bubblewrap"]
   Content["content_dir()/packs"] -->|启动时同步| API
   Media["/media/{pack}/..."] --> API
@@ -65,7 +72,7 @@ flowchart LR
 | `apps/api` | 数据模型、复习算法、判分、沙箱、统计 | 页面渲染、对话 |
 | `apps/mcp` | 工具描述、参数转发、结果裁剪 | 业务规则、直接 SQL |
 | `content_dir()` | 内容包：科目 / 大纲 / 讲义 / 题目 / 素材 | 运行状态 |
-| `runtime/` | 作答、时长、复习、进度、数据库 | 代码、内容源文件 |
+| `data/` | 作答、时长、复习、进度、数据库 | 代码、内容源文件 |
 
 ## 数据表
 
@@ -103,7 +110,7 @@ flowchart LR
 - **源码**：`apps/`、`bin/`，进 Git。
 - **框架配置**：`config/`（题型注册表），进 Git；旧学科配置在迁移完成前保留。
 - **内容**：独立内容仓库，进它自己的 Git；框架仓库只有 `examples/demo-content`。
-- **用户进度**：`data_dir()/kaodian.db`（默认 `runtime/`），不进 Git。
+- **用户进度**：`data_dir()/api/kaodian.db`（默认 `data/`），不进 Git。
 - **学习内容源文件**：内容仓库内的 Markdown / JSON / assets。
 
 ## 为什么这样分

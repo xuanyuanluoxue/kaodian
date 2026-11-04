@@ -88,7 +88,7 @@ def test_paths_env_overrides_and_data_dir(tmp_path, monkeypatch):
     assert paths.content_dir() == target
     assert paths.data_dir() == data
     assert data.is_dir()
-    assert paths.db_path() == data / "kaodian.db"
+    assert paths.db_path() == data / "api" / "kaodian.db"
     assert paths.config_file("registry.json") == target / "registry.json"
 
 

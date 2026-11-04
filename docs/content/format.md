@@ -3,7 +3,7 @@
 > 讲义只有一个来源格式：**Markdown**。网页只多认两种代码块（`mermaid`、`math-graph`），其余按 GFM + KaTeX 渲染。
 > 不写内嵌 HTML、iframe、`<script>`、内联样式。
 
-> 内容仓库：`~/code/kaodian-content`。正文里的 `/media/<pack>/...` 由框架的 `/media` 路由提供。
+> 内容仓库：`content/`。正文里的 `/media/<pack>/...` 由框架的 `/media` 路由提供。
 
 ## 1. 一课一概念
 

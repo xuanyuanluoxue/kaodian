@@ -4,7 +4,7 @@
 
 1. 环境变量 ``KAODIAN_CONTENT_DIR`` / ``KAODIAN_DATA_DIR`` / ``KAODIAN_DB``
 2. 仓库根目录的 ``kaodian.toml``
-3. 默认 ``examples/demo-content`` + ``runtime/``
+3. 默认 ``examples/demo-content`` + ``data/``
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CONTENT = ROOT / "examples" / "demo-content"
-DEFAULT_DATA = ROOT / "runtime"
+DEFAULT_DATA = ROOT / "data"
 
 
 def _root_config() -> dict[str, Any]:
@@ -75,7 +75,37 @@ def db_path() -> Path:
     configured = _toml_path("db")
     if configured:
         return configured
-    return data_dir() / "kaodian.db"
+    return data_dir() / "api" / "kaodian.db"
+
+
+def api_data_dir() -> Path:
+    path = data_dir() / "api"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def backups_dir() -> Path:
+    path = api_data_dir() / "backups"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def exports_dir() -> Path:
+    path = api_data_dir() / "exports"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def sandbox_dir() -> Path:
+    path = data_dir() / "shared" / "sandbox"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def logs_dir() -> Path:
+    path = data_dir() / "shared" / "logs"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def config_file(name: str) -> Path:

@@ -54,10 +54,10 @@
 | 位置 | 内容 | 是否入库 |
 |---|---|---|
 | `apps/` | 框架源码（web / api / mcp / cli） | ✅ |
-| `kaodian-content/` | 科目、大纲、讲义、题库、素材 | ✅ 独立仓库 |
+| `content/` | 科目、大纲、讲义、题库、素材 | ✅ 独立仓库 |
 | `config/` | 框架默认配置（题型注册表） | ✅ |
 | `docs/` | 文档 | ✅ |
-| `kaodian-runtime/` | 作答、时长、复习、进度（SQLite） | ❌ 运行时数据 |
+| `data/` | 作答、时长、复习、进度（SQLite） | ❌ 运行时数据 |
 | 私有学习工作区 | 讲义源文件、计划、日志（不在本仓库） | ❌ |
 
 详见 [`../dev/architecture.md`](../dev/architecture.md)。

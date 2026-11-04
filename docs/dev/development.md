@@ -25,7 +25,7 @@ cd apps/web && npm ci
 
 ## 日常开发（两个终端）
 
-先准备内容路径。默认会读 `examples/demo-content`，把数据写到 `runtime/`；
+先准备内容路径。默认会读 `examples/demo-content`，把数据写到 `data/`；
 接入本机真实内容时复制示例配置：
 
 ```bash
@@ -81,8 +81,8 @@ make docker     # 自动传当前 UID/GID，http://127.0.0.1:8010
 ```
 
 - 非 root 运行；`user: "${KAODIAN_UID:-1000}:${KAODIAN_GID:-1000}"`
-- 内容只读挂载：`${KAODIAN_CONTENT_HOST:-../kaodian-content}:/content:ro`
-- 数据卷：`${KAODIAN_DATA_HOST:-../../kaodian-runtime}:/data`
+- 内容只读挂载：`${KAODIAN_CONTENT_HOST:-./content}:/content:ro`
+- 数据卷：`${KAODIAN_DATA_HOST:-./data}:/data`
 - 容器内 `KAODIAN_CONTENT_DIR=/content`、`KAODIAN_DATA_DIR=/data`
 - `HEALTHCHECK` 打 `/api/health`；`cap_drop: ALL` + `no-new-privileges`
 - 默认镜像**不装** gcc/bubblewrap；需要代码沙箱用 `make docker-sandbox`
@@ -94,7 +94,7 @@ make docker     # 自动传当前 UID/GID，http://127.0.0.1:8010
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `KAODIAN_CONTENT_DIR` | `examples/demo-content` | 内容仓库根目录（含 `registry.json`） |
-| `KAODIAN_DATA_DIR` | `runtime/` | 数据库、`exports/`、日志；自动创建 |
+| `KAODIAN_DATA_DIR` | `data/` | 数据库、备份、导出、日志；自动创建 |
 | `KAODIAN_DB` | `data_dir()/kaodian.db` | SQLite 路径，优先级最高 |
 | `KAODIAN_DAILY_GOAL_MINUTES` | `30` | 每日目标分钟数 |
 | `KAODIAN_ALLOW_CODE_RUN` | `0` | 设为 `1` 才启用代码练习终端 |
@@ -130,7 +130,7 @@ make docker-sandbox  # 带 gcc/bubblewrap 的镜像 + 开启代码沙箱
 
 ## 数据
 
-- 运行数据默认在 `runtime/kaodian.db`，不进 Git；可用 `KAODIAN_DATA_DIR` 改位置
+- 运行数据默认在 `data/api/kaodian.db`，不进 Git；可用 `KAODIAN_DATA_DIR` 改位置
 - 备份：`bin/kaodian backup`，或停服务后复制 SQLite 文件
 - 内容来自内容仓库，首次启动/`content sync` 自动同步；框架只带 `examples/demo-content`
 - 迁移真实库：先停服务并备份，再启动让 v3→v4 迁移，最后 `content sync` 回填 `pack_id`

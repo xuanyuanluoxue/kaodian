@@ -2202,7 +2202,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         if not shutil.which("gcc") or not shutil.which("bwrap"):
             raise HTTPException(503, "服务器缺少 gcc 或 bubblewrap")
 
-        work = Path(tempfile.mkdtemp(prefix="kaodian-run-"))
+        work = Path(tempfile.mkdtemp(prefix="run-", dir=paths.sandbox_dir()))
         try:
             (work / "main.c").write_text(body.code, encoding="utf-8")
             bwrap = [

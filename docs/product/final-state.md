@@ -62,7 +62,7 @@
 
 ### 7. 数据与运维
 
-- SQLite 单文件，`runtime/kaodian.db`
+- SQLite 单文件，`data/api/kaodian.db`
 - 启动自动迁移 + 备份
 - 支持导出 / 导入（JSON）
 - Docker 非 root、健康检查、TZ 可配

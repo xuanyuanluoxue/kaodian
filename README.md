@@ -3,19 +3,25 @@
 > **Agent 的作答终端。** 在 IDE 里让 Agent 出题、改讲义、给提示；在网页上阅读、作答、计时；结果通过 MCP 回传。
 > 本地优先、无账号、内容与用户数据彻底分开。
 
-## 三个目录，三种生命周期
+## 一个项目根，三层边界
 
 ```
-~/code/kaodian/           框架仓库（公开）：只有代码、文档、CLI
-~/code/kaodian-content/   内容仓库（公开）：讲义、题库、素材、许可证
-~/kaodian-runtime/        运行时数据（私有）：SQLite、导出、日志，不进 Git
+kaodian/
+├── apps/                 框架仓库（公开）：web / api / mcp / cli
+├── content/              内容仓库（公开，独立 git）：讲义 / 题库 / 素材
+└── data/                 运行时数据（不进 Git）
+    ├── api/              kaodian.db、backups、exports
+    ├── web/              uploads
+    ├── mcp/              logs
+    ├── cli/              cache
+    └── shared/           logs、sandbox
 ```
 
 | 层 | 内容 | 能否重建 |
 |---|---|---|
-| 框架 | `apps/web` `apps/api` `apps/mcp` `apps/cli` | 代码，Git 版本化 |
-| 内容 | `packs/<科目>/`：大纲、讲义、题库、素材 | 文件是源，DB 只是索引 |
-| 运行时 | `kaodian.db`、`exports/`、`logs/` | 用户数据，只能备份 |
+| 框架 | `apps/{web,api,mcp,cli}` | 代码，Git 版本化 |
+| 内容 | `content/packs/<科目>/` | 文件是源，DB 只是索引 |
+| 数据 | `data/api/kaodian.db`、备份、导出 | 用户数据，只能备份 |
 
 ## 快速开始
 
@@ -23,16 +29,16 @@
 
 ```bash
 git clone <framework> kaodian
-git clone <content> kaodian-content
 cd kaodian
-cp kaodian.example.toml kaodian.toml   # 改成你的 content / data 路径
+git clone <content> content
 make setup
 bin/kaodian content validate
 bin/kaodian serve --port 8010
 # http://127.0.0.1:8010
 ```
 
-不配 `kaodian.toml` 时，默认加载 `examples/demo-content`，数据写到 `./runtime/`，用于试跑。
+`content/` 是独立 git 仓库，被框架的 `.gitignore` 排除；`data/` 整个目录也不进 Git。
+不克隆内容时，默认加载 `examples/demo-content`，数据写到 `./data/`，用于试跑。
 
 ## IDE 是控制面
 
@@ -55,7 +61,7 @@ opencode mcp add kaodian --global \
 ## 内容包
 
 ```
-kaodian-content/
+content/
 ├── registry.json
 └── packs/math/
     ├── pack.json          # 科目、版本、考试参数

@@ -8,25 +8,25 @@
 | 层 | 默认 | 说明 |
 |---|---|---|
 | 框架 | 本仓库 | 代码、CLI、示例内容，不含真实学科内容 |
-| 内容 | `KAODIAN_CONTENT_DIR` / `kaodian.toml` | Markdown、题目 JSON、素材 |
-| 数据 | `KAODIAN_DATA_DIR` | SQLite、导出、日志 |
+| 内容 | `content/`（`KAODIAN_CONTENT_DIR` / `kaodian.toml`） | Markdown、题目 JSON、素材 |
+| 数据 | `data/`（`KAODIAN_DATA_DIR`） | SQLite、备份、导出、日志 |
 
-优先级：环境变量 → 仓库根 `kaodian.toml` → `examples/demo-content` + `runtime/`。
+优先级：环境变量 → 仓库根 `kaodian.toml` → `examples/demo-content` + `data/`。
 
 ```bash
 cp kaodian.example.toml kaodian.toml
 # [paths]
-# content = "../kaodian-content"
-# data = "../../kaodian-runtime"
+# content = "./content"
+# data = "./data"
 ```
 
-## 0. 三根工作区
+## 0. 三个工作区
 
 用 IDE 打开 `kaodian.code-workspace`，同时看到：
 
 - `framework/`：代码、CLI、文档
 - `content/`：讲义、题库、素材
-- `runtime/`：数据库、导出（只读查看）
+- `data/`：数据库、备份、导出（只读查看）
 
 `.vscode/tasks.json` 提供 `validate / sync / serve / check` 四个任务，直接跑不用记路径。
 
@@ -103,7 +103,7 @@ MCP 只调 HTTP API，不直接读 SQLite。浏览器和 MCP 看到的是同一�
 # 2. 备份旧库（路径按实际）
 bin/kaodian backup --db /path/to/old/kaodian.db --out /path/to/backup.db
 # 3. 指到 runtime 后启动；v3→v4 会自动再备份并迁移
-KAODIAN_DB=/path/to/runtime/kaodian.db bin/kaodian serve
+KAODIAN_DB=/path/to/data/api/kaodian.db bin/kaodian serve
 # 4. 回填 pack_id / source_key，确认没有重复页/题
 bin/kaodian content sync
 bin/kaodian doctor --json

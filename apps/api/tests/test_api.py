@@ -349,7 +349,7 @@ def test_code_run_explains_typo(client, monkeypatch):
 def test_spa_blocks_path_traversal(client):
     for path in (
         "/../../../README.md",
-        "/%2e%2e/%2e%2e/%2e%2e/kaodian-runtime/kaodian.db",
+        "/%2e%2e/%2e%2e/%2e%2e/data/api/kaodian.db",
     ):
         r = client.get(path)
         assert r.status_code == 200
@@ -721,7 +721,7 @@ def test_v3_database_upgrades_without_data_loss(tmp_path, monkeypatch):
             "SELECT COUNT(*) FROM subject WHERE pack_id = 'demo'"
         ).fetchone()[0] == 1
 
-    assert list(tmp_path.glob("v3.db.bak-v3-*"))
+    assert list((tmp_path / "backups").glob("v3.db.bak-v3-*"))
 
 
 def test_page_question_count(client):

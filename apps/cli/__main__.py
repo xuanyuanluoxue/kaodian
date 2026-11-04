@@ -182,9 +182,7 @@ def cmd_backup(args: argparse.Namespace) -> int:
         if target.is_dir():
             target = target / f"kaodian-{datetime.now():%Y%m%d-%H%M%S}.db"
     else:
-        exports = paths.data_dir() / "exports"
-        exports.mkdir(parents=True, exist_ok=True)
-        target = exports / f"kaodian-{datetime.now():%Y%m%d-%H%M%S}.db"
+        target = paths.backups_dir() / f"kaodian-{datetime.now():%Y%m%d-%H%M%S}.db"
     target.parent.mkdir(parents=True, exist_ok=True)
 
     src = sqlite3.connect(source)

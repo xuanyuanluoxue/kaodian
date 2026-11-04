@@ -120,7 +120,7 @@ Agent
 | 角色 | 可以 | 不可以 |
 |---|---|---|
 | 子 Agent（教学） | 写 `.md`、调 `create_questions`、`publish_page(status=draft)` | 审题、组卷、发布、commit、改代码 |
-| 子 Agent（开发） | 改代码、跑测试、跑构建 | 改讲义、动 `runtime/`、commit |
+| 子 Agent（开发） | 改代码、跑测试、跑构建 | 改讲义、动 `data/`、commit |
 | 主 Agent | 验收、`review_questions`、`update_page(published)`、提交 | 把长日志整段带进主上下文 |
 
 - 子 Agent 只回报：文件、行数、测试结果、不确定处。

@@ -7,9 +7,15 @@ __pycache__/
 .env
 .env.*
 
-# 本机路径配置与运行时数据（内容在独立仓库）
+# 本机路径配置
 kaodian.toml
-runtime/
+
+# 运行时数据（只保留说明）
+data/*
+!data/README.md
+
+# 内容仓库（独立 git，嵌套在项目里）
+content/
 
 apps/web/node_modules/
 apps/web/dist/

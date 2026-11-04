@@ -119,7 +119,9 @@ def _user_version(path: Path) -> int:
 def _backup(path: Path, version: int) -> None:
     """迁移前用 SQLite backup API 复制（包含 WAL），失败则中止迁移。"""
     stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    target = path.with_name(f"{path.name}.bak-v{version}-{stamp}")
+    backups = path.parent / "backups"
+    backups.mkdir(parents=True, exist_ok=True)
+    target = backups / f"{path.name}.bak-v{version}-{stamp}"
     src = sqlite3.connect(path)
     dst = sqlite3.connect(target)
     try:

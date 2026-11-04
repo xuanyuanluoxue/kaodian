@@ -8,24 +8,25 @@
 
 1. 环境变量 `KAODIAN_CONTENT_DIR` / `KAODIAN_DATA_DIR` / `KAODIAN_DB`
 2. 框架根目录的 `kaodian.toml`
-3. 默认：`examples/demo-content` + `runtime/`
+3. 默认：`examples/demo-content` + `data/`
 
 ```toml
 # kaodian.toml（本机配置，不提交）
 [paths]
-content = "../kaodian-content"
-data = "../../kaodian-runtime"
+content = "./content"
+# data = "./data"   # 默认就是 ./data
 ```
 
 `kaodian.example.toml` 入库，`kaodian.toml` 进 `.gitignore`。
 
-- `data_dir` 放 `kaodian.db`、`exports/`、`logs/`。
-- `db_path` = `KAODIAN_DB` 或 `data_dir/kaodian.db`。
+- `data_dir` 默认 `./data`，按模块分：`api/`、`web/`、`mcp/`、`cli/`、`shared/`。
+- `db_path` = `KAODIAN_DB` 或 `data/api/kaodian.db`。
 - 启动时 `data_dir.mkdir(parents=True, exist_ok=True)`。
 
 ## 2. 内容仓库
 
 ```
+content/
 registry.json
 packs/<id>/
   pack.json
@@ -143,8 +144,8 @@ pack 里删除的内容不自动删库，改 frontmatter `status: archived`。
 ## 7. 迁移顺序
 
 1. 框架实现 pack 加载、v4 迁移、`/media`、CLI，用 `examples/demo-content` 测试。
-2. 本机建 `kaodian.toml` 指向 `../kaodian-content` 与 `../../kaodian-runtime`。
-3. 停服务，复制 `user-data/kaodian.db` → runtime，备份后启动迁移。
+2. 本机建 `kaodian.toml` 指向 `./content` 与 `./data`。
+3. 停服务，把旧库复制到 `data/api/kaodian.db`，备份后启动迁移。
 4. `content sync` 按自然键回填 `pack_id`，确认无重复页/题。
 5. 删除框架里的 `config/subjects`、`config/questions`、`apps/web/public/images`、`apps/web/public/素材库`。
 6. 更新 Docker/README/AGENTS，跑全量测试与浏览器验收。
