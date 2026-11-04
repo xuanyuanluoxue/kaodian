@@ -1,0 +1,1592 @@
+[
+  {
+    "id": "q_0c8ab0b2b925",
+    "outline_code": "M-02",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "$\\lim_{x\\to\\infty}\\dfrac{2x^{2}-x+1}{x^{2}+3x}=$ ____。",
+    "answer": [
+      "2"
+    ],
+    "explanation": "分子分母同除以 $x^{2}$，得 $\\dfrac{2-\\frac{1}{x}+\\frac{1}{x^{2}}}{1+\\frac{3}{x}}$。当 $x\\to\\infty$ 时 $\\frac{1}{x},\\frac{1}{x^{2}}\\to 0$，故极限为 $\\dfrac{2}{1}=2$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "极限计算",
+      "有理式",
+      "无穷远"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_4d230d9bcfe7",
+    "outline_code": "M-01",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=\\ln\\dfrac{1-x}{1+x}$，则 $f(x)$ 是（ ）",
+    "options": [
+      "奇函数",
+      "偶函数",
+      "非奇非偶函数",
+      "既是奇函数又是偶函数"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "定义域由 $\\dfrac{1-x}{1+x}>0$ 得 $-1<x<1$，关于原点对称。又 $f(-x)=\\ln\\dfrac{1+x}{1-x}=\\ln\\left(\\dfrac{1-x}{1+x}\\right)^{-1}=-f(x)$，故 $f(x)$ 为奇函数，选 A。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "函数",
+      "奇偶性"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_95419f092798",
+    "outline_code": "M-04",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "$\\lim_{x\\to\\infty}\\left(1+\\dfrac{1}{x}\\right)^{2x}$ 等于（ ）",
+    "options": [
+      "$e^{2}$",
+      "$e$",
+      "$2e$",
+      "1"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "把指数拆开：$\\left(1+\\dfrac{1}{x}\\right)^{2x}=\\left[\\left(1+\\dfrac{1}{x}\\right)^{x}\\right]^{2}$。由重要极限 $\\lim_{x\\to\\infty}\\left(1+\\dfrac{1}{x}\\right)^{x}=e$，得原式 $=e^{2}$，选 A。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "重要极限",
+      "幂指型"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_a18c0cad23a8",
+    "outline_code": "M-07",
+    "subject_id": "math",
+    "type": "calc",
+    "stem": "设 $f(x)=\\begin{cases}\\dfrac{1-\\cos x}{x^{2}}, & x\\ne 0\\\\ a, & x=0\\end{cases}$ 在 $x=0$ 处连续，求常数 $a$。",
+    "explanation": "分段函数在分界点连续等价于该点极限值等于函数值。由 $1-\\cos x\\sim\\dfrac{x^{2}}{2}$ 得极限为 $\\dfrac{1}{2}$，故 $a=\\dfrac{1}{2}$。",
+    "reference_answer": "连续性要求 $\\lim_{x\\to 0}f(x)=f(0)=a$。先求极限：当 $x\\to 0$ 时 $1-\\cos x\\sim\\dfrac{x^{2}}{2}$，故 $\\lim_{x\\to 0}\\dfrac{1-\\cos x}{x^{2}}=\\lim_{x\\to 0}\\dfrac{x^{2}/2}{x^{2}}=\\dfrac{1}{2}$。因此 $a=\\dfrac{1}{2}$。",
+    "rubric": [
+      {
+        "point": "写出在 $x=0$ 处连续的条件 $\\lim_{x\\to 0}f(x)=f(0)$",
+        "score": 2
+      },
+      {
+        "point": "用等价无穷小 $1-\\cos x\\sim\\dfrac{x^{2}}{2}$ 求出极限 $\\dfrac{1}{2}$",
+        "score": 2
+      },
+      {
+        "point": "由连续条件得 $a=\\dfrac{1}{2}$",
+        "score": 2
+      }
+    ],
+    "score": 6.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "连续",
+      "分段函数",
+      "等价无穷小"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_b9ac25abe5f3",
+    "outline_code": "M-08",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)$ 在闭区间 $[a,b]$ 上连续，且 $f(a)\\cdot f(b)<0$，则下列结论正确的是（ ）",
+    "options": [
+      "至少存在一点 $\\xi\\in(a,b)$，使 $f(\\xi)=0$",
+      "在 $(a,b)$ 内一定恰有一个零点",
+      "在 $(a,b)$ 内一定不存在零点",
+      "$f(a)$ 与 $f(b)$ 必同号"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "$f(a)f(b)<0$ 说明端点函数值异号，即 $f(a)$ 与 $f(b)$ 一个为正、一个为负。由闭区间上连续函数的零点定理，至少存在一点 $\\xi\\in(a,b)$ 使 $f(\\xi)=0$；但零点个数不能确定，可能多于一个，故 B、C、D 均错，选 A。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "闭区间连续",
+      "零点定理"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_c4cf235b4ab7",
+    "outline_code": "M-05",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "$\\lim_{x\\to 0}\\dfrac{1-\\cos x}{x^{2}}=$ ____。",
+    "answer": [
+      "1/2",
+      "0.5"
+    ],
+    "explanation": "当 $x\\to 0$ 时 $1-\\cos x\\sim\\dfrac{x^{2}}{2}$，故 $\\dfrac{1-\\cos x}{x^{2}}\\to\\dfrac{1}{2}$；也可用 $1-\\cos x=2\\sin^{2}\\dfrac{x}{2}$ 与 $\\dfrac{\\sin(x/2)}{x/2}\\to 1$ 得到同样结果。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "等价无穷小",
+      "极限计算"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_c8b2720d9e26",
+    "outline_code": "M-02",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=\\begin{cases}x+1, & x<0\\\\ 0, & x=0\\\\ x^{2}-1, & x>0\\end{cases}$，则 $\\lim_{x\\to 0}f(x)$（ ）",
+    "options": [
+      "不存在",
+      "等于 $1$",
+      "等于 $-1$",
+      "等于 $0$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "左极限 $\\lim_{x\\to 0^{-}}f(x)=\\lim_{x\\to 0^{-}}(x+1)=1$，右极限 $\\lim_{x\\to 0^{+}}f(x)=\\lim_{x\\to 0^{+}}(x^{2}-1)=-1$。左右极限存在但不相等，故极限不存在，选 A。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "极限",
+      "左右极限",
+      "分段函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_d15e6fad111b",
+    "outline_code": "M-07",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=\\dfrac{\\sin x}{x(x-1)}$，则 $x=0$ 是 $f(x)$ 的（ ）",
+    "options": [
+      "可去间断点",
+      "跳跃间断点",
+      "无穷间断点",
+      "连续点"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "$\\lim_{x\\to 0}f(x)=\\lim_{x\\to 0}\\dfrac{\\sin x}{x}\\cdot\\dfrac{1}{x-1}=1\\times(-1)=-1$，极限存在且为有限值；但 $f(x)$ 在 $x=0$ 处无定义，故 $x=0$ 是可去间断点，选 A。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "连续",
+      "间断点",
+      "可去间断点"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_d55060cc55c6",
+    "outline_code": "M-04",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "$\\lim_{x\\to 0}\\dfrac{\\sin 3x}{2x}$ 等于（ ）",
+    "options": [
+      "$\\dfrac{3}{2}$",
+      "$\\dfrac{2}{3}$",
+      "3",
+      "0"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "恒等变形 $\\dfrac{\\sin 3x}{2x}=\\dfrac{3}{2}\\cdot\\dfrac{\\sin 3x}{3x}$。由重要极限 $\\lim_{u\\to 0}\\dfrac{\\sin u}{u}=1$（取 $u=3x$）得原式 $=\\dfrac{3}{2}\\times 1=\\dfrac{3}{2}$，选 A。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "重要极限",
+      "等价无穷小"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_e23ae499cac0",
+    "outline_code": "M-02",
+    "subject_id": "math",
+    "type": "calc",
+    "stem": "计算 $\\lim_{x\\to 0}\\dfrac{\\sqrt{1+x}-\\sqrt{1-x}}{x}$。",
+    "explanation": "这是 $0/0$ 型极限。有理化后分子为 $2x$，与分母 $x$ 约去，剩下 $\\dfrac{2}{\\sqrt{1+x}+\\sqrt{1-x}}$，代入 $x=0$ 得 $1$。",
+    "reference_answer": "分子有理化：原式 $=\\lim_{x\\to 0}\\dfrac{(\\sqrt{1+x}-\\sqrt{1-x})(\\sqrt{1+x}+\\sqrt{1-x})}{x(\\sqrt{1+x}+\\sqrt{1-x})}$。分子用平方差得 $(1+x)-(1-x)=2x$，故原式 $=\\lim_{x\\to 0}\\dfrac{2x}{x(\\sqrt{1+x}+\\sqrt{1-x})}=\\lim_{x\\to 0}\\dfrac{2}{\\sqrt{1+x}+\\sqrt{1-x}}$。令 $x\\to 0$，分母趋于 $1+1=2$，所以原式 $=\\dfrac{2}{2}=1$。",
+    "rubric": [
+      {
+        "point": "识别 $0/0$ 型，对分子进行有理化（同乘 $\\sqrt{1+x}+\\sqrt{1-x}$）",
+        "score": 2
+      },
+      {
+        "point": "分子平方差化简为 $2x$，并与分母的 $x$ 约去",
+        "score": 2
+      },
+      {
+        "point": "代入 $x=0$ 求得极限值为 $1$",
+        "score": 2
+      }
+    ],
+    "score": 6.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "极限计算",
+      "有理化",
+      "根式"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_e415084d6986",
+    "outline_code": "M-01",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "函数 $f(x)=\\dfrac{\\sqrt{4-x^{2}}}{\\ln(x+1)}$ 的定义域是（ ）",
+    "options": [
+      "$(-1,0)\\cup(0,2]$",
+      "$(-1,0)\\cup(0,+\\infty)$",
+      "$(-1,2]$",
+      "$[-2,0)\\cup(0,2]$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "需同时满足三个条件：$4-x^{2}\\ge 0$ 得 $-2\\le x\\le 2$；$x+1>0$ 得 $x>-1$；分母 $\\ln(x+1)\\ne 0$ 得 $x\\ne 0$。三者取交集为 $(-1,0)\\cup(0,2]$，故选 A。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "函数",
+      "定义域"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_ea64749fa072",
+    "outline_code": "M-05",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "当 $x\\to 0$ 时，无穷小 $\\alpha(x)=1-\\cos x$ 与 $\\beta(x)=x\\sin x$ 相比（ ）",
+    "options": [
+      "同阶但不等价",
+      "等价",
+      "$\\alpha$ 是 $\\beta$ 的高阶无穷小",
+      "$\\alpha$ 是 $\\beta$ 的低阶无穷小"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "$\\lim_{x\\to 0}\\dfrac{\\alpha(x)}{\\beta(x)}=\\lim_{x\\to 0}\\dfrac{1-\\cos x}{x\\sin x}$。用等价无穷小 $1-\\cos x\\sim\\dfrac{x^{2}}{2}$、$\\sin x\\sim x$，得极限为 $\\dfrac{x^{2}/2}{x^{2}}=\\dfrac{1}{2}$。极限为非零常数且不等于 $1$，故二者同阶但不等价，选 A。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-03"
+    },
+    "tags": [
+      "无穷小",
+      "阶的比较",
+      "等价无穷小"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_040474d176b1",
+    "outline_code": "M-13",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $y=x^{2}$，则 $\\mathrm{d}y=$（ ）",
+    "options": [
+      "$2\\,\\mathrm{d}x$",
+      "$2x$",
+      "$x^{2}\\,\\mathrm{d}x$",
+      "$2x\\,\\mathrm{d}x$"
+    ],
+    "answer": [
+      "D"
+    ],
+    "explanation": "微分公式为 $\\mathrm{d}y=f'(x)\\,\\mathrm{d}x$，而 $f'(x)=2x$，故 $\\mathrm{d}y=2x\\,\\mathrm{d}x$。",
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "微分公式"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_062385f1c313",
+    "outline_code": "M-06",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "$\\lim_{x\\to 0}\\dfrac{\\tan x-x}{x^{3}}=$ ____。",
+    "answer": [
+      "1/3",
+      "\\frac{1}{3}"
+    ],
+    "explanation": "两次洛必达：原式 $=\\lim_{x\\to 0}\\dfrac{\\sec^{2}x-1}{3x^{2}}=\\lim_{x\\to 0}\\dfrac{\\tan^{2}x}{3x^{2}}$，再用 $\\tan x\\sim x$ 得 $\\dfrac{1}{3}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "洛必达",
+      "等价无穷小"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_074e91bcc74e",
+    "outline_code": "M-11",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $y=e^{-x^{2}}$，则 $y'=$（ ）",
+    "options": [
+      "$-2xe^{x^{2}}$",
+      "$2xe^{-x^{2}}$",
+      "$-e^{-x^{2}}$",
+      "$-2xe^{-x^{2}}$"
+    ],
+    "answer": [
+      "D"
+    ],
+    "explanation": "由复合函数求导，$y'=e^{-x^{2}}\\cdot(-x^{2})'=e^{-x^{2}}\\cdot(-2x)=-2xe^{-x^{2}}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "复合函数",
+      "指数函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_0e48258558a2",
+    "outline_code": "M-11",
+    "subject_id": "math",
+    "type": "short",
+    "stem": "设 $y=(x^{2}+1)e^{-x}$，求 $y'$，并求 $y'(0)$。",
+    "explanation": "先用乘积法则，再对 $e^{-x}$ 用复合函数求导，最后代入 $x=0$。",
+    "reference_answer": "由乘积法则，$y'=(x^{2}+1)'e^{-x}+(x^{2}+1)(e^{-x})'=2xe^{-x}+(x^{2}+1)(-e^{-x})$。整理得 $y'=(2x-x^{2}-1)e^{-x}=-(x-1)^{2}e^{-x}$。代入 $x=0$，得 $y'(0)=-(0-1)^{2}e^{0}=-1$。",
+    "rubric": [
+      {
+        "point": "正确使用乘积法则，写出 $2xe^{-x}+(x^2+1)(e^{-x})'$",
+        "score": 3
+      },
+      {
+        "point": "正确求出 $(e^{-x})'=-e^{-x}$",
+        "score": 2
+      },
+      {
+        "point": "整理为 $-(x-1)^{2}e^{-x}$（或等价形式）",
+        "score": 3
+      },
+      {
+        "point": "代入得 $y'(0)=-1$",
+        "score": 2
+      }
+    ],
+    "score": 10.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "乘积法则",
+      "复合函数",
+      "指数函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_1116f44c5d45",
+    "outline_code": "M-09",
+    "subject_id": "math",
+    "type": "short",
+    "stem": "用导数定义求 $f(x)=x^{2}$ 在 $x=1$ 处的导数，并求曲线 $y=x^{2}$ 在点 $(1,1)$ 处的切线方程与法线方程。",
+    "explanation": "先按定义写出差商并取极限得 $f'(1)=2$，再用点斜式写切线，用法线斜率与切线斜率互为负倒数写 法线。",
+    "reference_answer": "由导数定义，$f'(1)=\\lim_{h\\to 0}\\dfrac{f(1+h)-f(1)}{h}=\\lim_{h\\to 0}\\dfrac{(1+h)^{2}-1}{h}=\\lim_{h\\to 0}\\dfrac{2h+h^{2}}{h}=\\lim_{h\\to 0}(2+h)=2$。因此曲线在 $(1,1)$ 处的切线斜率为 $2$，切线方程为 $y-1=2(x-1)$，即 $y=2x-1$。法线斜率为 $-\\dfrac{1}{2}$，法线方程为 $y-1=-\\dfrac{1}{2}(x-1)$，即 $y=-\\dfrac{1}{2}x+\\dfrac{3}{2}$。",
+    "rubric": [
+      {
+        "point": "写出导数定义式 $\\lim_{h\\to0}\\dfrac{(1+h)^2-1}{h}$",
+        "score": 3
+      },
+      {
+        "point": "展开并约分得 $\\lim_{h\\to0}(2+h)$",
+        "score": 3
+      },
+      {
+        "point": "求得 $f'(1)=2$",
+        "score": 1
+      },
+      {
+        "point": "切线方程 $y=2x-1$",
+        "score": 2
+      },
+      {
+        "point": "法线方程 $y=-\\frac{1}{2}x+\\frac{3}{2}$",
+        "score": 1
+      }
+    ],
+    "score": 10.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "切线",
+      "法线"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_121aa08c1540",
+    "outline_code": "M-14",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=\\begin{cases}x^{2}+1,&x\\le 0\\\\ ax+b,&x>0\\end{cases}$ 在 $x=0$ 处可导，则 $a+b=$（ ）",
+    "options": [
+      "$2$",
+      "$0$",
+      "$1$",
+      "$-1$"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "可导必连续：$f(0)=1$，右极限为 $b$，故 $b=1$。左导数为 $0$，右导数为 $a$，可导要求 $a=0$。所以 $a+b=1$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "分段函数",
+      "连续性",
+      "左右导数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_14ec1e29b1bb",
+    "outline_code": "M-10",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "设 $f(x)=|x-1|$，则 $f'_{-}(1)=$ ____。",
+    "answer": [
+      "-1"
+    ],
+    "explanation": "当 $x<1$ 时 $f(x)=1-x$，故左导数 $f'_{-}(1)=-1$；右导数为 $1$，两者不等，所以 $f$ 在 $x=1$ 处不可导。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "左右导数",
+      "绝对值函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_197b6d1ff592",
+    "outline_code": "M-06",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "$\\lim_{x\\to+\\infty}\\dfrac{\\ln x}{x}=$（ ）",
+    "options": [
+      "$1$",
+      "$0$",
+      "$+\\infty$",
+      "不存在"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "这是 $\\dfrac{\\infty}{\\infty}$ 型，求导后得 $\\lim_{x\\to+\\infty}\\dfrac{1/x}{1}=0$，故原极限为 $0$。",
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "洛必达",
+      "无穷比无穷"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_1c19794b542e",
+    "outline_code": "M-11",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "设 $y=x^{2}\\ln x$，则 $y'=$ ____。",
+    "answer": [
+      "2x\\ln x+x",
+      "x(2\\ln x+1)"
+    ],
+    "explanation": "由乘积法则，$y'=(x^{2})'\\ln x+x^{2}(\\ln x)'=2x\\ln x+x^{2}\\cdot\\dfrac{1}{x}=2x\\ln x+x$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "乘积法则",
+      "对数函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_27b60cd5a3b1",
+    "outline_code": "M-10",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "函数 $f(x)=|x|$ 在 $x=0$ 处（ ）",
+    "options": [
+      "可导且 $f'(0)=1$",
+      "可导且 $f'(0)=0$",
+      "不连续",
+      "连续但不可导"
+    ],
+    "answer": [
+      "D"
+    ],
+    "explanation": "$|x|$ 在 $0$ 处连续；左导数 $\\lim_{h\\to 0^{-}}\\dfrac{|h|}{h}=-1$，右导数为 $1$，左右导数不相等，故不可导。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "绝对值函数",
+      "左右导数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_281251196e3b",
+    "outline_code": "M-14",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "设 $f(x)=\\begin{cases}x^{2},&x\\le 1\\\\ ax+b,&x>1\\end{cases}$ 在 $x=1$ 处可导，则 $b=$ ____。",
+    "answer": [
+      "-1"
+    ],
+    "explanation": "连续要求 $1=a+b$；左导数为 $2$，右导数为 $a$，可导要求 $a=2$。于是 $b=1-2=-1$。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "分段函数",
+      "连续性",
+      "左右导数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_29a87a95f280",
+    "outline_code": "M-06",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "若 $\\lim_{x\\to a}\\dfrac{f(x)}{g(x)}$ 是 $\\dfrac{0}{0}$ 型，则 $\\lim_{x\\to a}\\dfrac{f(x)}{g(x)}=\\lim_{x\\to a}\\dfrac{f'(x)}{g'(x)}$ 一定成立。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "还需要 $f,g$ 在去心邻域内可导、$g'(x)\\ne 0$，且 $\\lim\\dfrac{f'}{g'}$ 存在或为无穷。反例：$f(x)=x^{2}\\sin\\dfrac{1}{x}$，$g(x)=x$，在 $0$ 处比值极限为 $0$，但 $\\dfrac{f'}{g'}$ 无极限。",
+    "score": 2.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "洛必达",
+      "适用条件",
+      "反例"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_34afff363f27",
+    "outline_code": "M-10",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "若函数 $f(x)$ 在 $x_0$ 处可导，则 $f(x)$ 在 $x_0$ 处（ ）",
+    "options": [
+      "连续但一定不可导",
+      "一定不连续",
+      "连续",
+      "是否连续无法判断"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "可导必连续，这是导数与连续性的基本关系；但连续不一定可导，所以只能肯定连续。",
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "可导与连续"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_3b3a0bfe412a",
+    "outline_code": "M-13",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "设 $y=e^{2x}$，则 $\\mathrm{d}y=$ ____ $\\mathrm{d}x$。",
+    "answer": [
+      "2e^{2x}"
+    ],
+    "explanation": "先求导 $y'=2e^{2x}$，再由 $\\mathrm{d}y=y'\\,\\mathrm{d}x$ 得 $\\mathrm{d}y=2e^{2x}\\,\\mathrm{d}x$，故填 $2e^{2x}$。",
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "微分公式",
+      "指数函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_3c589157cac1",
+    "outline_code": "M-12",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "设 $y=y(x)$ 由 $x^{2}+y^{2}=25$ 确定，则 $\\dfrac{d^{2}y}{dx^{2}}=$ ____。",
+    "answer": [
+      "-25/y^3",
+      "-25/y^{3}",
+      "-\\frac{25}{y^{3}}"
+    ],
+    "explanation": "由 $2x+2yy'=0$ 得 $y'=-\\dfrac{x}{y}$；再求导 $y''=-\\dfrac{y-xy'}{y^{2}}=-\\dfrac{y+x^{2}/y}{y^{2}}=-\\dfrac{x^{2}+y^{2}}{y^{3}}=-\\dfrac{25}{y^{3}}$。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "隐函数求导",
+      "二阶导数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_3cf1178bf358",
+    "outline_code": "M-09",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "曲线 $y=\\dfrac{1}{x}$ 在点 $(1,1)$ 处的法线方程是（ ）",
+    "options": [
+      "$y=-x+2$",
+      "$y=x$",
+      "$y=x+1$",
+      "$y=-x$"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "$y'=-\\dfrac{1}{x^{2}}$，在 $x=1$ 处切线斜率为 $-1$，故法线斜率为 $1$；过 $(1,1)$ 得 $y-1=x-1$，即 $y=x$。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "法线",
+      "切线",
+      "几何意义"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_4552d892cb35",
+    "outline_code": "M-12",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $y=\\ln(1+x)$，则 $y''=$（ ）",
+    "options": [
+      "$-\\dfrac{1}{1+x}$",
+      "$\\dfrac{1}{(1+x)^{2}}$",
+      "$-\\dfrac{1}{(1+x)^{2}}$",
+      "$\\dfrac{1}{1+x}$"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "$y'=\\dfrac{1}{1+x}$，再求导得 $y''=-\\dfrac{1}{(1+x)^{2}}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "高阶导数",
+      "对数函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_45d2a3204ba0",
+    "outline_code": "M-12",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "曲线 $x^{2}+y^{2}=25$ 在点 $(3,4)$ 处的切线斜率 $\\dfrac{dy}{dx}=$（ ）",
+    "options": [
+      "$-\\dfrac{3}{4}$",
+      "$\\dfrac{3}{4}$",
+      "$-\\dfrac{4}{3}$",
+      "$\\dfrac{4}{3}$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "两边对 $x$ 求导得 $2x+2y\\dfrac{dy}{dx}=0$，故 $\\dfrac{dy}{dx}=-\\dfrac{x}{y}$，代入 $(3,4)$ 得 $-\\dfrac{3}{4}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "隐函数求导",
+      "切线斜率"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_46561151d636",
+    "outline_code": "M-03",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "$\\lim_{x\\to 0}x\\sin\\dfrac{1}{x}=$ ____。",
+    "answer": [
+      "0"
+    ],
+    "explanation": "$\\left|x\\sin\\dfrac{1}{x}\\right|\\le |x|$，当 $x\\to 0$ 时 $|x|\\to 0$，由夹逼准则知极限为 $0$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "夹逼准则",
+      "无穷小"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_523789d7700d",
+    "outline_code": "M-14",
+    "subject_id": "math",
+    "type": "short",
+    "stem": "设 $f(x)=\\begin{cases}e^{x},&x\\le 0\\\\ ax+b,&x>0\\end{cases}$ 在 $x=0$ 处可导，求常数 $a,b$ 及 $f'(0)$，并写出曲线在 $x=0$ 处的切线方程。",
+    "explanation": "先由连续性确定 $b$，再由左右导数相等确定 $a$，最后用点斜式写切线。",
+    "reference_answer": "可导必连续，故 $\\lim_{x\\to 0^{-}}f(x)=f(0)=e^{0}=1$，而 $\\lim_{x\\to 0^{+}}f(x)=b$，所以 $b=1$。左导数 $f'_{-}(0)=(e^{x})'|_{x=0}=1$；右导数 $f'_{+}(0)=a$。可导要求左右导数相等，故 $a=1$，且 $f'(0)=1$。曲线在点 $(0,1)$ 处的切线斜率为 $1$，切线方程为 $y-1=1\\cdot(x-0)$，即 $y=x+1$。",
+    "rubric": [
+      {
+        "point": "由连续性得 $b=1$",
+        "score": 3
+      },
+      {
+        "point": "求左导数 $f'_{-}(0)=1$",
+        "score": 2
+      },
+      {
+        "point": "求右导数 $f'_{+}(0)=a$",
+        "score": 2
+      },
+      {
+        "point": "由左右导数相等得 $a=1$、$f'(0)=1$",
+        "score": 2
+      },
+      {
+        "point": "切线方程 $y=x+1$",
+        "score": 1
+      }
+    ],
+    "score": 10.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "分段函数",
+      "连续性",
+      "左右导数",
+      "切线"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_5b9eb5959970",
+    "outline_code": "M-12",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $\\begin{cases}x=t^{2},\\\\ y=t^{3},\\end{cases}$ 则 $\\dfrac{dy}{dx}=$（ ）",
+    "options": [
+      "$\\dfrac{2}{3t}$",
+      "$\\dfrac{3t}{2}$",
+      "$\\dfrac{3t^{2}}{2}$",
+      "$3t$"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "由参数方程求导公式，$\\dfrac{dy}{dx}=\\dfrac{dy/dt}{dx/dt}=\\dfrac{3t^{2}}{2t}=\\dfrac{3t}{2}$（$t\\ne 0$）。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "参数方程",
+      "一阶导数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_6079b608acec",
+    "outline_code": "M-06",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "下列极限中，不能直接使用洛必达法则求解的是（ ）",
+    "options": [
+      "$\\lim_{x\\to 0}\\dfrac{e^{x}-1}{x}$",
+      "$\\lim_{x\\to+\\infty}\\dfrac{\\ln x}{x}$",
+      "$\\lim_{x\\to 0}\\dfrac{\\sin x}{x}$",
+      "$\\lim_{x\\to+\\infty}\\dfrac{x+\\sin x}{x}$"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "选项 D 中 $\\dfrac{f'(x)}{g'(x)}=1+\\cos x$，当 $x\\to+\\infty$ 时振荡无极限，洛必达法则的条件不满足；但原式 $=1+\\dfrac{\\sin x}{x}\\to 1$，极限其实存在。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "洛必达",
+      "适用条件"
+    ],
+    "verified": 0
+  },
+  {
+    "id": "q_7084b79506c0",
+    "outline_code": "M-11",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $y=(3x+1)^{5}$，则 $y'=$（ ）",
+    "options": [
+      "$15(3x+1)^{5}$",
+      "$5(3x+1)^{4}$",
+      "$15(3x+1)^{4}$",
+      "$3(3x+1)^{4}$"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "幂函数与复合函数结合：$y'=5(3x+1)^{4}\\cdot(3x+1)'=5(3x+1)^{4}\\cdot 3=15(3x+1)^{4}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "复合函数",
+      "幂函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_7cbef23d911b",
+    "outline_code": "M-14",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=\\begin{cases}x^{2}\\sin\\dfrac{1}{x},&x\\ne 0\\\\ 0,&x=0\\end{cases}$，则 $f'(0)=$（ ）",
+    "options": [
+      "$0$",
+      "$1$",
+      "不存在",
+      "无法确定"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "由定义 $\\dfrac{f(h)-f(0)}{h}=\\dfrac{h^{2}\\sin(1/h)}{h}=h\\sin\\dfrac{1}{h}$，由夹逼准则其极限为 $0$，故 $f'(0)=0$。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "夹逼准则",
+      "分段函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_87ea057e8056",
+    "outline_code": "M-13",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "用微分近似计算 $\\ln 1.02$，结果为（ ）",
+    "options": [
+      "$0.2$",
+      "$0.02$",
+      "$0.01$",
+      "$1.02$"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "取 $f(x)=\\ln x$，$x_0=1$，$f'(1)=1$，$\\Delta x=0.02$，故 $\\ln 1.02\\approx 0+1\\times0.02=0.02$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "微分近似",
+      "对数函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_8fcadd8a73cd",
+    "outline_code": "M-09",
+    "subject_id": "math",
+    "type": "fill",
+    "stem": "用导数定义求 $f(x)=\\dfrac{1}{x}$ 在 $x=2$ 处的导数：$f'(2)=$ ____。",
+    "answer": [
+      "-1/4",
+      "-0.25",
+      "-\\frac{1}{4}"
+    ],
+    "explanation": "$f'(2)=\\lim_{h\\to 0}\\dfrac{\\frac{1}{2+h}-\\frac{1}{2}}{h}=\\lim_{h\\to 0}\\dfrac{-h}{2h(2+h)}=-\\dfrac{1}{4}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "分式函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_936898ebf3b0",
+    "outline_code": "M-12",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "参数方程 $x=t^{2},\\ y=t^{3}$ 所确定函数的二阶导数 $\\dfrac{d^{2}y}{dx^{2}}=\\dfrac{(3t^{2})'}{(2t)'}=\\dfrac{3}{2}$。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "$\\dfrac{d^{2}y}{dx^{2}}$ 是 $\\dfrac{dy}{dx}$ 再对 $x$ 求导，必须再除以 $x'(t)=2t$，即 $\\dfrac{(3t/2)'}{2t}=\\dfrac{3}{4t}$，而不是直接对 $t$ 求导后就停止。",
+    "score": 2.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "参数方程",
+      "二阶导数",
+      "易错点"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_a1dbe70fae43",
+    "outline_code": "M-13",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "用微分近似计算 $\\sqrt{4.02}$，结果为（ ）",
+    "options": [
+      "$2.005$",
+      "$2.02$",
+      "$2.05$",
+      "$2.0025$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "取 $f(x)=\\sqrt{x}$，$x_0=4$，$\\Delta x=0.02$，$f'(4)=\\dfrac{1}{4}$，故 $\\sqrt{4.02}\\approx 2+\\dfrac{1}{4}\\times 0.02=2.005$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "微分近似",
+      "根式"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_ac9c4f241733",
+    "outline_code": "M-11",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $y=\\sin 2x$，则 $y'=$（ ）",
+    "options": [
+      "$\\cos 2x$",
+      "$2\\cos 2x$",
+      "$-2\\cos 2x$",
+      "$2\\sin 2x$"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "由复合函数求导法则，$(\\sin u)'=\\cos u\\cdot u'$，其中 $u=2x$，故 $y'=2\\cos 2x$。",
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "复合函数",
+      "三角函数"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_b4e7a36233e1",
+    "outline_code": "M-03",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "$\\lim_{x\\to 2}\\dfrac{x^{2}-4}{x-2}=$（ ）",
+    "options": [
+      "$2$",
+      "$4$",
+      "$0$",
+      "不存在"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "分子分解为 $(x-2)(x+2)$，与分母约去 $x-2$ 后得 $x+2$，代入 $x=2$ 得 $4$。",
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "极限四则",
+      "约分"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_b6a17e97fe1a",
+    "outline_code": "M-03",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "$\\lim_{x\\to 0}\\dfrac{\\sqrt{4+x}-2}{x}=$（ ）",
+    "options": [
+      "$4$",
+      "$\\dfrac{1}{2}$",
+      "$\\dfrac{1}{4}$",
+      "$0$"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "分子有理化，同乘 $\\sqrt{4+x}+2$，分子化为 $x$，与分母约去后极限为 $\\dfrac{1}{\\sqrt{4}+2}=\\dfrac{1}{4}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "极限四则",
+      "有理化"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_bc46d26e36b3",
+    "outline_code": "M-13",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "一元函数在某点可导与在该点可微是等价的。",
+    "answer": [
+      "true"
+    ],
+    "explanation": "一元函数中可导与可微等价，且 $\\mathrm{d}y=f'(x)\\,\\mathrm{d}x$；这是微分定义与导数定义直接推出的结论。",
+    "score": 2.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "可导与可微",
+      "等价关系"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_c198438147ba",
+    "outline_code": "M-03",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "$\\lim_{n\\to\\infty}\\dfrac{\\sin n}{n}=$（ ）",
+    "options": [
+      "不存在",
+      "$1$",
+      "$-1$",
+      "$0$"
+    ],
+    "answer": [
+      "D"
+    ],
+    "explanation": "因为 $|\\sin n|\\le 1$，所以 $0\\le\\left|\\dfrac{\\sin n}{n}\\right|\\le\\dfrac{1}{n}$，而 $\\dfrac{1}{n}\\to 0$，由夹逼准则得极限为 $0$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "夹逼准则",
+      "数列极限"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_c46d279b28ce",
+    "outline_code": "M-11",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "若 $f(x)$ 与 $g(x)$ 在 $x$ 处均可导，则 $[f(x)g(x)]'=f'(x)g'(x)$。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "正确法则是 $[f(x)g(x)]'=f'(x)g(x)+f(x)g'(x)$。例如 $(x\\cdot x)'=2x$，而 $1\\cdot 1=1$，两者不相等。",
+    "score": 2.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "乘积法则",
+      "易错点"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_c526de5a97eb",
+    "outline_code": "M-14",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "若分段函数在分界点处连续，则它在该点一定可导。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "连续只是可导的必要条件。例如 $f(x)=|x|$ 在 $x=0$ 处连续，但左右导数分别为 $-1$ 和 $1$，不相等，故不可导。",
+    "score": 2.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "可导与连续",
+      "分段函数",
+      "易错点"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_db2a2079e2cc",
+    "outline_code": "M-10",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=x|x|$，则 $f(x)$ 在 $x=0$ 处（ ）",
+    "options": [
+      "可导且 $f'(0)=0$",
+      "连续但不可导",
+      "不连续",
+      "可导且 $f'(0)=1$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "由定义 $\\dfrac{f(h)-f(0)}{h}=\\dfrac{h|h|}{h}=|h|\\to 0$，故 $f'(0)=0$；注意这与 $|x|$ 在 $0$ 处不可导不同。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "绝对值函数",
+      "导数定义",
+      "易错点"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_db703a850496",
+    "outline_code": "M-03",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "若 $\\lim_{x\\to a}[f(x)+g(x)]$ 存在，则 $\\lim_{x\\to a}f(x)$ 与 $\\lim_{x\\to a}g(x)$ 都存在。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "不一定。例如 $f(x)=\\sin\\dfrac{1}{x}$，$g(x)=-\\sin\\dfrac{1}{x}$，两者极限都不存在，但和恒为 $0$，其极限存在。",
+    "score": 2.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "极限四则",
+      "反例"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_e39dfa40dcca",
+    "outline_code": "M-09",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "若 $f(x)$ 在 $x_0$ 处可导，则曲线 $y=f(x)$ 在点 $(x_0,f(x_0))$ 处一定存在切线。",
+    "answer": [
+      "true"
+    ],
+    "explanation": "可导意味着差商极限 $f'(x_0)$ 存在且有限，该极限就是切线斜率，因此切线一定存在且不是竖直线。",
+    "score": 2.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "切线存在性"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_f0f4d5ae01bb",
+    "outline_code": "M-09",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "曲线 $y=x^{3}$ 在点 $(1,1)$ 处的切线方程是（ ）",
+    "options": [
+      "$y=3x-2$",
+      "$y=3x+1$",
+      "$y=x$",
+      "$y=2x-1$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "$y'=3x^{2}$，在 $x=1$ 处切线斜率为 $3$，由点斜式 $y-1=3(x-1)$ 得 $y=3x-2$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "切线",
+      "几何意义"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_f764af6369b3",
+    "outline_code": "M-06",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "$\\lim_{x\\to 0}\\dfrac{e^{x}-1-x}{x^{2}}=$（ ）",
+    "options": [
+      "$\\dfrac{1}{2}$",
+      "$1$",
+      "$0$",
+      "$2$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "这是 $\\dfrac{0}{0}$ 型，用两次洛必达：先得 $\\dfrac{e^{x}-1}{2x}$，再得 $\\dfrac{e^{x}}{2}$，代入 $x=0$ 得 $\\dfrac{1}{2}$。",
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "洛必达",
+      "0/0"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_fa86cf4ebf19",
+    "outline_code": "M-09",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=x^{2}$，则 $f'(2)=$（ ）",
+    "options": [
+      "$0$",
+      "$2$",
+      "$8$",
+      "$4$"
+    ],
+    "answer": [
+      "D"
+    ],
+    "explanation": "$f'(x)=2x$，代入 $x=2$ 得 $f'(2)=4$。",
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "幂函数求导"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_fb6603287628",
+    "outline_code": "M-10",
+    "subject_id": "math",
+    "type": "judge",
+    "stem": "函数在一点连续是它在该点可导的必要条件。",
+    "answer": [
+      "true"
+    ],
+    "explanation": "可导必连续，所以连续是可导的必要条件；但连续不一定可导，如 $f(x)=|x|$ 在 $x=0$ 处连续却不可导。",
+    "score": 2.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "可导与连续",
+      "必要条件"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_fc35bf0c252b",
+    "outline_code": "M-14",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "设 $f(x)=\\begin{cases}\\dfrac{1-\\cos x}{x},&x\\ne 0\\\\ 0,&x=0\\end{cases}$，则 $f'(0)=$（ ）",
+    "options": [
+      "不存在",
+      "$0$",
+      "$1$",
+      "$\\dfrac{1}{2}$"
+    ],
+    "answer": [
+      "D"
+    ],
+    "explanation": "由导数定义，$f'(0)=\\lim_{x\\to 0}\\dfrac{\\frac{1-\\cos x}{x}-0}{x}=\\lim_{x\\to 0}\\dfrac{1-\\cos x}{x^{2}}=\\dfrac{1}{2}$。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "分段函数",
+      "等价无穷小"
+    ],
+    "verified": 1
+  },
+  {
+    "id": "q_5964859ff43e",
+    "outline_code": "M-06",
+    "subject_id": "math",
+    "type": "single",
+    "stem": "下列极限中，洛必达法则失效（不能直接用它求出该极限）的是（ ）",
+    "options": [
+      "$\\lim_{x\\to 0}\\dfrac{\\sin x}{x}$",
+      "$\\lim_{x\\to+\\infty}\\dfrac{x+\\sin x}{x}$",
+      "$\\lim_{x\\to+\\infty}\\dfrac{\\ln x}{x}$",
+      "$\\lim_{x\\to 0}\\dfrac{e^{x}-1}{x}$"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "对 $\\lim_{x\\to+\\infty}\\dfrac{x+\\sin x}{x}$，求导后 $\\dfrac{f'(x)}{g'(x)}=1+\\cos x$ 振荡无极限，洛必达法则的条件不满足；但原式 $=1+\\dfrac{\\sin x}{x}\\to1$，极限其实存在。其余三项求导后极限都存在，可以直接用洛必达。",
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "洛必达",
+      "适用条件"
+    ],
+    "verified": 1
+  }
+]

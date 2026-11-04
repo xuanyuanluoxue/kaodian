@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 
 # ---------- web ----------
 FROM node:22-alpine AS web
