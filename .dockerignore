@@ -1,6 +1,6 @@
 .venv
 .git
-data
+user-data
 apps/web/node_modules
 apps/web/dist
 **/__pycache__

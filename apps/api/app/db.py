@@ -10,7 +10,7 @@ from typing import Iterator
 
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA = Path(__file__).with_name("schema.sql")
-DEFAULT_DB = ROOT / "data" / "kaodian.db"
+DEFAULT_DB = ROOT / "user-data" / "kaodian.db"
 
 
 def db_path() -> Path:

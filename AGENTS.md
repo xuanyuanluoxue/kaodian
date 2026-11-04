@@ -1,26 +1,54 @@
-# Agent 协作约定
+# AGENTS.md
 
-> 主 Agent 负责路由、验收、提交；不同领域交给不同子 Agent，避免把长日志和细节带进主上下文。
+> 面向 AI Agent 的项目入口。根 `README.md` 给人看；这里给 Agent 任务路由和边界。
+> 详细文档在 `docs/`，按任务读，不要一次全读。
 
-## 路由表
+## 先确认三件事
 
-| 需求 | 交给 | 边界 |
+1. **改哪**：源码 `apps/`，内容配置 `config/`，文档 `docs/`，用户数据 `user-data/`（只读，除非用户要求）。
+2. **能不能写**：用户数据、`LICENSE`、`.git/` 不主动改；新增依赖前先问。
+3. **谁来提交**：子 Agent 一律不 commit；主 Agent 验收后提交。
+
+## 任务路由
+
+| 任务 | 先读 | 交给 |
 |---|---|---|
-| 代码、测试、构建、部署 | 开发子 Agent | 不改学习内容 |
-| 讲义、题目、图表、审题 | 教学子 Agent | 不改代码 |
-| 代码审查、题目复核 | 验收子 Agent | 只读，不改实现 |
-| 日程、状态、决策 | 主 Agent | 不直接展开大段实现 |
+| 改前端 / 后端 / MCP | `docs/dev/architecture.md`、`docs/dev/tech-stack.md` | 开发子 Agent |
+| 加 API / 改数据模型 | `docs/dev/api.md`、`apps/api/app/main.py` | 开发子 Agent |
+| 本地跑、测试、构建 | `docs/dev/development.md` | 开发子 Agent |
+| 写讲义、拆课、加图 | `docs/content/format.md` | 教学子 Agent |
+| 出题、审题、评分 | `docs/ai/pipelines.md` | 教学子 Agent（审题只由主 Agent） |
+| 接 IDE / MCP | `docs/ai/integration.md`、`docs/ai/protocols/agent.md` | 主 Agent |
+| 排期、进度、决策 | `docs/product/roadmap.md` | 主 Agent |
 
-## 派发规则
+## 子 Agent 规则
 
-- 跨域任务先拆成「开发」和「教学」两条，再分别派发。
-- 给子 Agent 的任务必须自带：仓库/目录、目标、验收命令、禁止项。
-- 子 Agent **不 commit**；由主 Agent 验收后统一提交。
-- 子 Agent 只返回结论：改了哪些文件、测试结果、风险；长日志留在子 Agent。
-- 主 Agent 只读 diff 摘要与测试结果，不把完整实现复制回主上下文。
+给子 Agent 的任务必须自带：**工作目录、目标、验收命令、禁止项**。子 Agent 只回报文件、行数与结果，长日志留在子 Agent 上下文。
 
-## 两个仓库
+| 角色 | 可以 | 不可以 |
+|---|---|---|
+| 开发 | 改 `apps/`、跑测试/构建 | 改讲义、动 `user-data/`、commit |
+| 教学 | 写 Markdown、`create_questions`、`publish_page(draft)` | 审题、组卷、发布、改代码、commit |
+| 验收 | 只读 diff、复核题目与例题 | 改实现 |
 
-- 代码：`~/code/kaodian`（开源）
-- 学习内容：`~/资料/学习`（私有）
-- 不要把个人进度、院校数据写进代码仓库。
+## 内容与数据边界
+
+- 讲义源文件在本机的私有学习工作区（如 `~/资料/学习`），**不进本仓库**；控制台里是发布后的副本。
+- `user-data/kaodian.db` 是用户进度，默认被 `.gitignore` 排除；不要读进上下文，不要提交。
+- 题目入库只算格式合法，必须人工/主 Agent 验算后才能 `approve` 组卷。
+- 素材只用可自由使用的来源并记录许可证；真题注明「改编自 X 年真题」。
+
+## 常用命令
+
+```bash
+make test     # pytest apps/api/tests
+make build    # 前端构建（tsc + vite）
+make dev-api  # uvicorn :8000
+make dev-web  # vite :5173
+```
+
+## 文档维护
+
+- 根 `README.md` ≤100 行，只做入口；
+- 一个主题一个文件，单文件 ≤200 行；
+- 改目录或接口时，同步更新 `docs/README.md`、`docs/dev/architecture.md` 和本文件。
