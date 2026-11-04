@@ -37,6 +37,7 @@
 | Agent 协作 | 会话、事件流、答题页提示条、卡住求助、交卷自动回传 |
 | 控制台 | 多邻国式学习路径：节点、连续天数、每日目标、XP；Agent 写入的 Markdown 讲义（含 Mermaid 流程图/时序图）；一键配套练习 |
 | 内容格式 | 正文只用 Markdown：GFM 表格、Mermaid 结构图、SVG 图片；不内嵌 HTML/iframe |
+| 交互图 | ` ```math-graph ` 代码块（JSXGraph）：滑块、拖点、切线，按需懒加载 |
 | 代码练习 | 讲义左侧 gcc 编辑器 + 终端，Ctrl+Enter 运行；bubblewrap 断网沙箱，默认关闭 |
 | 大纲 | 4 科 / 161 条考点 / 1236 h，从 Markdown 生成 JSON |
 | 题库 | 24 道示例题；AI 生成先入库待审，审查通过才上架 |
