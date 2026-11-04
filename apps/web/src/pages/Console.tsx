@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { api } from "../api";
+import { api, ApiError } from "../api";
 import { errorText } from "../lib/format";
-import type { LibraryStats, PageDetail, PageSummary, Progress, QuizSummary, Subject } from "../types";
+import type {
+  LibraryStats,
+  PageDetail,
+  PageQuestionCount,
+  PageSummary,
+  Progress,
+  QuizSummary,
+  Subject,
+} from "../types";
 import { ConsolePath } from "./console/ConsolePath";
 import { ConsoleReader } from "./console/ConsoleReader";
 import { useReadingTimer } from "./console/useReadingTimer";
@@ -13,6 +21,7 @@ export function Console() {
   const navigate = useNavigate();
   const [pages, setPages] = useState<PageSummary[]>([]);
   const [page, setPage] = useState<PageDetail | null>(null);
+  const [questionCount, setQuestionCount] = useState<PageQuestionCount | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [library, setLibrary] = useState<LibraryStats | null>(null);
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
@@ -62,6 +71,7 @@ export function Console() {
 
   useEffect(() => {
     setPage(null);
+    setQuestionCount(null);
     if (!selectedId) return;
     let alive = true;
     api
@@ -70,6 +80,15 @@ export function Console() {
         if (alive && selectedRef.current === selectedId) setPage(p);
       })
       .catch((e) => alive && setError(errorText(e)));
+    api
+      .pageQuestionCount(selectedId)
+      .then((res) => {
+        if (alive && selectedRef.current === selectedId) setQuestionCount(res);
+      })
+      .catch(() => {
+        // 题量接口不可用时不阻塞阅读：按钮保持常规状态，组卷失败再提示。
+        if (alive && selectedRef.current === selectedId) setQuestionCount(null);
+      });
     return () => {
       alive = false;
     };
@@ -84,6 +103,10 @@ export function Console() {
 
   async function practice() {
     if (!page) return;
+    if (questionCount?.count === 0) {
+      setError("这一课暂无题：在对话里让 Agent 出题，回来刷新即可。");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -95,12 +118,18 @@ export function Console() {
         agent_session_id: session.id,
         filters: {
           ...(page.subject_id ? { subject_id: page.subject_id } : {}),
-          codes: page.outline_codes,
+          codes: questionCount?.codes?.length ? questionCount.codes : page.outline_codes,
         },
       });
       navigate(`/quiz/${quiz.id}`);
     } catch (e) {
-      setError(errorText(e));
+      if (e instanceof ApiError && e.status === 422) {
+        // 422 = 该考点组不出题（无题 / 未审 / 数量不足），转成可操作提示。
+        setQuestionCount({ count: 0, codes: page.outline_codes });
+        setError("这一课暂时没有可用的题：在对话里让 Agent 出题，回来刷新即可。");
+      } else {
+        setError(errorText(e));
+      }
       setBusy(false);
     }
   }
@@ -132,6 +161,7 @@ export function Console() {
         subjects={subjects}
         progress={progress}
         quizzes={quizzes}
+        questionCount={questionCount}
         error={error}
         busy={busy}
         completing={completing}

@@ -197,6 +197,12 @@ export interface PageDetail extends PageSummary {
   body: string;
 }
 
+/** 本课考点下可用于组卷的题量；codes 为页面考点（缺省时回退页面自身）。 */
+export interface PageQuestionCount {
+  count: number;
+  codes: string[];
+}
+
 export interface QuizSummary {
   id: string;
   title: string;

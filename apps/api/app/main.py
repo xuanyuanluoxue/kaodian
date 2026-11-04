@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import random
@@ -15,7 +16,7 @@ from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -963,6 +964,9 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         path = request.url.path
         if path.startswith("/assets/"):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif path.startswith("/api/agent/stream"):
+            # SSE：禁止代理缓存，但也不要 no-store（某些代理会直接断流）
+            response.headers["Cache-Control"] = "no-cache"
         elif path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         else:
@@ -1928,6 +1932,30 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 raise HTTPException(404, "学习页不存在")
             return page_dict(row)
 
+    @app.get("/api/pages/{page_id}/question-count")
+    def page_question_count(page_id: str):
+        """这一页挂的考点能练多少道 approved 题（去重）。"""
+        with conn() as c:
+            row = c.execute(
+                "SELECT outline_codes FROM page WHERE id = ?", (page_id,)
+            ).fetchone()
+            if not row:
+                raise HTTPException(404, "学习页不存在")
+            codes = json.loads(row["outline_codes"]) if row["outline_codes"] else []
+            if not codes:
+                return {"count": 0, "codes": []}
+            marks = ",".join("?" * len(codes))
+            count = c.execute(
+                f"""SELECT COUNT(DISTINCT q.id) AS n FROM question q
+                    WHERE q.status = 'approved'
+                      AND (q.outline_code IN ({marks}) OR EXISTS (
+                        SELECT 1 FROM question_outline qo
+                        WHERE qo.question_id = q.id
+                          AND qo.outline_code IN ({marks})))""",
+                [*codes, *codes],
+            ).fetchone()["n"]
+        return {"count": count, "codes": codes}
+
     @app.delete("/api/pages/{page_id}")
     def delete_page(page_id: str):
         with conn() as c:
@@ -2050,6 +2078,58 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                 (session_id, after_id, limit),
             ).fetchall()
         return [dict(r) for r in rows]
+
+    # SSE：先补 after_id 之后的历史事件，再每秒轮询新事件；15 秒无事件发注释心跳。
+    # 只允许本地单用户，不做鉴权；客户端断开后由 CancelledError / GeneratorExit 结束生成器。
+    stream_poll_seconds = 1.0
+    stream_ping_seconds = 15
+
+    @app.get("/api/agent/stream")
+    async def agent_stream(session_id: str, after_id: int = 0):
+        def fetch(after: int) -> list[dict]:
+            with conn() as c:
+                rows = c.execute(
+                    "SELECT * FROM agent_event WHERE session_id = ? AND id > ? "
+                    "ORDER BY id LIMIT 100",
+                    (session_id, after),
+                ).fetchall()
+            return [dict(r) for r in rows]
+
+        def encode(event: dict) -> str:
+            return (
+                f"id: {event['id']}\n"
+                f"event: {event['kind']}\n"
+                f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            )
+
+        async def events():
+            last_id = after_id
+            idle_seconds = 0.0
+            try:
+                while True:
+                    rows = fetch(last_id)
+                    if rows:
+                        idle_seconds = 0.0
+                        for row in rows:
+                            last_id = row["id"]
+                            yield encode(row)
+                    else:
+                        idle_seconds += stream_poll_seconds
+                        if idle_seconds >= stream_ping_seconds:
+                            idle_seconds = 0.0
+                            yield ": ping\n\n"
+                    await asyncio.sleep(stream_poll_seconds)
+            except (asyncio.CancelledError, GeneratorExit):
+                return
+
+        return StreamingResponse(
+            events(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     @app.get("/api/agent/inbox")
     def agent_inbox(after_id: int = 0, session_id: str | None = None,

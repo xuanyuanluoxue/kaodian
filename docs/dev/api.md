@@ -46,10 +46,17 @@ Base：`http://127.0.0.1:8010/api`（本地）
 |---|---|---|
 | GET | `/pages?subject_id=&status=` | 页面列表（不含正文） |
 | GET | `/pages/{id}` | 页面全文 |
+| GET | `/pages/{id}/question-count` | 这一页挂的考点有多少道 approved 题（去重） |
 | POST | `/pages` | 发布页面（`status` 可为 draft/archived，支持 `sort_order`） |
 | PATCH | `/pages/{id}` | 更新标题/正文/状态 |
 | DELETE | `/pages/{id}` | 删除 |
 | POST | `/pages/{id}/complete` | 标记完成，+10 XP |
+
+页面可练题量（`/pages/{id}/question-count`）：
+
+- 取页面 `outline_codes`，统计 `status=approved` 且主考点 `outline_code` 或
+  `question_outline` 命中任一 code 的**去重题数**；
+- 返回 `{count, codes}`；页面不存在 404，`outline_codes` 为空返回 `{count:0,codes:[]}`。
 
 ## 组卷与作答
 
@@ -76,9 +83,29 @@ Base：`http://127.0.0.1:8010/api`（本地）
 |---|---|---|
 | POST | `/agent/sessions` | 新建会话 |
 | POST | `/agent/events` | Agent 写提示（note） |
-| GET | `/agent/feed?session_id=&after_id=` | 网页拉新事件 |
+| GET | `/agent/feed?session_id=&after_id=` | 网页拉新事件（轮询） |
+| GET | `/agent/stream?session_id=&after_id=` | 网页订阅事件（SSE，先补历史再推新事件） |
 | GET | `/agent/inbox?after_id=` | Agent 拉求助/交卷 |
 | POST | `/agent/help` | 网页求助 |
+
+### SSE 事件流
+
+`GET /agent/stream?session_id=&after_id=0`：`text/event-stream`，
+响应头 `Cache-Control: no-cache`、`X-Accel-Buffering: no`。
+
+- 连接后先补发 `after_id` 之后的历史事件，再每 1 秒查一次库推送新事件；
+- 15 秒无新事件发注释心跳 `: ping`；
+- 每条事件以空行结尾：
+
+```
+id: 42
+event: note
+data: {"id":42,"session_id":"s_x","kind":"note","role":"agent","body":"...","ref":null,"created_at":"...","read_at":null}
+
+```
+
+- `event` 取 `agent_event.kind`，`data` 是该行的完整 JSON；
+- 客户端断开时生成器退出；仅本地单用户，不做鉴权。
 
 ## 统计
 

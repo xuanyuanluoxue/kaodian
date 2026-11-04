@@ -1,4 +1,4 @@
-import type { AgentEvent, Attempt, DailyStats, HeatmapDay, LibraryStats, OutlineNode, PageDetail, PageSummary, Progress, Question, QuestionType, Quiz, QuizSummary, Subject, SubjectStats, TypeStats } from "./types";
+import type { AgentEvent, Attempt, DailyStats, HeatmapDay, LibraryStats, OutlineNode, PageDetail, PageQuestionCount, PageSummary, Progress, Question, QuestionType, Quiz, QuizSummary, Subject, SubjectStats, TypeStats } from "./types";
 
 const BASE = "/api";
 
@@ -25,6 +25,11 @@ export class ApiError extends Error {
     this.status = status;
     this.detail = detail;
   }
+}
+
+/** Agent 事件 SSE 地址；EventSource 重连时带上当前游标。 */
+export function agentStreamUrl(sessionId: string, afterId = 0): string {
+  return `${BASE}/agent/stream?session_id=${encodeURIComponent(sessionId)}&after_id=${afterId}`;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -103,6 +108,8 @@ export const api = {
   pages: (subjectId?: string) =>
     request<PageSummary[]>(`/pages${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   page: (pageId: string) => request<PageDetail>(`/pages/${pageId}`),
+  pageQuestionCount: (pageId: string) =>
+    request<PageQuestionCount>(`/pages/${pageId}/question-count`),
   completePage: (pageId: string) =>
     request<{ completed_at: string; xp: number; already: boolean }>(`/pages/${pageId}/complete`, {
       method: "POST",

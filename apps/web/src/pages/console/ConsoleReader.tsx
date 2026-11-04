@@ -1,8 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CodeTerminal } from "../../components/CodeTerminal";
 import { Markdown } from "../../components/Markdown";
-import type { PageDetail, PageSummary, Progress, QuizSummary, Subject } from "../../types";
+import type {
+  PageDetail,
+  PageQuestionCount,
+  PageSummary,
+  Progress,
+  QuizSummary,
+  Subject,
+} from "../../types";
 
 /* 讲义阅读视图：代码终端 / 课程切换 / 正文 / 右侧本课信息。 */
 
@@ -17,12 +24,37 @@ function dateLabel(iso: string): string {
   return new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
+/** 剪贴板不可用时退回 execCommand，保证「复制出题提示」在本地和 http 下都能用。 */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    /* 继续走兜底 */
+  }
+  try {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(area);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 interface Props {
   page: PageDetail | null;
   pages: PageSummary[];
   subjects: Subject[];
   progress: Progress | null;
   quizzes: QuizSummary[];
+  questionCount: PageQuestionCount | null;
   error: string;
   busy: boolean;
   completing: boolean;
@@ -37,6 +69,7 @@ export function ConsoleReader({
   subjects,
   progress,
   quizzes,
+  questionCount,
   error,
   busy,
   completing,
@@ -53,6 +86,17 @@ export function ConsoleReader({
   const codeLanguage = subject?.code_language || null;
   const goal = progress?.daily_goal_minutes ?? 30;
   const todayMinutes = progress?.today_minutes ?? 0;
+  const codes = questionCount?.codes?.length ? questionCount.codes : (page?.outline_codes ?? []);
+  const total = questionCount?.count ?? null;
+  const empty = total === 0;
+  const prompt = `按 ${codes.length ? codes.join("，") : "本课考点"} 出 6 道题，难度 2，先入库 pending，题干不要与已有题重复。`;
+  const [copied, setCopied] = useState<{ pageId: string; ok: boolean } | null>(null);
+  const copyState = copied && copied.pageId === page?.id ? copied.ok : null;
+
+  async function copyPrompt() {
+    if (!page) return;
+    setCopied({ pageId: page.id, ok: await copyText(prompt) });
+  }
 
   return (
     <div className={`console-page reading${codeLanguage ? "" : " no-code"}`}>
@@ -125,9 +169,24 @@ export function ConsoleReader({
                   回到路径
                 </Link>
               )}
-              <button className="btn btn-ghost" onClick={onPractice} disabled={busy}>
-                {busy ? "正在组卷…" : "练这一课"}
-              </button>
+              {empty ? (
+                <>
+                  <button className="btn btn-ghost" disabled>
+                    本课暂无题
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => void copyPrompt()}>
+                    {copyState === true ? "已复制" : copyState === false ? "复制失败" : "复制出题提示"}
+                  </button>
+                  <span className="muted small">在对话里让 Agent 出题，回来刷新即可</span>
+                </>
+              ) : (
+                <>
+                  <button className="btn btn-ghost" onClick={onPractice} disabled={busy}>
+                    {busy ? "正在组卷…" : "练这一课"}
+                  </button>
+                  {total !== null && <span className="muted small">本课 {total} 题</span>}
+                </>
+              )}
               <Link className="btn btn-ghost" to="/build">
                 手动组卷
               </Link>

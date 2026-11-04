@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, ApiError } from "../../api";
+import { api, ApiError, agentStreamUrl } from "../../api";
 import { errorText } from "../../lib/format";
 import { useQuestionTypes } from "../../lib/useQuestionTypes";
 import type { AgentEvent, Attempt, Question } from "../../types";
@@ -12,6 +12,9 @@ import { hasAnswer } from "./helpers";
 const DRAFT_DEBOUNCE_MS = 1200;
 const ACTIVE_PATCH_MS = 15_000;
 const IDLE_MS = 90_000;
+const AGENT_POLL_MS = 5_000;
+/** SSE 事件名与 agent_event.kind 一致；message 兜底无名事件。 */
+const AGENT_EVENT_KINDS = ["note", "help", "submitted", "started"];
 
 export interface Clock {
   subscribe: (fn: () => void) => () => void;
@@ -99,6 +102,8 @@ export function useQuizSession(quizId: string | undefined) {
   const autoFired = useRef(false);
   const submitRef = useRef<(opts?: SubmitOptions) => void>(() => {});
   const agentCursor = useRef(0);
+  const agentSeen = useRef<Set<number>>(new Set());
+  const stopAgentFeed = useRef<(() => void) | null>(null);
   const draftTimer = useRef<number | null>(null);
 
   const listeners = useRef<Set<() => void>>(new Set());
@@ -190,6 +195,7 @@ export function useQuizSession(quizId: string | undefined) {
         activeSeconds.current = a.active_seconds || 0;
         enterAt.current = Date.now();
         agentCursor.current = 0;
+        agentSeen.current.clear();
         setAgentEvents([]);
         setAttempt(a);
         setResponses(nextResponses);
@@ -357,29 +363,92 @@ export function useQuizSession(quizId: string | undefined) {
     };
   }, [flushDraft]);
 
-  /* ---------- Agent feed ---------- */
+  /* ---------- Agent feed：SSE 优先，失败回退 5 秒轮询 ---------- */
 
   useEffect(() => {
     const sid = attempt?.quiz.agent_session_id;
     if (!sid) return;
-    let alive = true;
-    const load = () => {
+
+    let disposed = false;
+    let polling = false;
+    let source: EventSource | null = null;
+    let timer: number | null = null;
+
+    const push = (data: Partial<AgentEvent> | null) => {
+      const id = Number(data?.id);
+      if (!Number.isFinite(id) || agentSeen.current.has(id)) return;
+      agentSeen.current.add(id);
+      if (id > agentCursor.current) agentCursor.current = id;
+      setAgentEvents((prev) => [...prev, { ...(data as AgentEvent), id }]);
+    };
+
+    const ingest = (raw: unknown) => {
+      if (typeof raw !== "string" || !raw) return;
+      try {
+        push(JSON.parse(raw) as Partial<AgentEvent>);
+      } catch {
+        /* 非 JSON 心跳 / 注释帧忽略 */
+      }
+    };
+
+    const onFrame = (ev: Event) => {
+      const frame = ev as MessageEvent;
+      ingest(frame.data);
+      const lastId = Number(frame.lastEventId);
+      if (Number.isFinite(lastId) && lastId > agentCursor.current) agentCursor.current = lastId;
+    };
+
+    const pollOnce = () => {
+      if (disposed || submitted.current) return;
       api
         .agentFeed(sid, agentCursor.current)
         .then((list) => {
-          if (!alive || !list.length) return;
-          agentCursor.current = list[list.length - 1].id;
-          setAgentEvents((prev) => [...prev, ...list]);
+          if (disposed || submitted.current) return;
+          list.forEach(push);
         })
         .catch(() => {});
     };
-    load();
-    const timer = window.setInterval(load, 5000);
-    return () => {
-      alive = false;
-      window.clearInterval(timer);
+
+    const startPolling = () => {
+      if (disposed || polling || submitted.current) return;
+      polling = true;
+      source?.close();
+      source = null;
+      pollOnce();
+      timer = window.setInterval(pollOnce, AGENT_POLL_MS);
     };
-  }, [attempt?.quiz.agent_session_id]);
+
+    if (typeof EventSource === "undefined") {
+      startPolling();
+    } else {
+      try {
+        source = new EventSource(agentStreamUrl(sid, agentCursor.current));
+        source.onmessage = onFrame;
+        AGENT_EVENT_KINDS.forEach((kind) => source?.addEventListener(kind, onFrame));
+        // 连接失败 / 服务端不支持 SSE：立刻退回轮询，游标保留在 agentCursor。
+        source.onerror = () => startPolling();
+      } catch {
+        startPolling();
+      }
+    }
+
+    stopAgentFeed.current = () => {
+      disposed = true;
+      source?.close();
+      source = null;
+      if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    return () => {
+      stopAgentFeed.current = null;
+      disposed = true;
+      source?.close();
+      if (timer !== null) window.clearInterval(timer);
+    };
+  }, [attempt?.id, attempt?.quiz.agent_session_id]);
 
   /* ---------- 交互 ---------- */
 
@@ -477,6 +546,8 @@ export function useQuizSession(quizId: string | undefined) {
           answers: buildAnswers(),
         });
         submitted.current = true;
+        stopAgentFeed.current?.();
+        stopAgentFeed.current = null;
         if (draftTimer.current !== null) {
           window.clearTimeout(draftTimer.current);
           draftTimer.current = null;

@@ -687,3 +687,99 @@ def test_v2_database_upgrades_without_data_loss(tmp_path):
 
     assert list(tmp_path.glob("v2.db.bak-v2-*"))
 
+
+
+def test_page_question_count(client):
+    page = client.post("/api/pages", json={
+        "subject_id": "computer",
+        "title": "循环与跳转",
+        "body": "正文",
+        "outline_codes": ["C-08"],
+    }).json()
+    res = client.get(f"/api/pages/{page['id']}/question-count")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["codes"] == ["C-08"]
+    assert data["count"] > 0
+    assert data["count"] == len(
+        client.get("/api/questions?code=C-08&limit=200").json()
+    )
+
+    # 一题挂多个考点：C-08 是副考点，也要计入且只算一次
+    first = client.post("/api/pages", json={
+        "subject_id": "computer", "title": "多考点", "body": "正文",
+        "outline_codes": ["C-05", "C-08"],
+    }).json()
+    before = client.get(f"/api/pages/{first['id']}/question-count").json()["count"]
+
+    qid = client.post("/api/questions/batch", json={"questions": [{
+        "outline_code": "C-05",
+        "outline_codes": ["C-08"],
+        "type": "single",
+        "stem": "下列循环语句中，至少执行一次循环体的是（ ）",
+        "options": ["while", "for", "do-while", "if"],
+        "answer": ["C"],
+        "explanation": "do-while 先执行循环体再判断条件。",
+        "difficulty": 2,
+        "score": 3,
+    }]}).json()["ids"][0]
+    # 未审的题不计入
+    pending = client.get(f"/api/pages/{first['id']}/question-count").json()["count"]
+    assert pending == before
+
+    client.post("/api/questions/review", json={"ids": [qid], "decision": "approve"})
+    after = client.get(f"/api/pages/{first['id']}/question-count").json()["count"]
+    assert after == before + 1
+
+    # 无考点页面返回 0；不存在的页面 404
+    empty = client.post("/api/pages", json={
+        "subject_id": "computer", "title": "空页", "body": "正文",
+    }).json()
+    assert client.get(f"/api/pages/{empty['id']}/question-count").json() == {
+        "count": 0, "codes": [],
+    }
+    assert client.get("/api/pages/p_missing/question-count").status_code == 404
+
+
+def test_agent_stream_sse(client):
+    session = client.post("/api/agent/sessions", json={"title": "SSE"}).json()
+    first = client.post("/api/agent/events", json={
+        "session_id": session["id"], "kind": "note", "body": "先看定义",
+    }).json()["id"]
+    second = client.post("/api/agent/events", json={
+        "session_id": session["id"], "kind": "note", "body": "想一下切线斜率",
+    }).json()["id"]
+
+    def read_event(res) -> str:
+        text = ""
+        for _ in range(4):
+            text += next(res.iter_bytes()).decode()
+            if "\n\n" in text:
+                break
+        return text
+
+    url = f"/api/agent/stream?session_id={session['id']}"
+    with client.stream("GET", url) as res:
+        assert res.status_code == 200
+        assert "text/event-stream" in res.headers["content-type"]
+        assert res.headers["cache-control"] == "no-cache"
+        assert res.headers["x-accel-buffering"] == "no"
+        block = read_event(res)
+    assert f"id: {first}" in block
+    assert "event: note" in block
+    data_line = next(line for line in block.splitlines() if line.startswith("data: "))
+    payload = json.loads(data_line[len("data: "):])
+    assert payload["id"] == first
+    assert payload["body"] == "先看定义"
+
+    # after_id 之后只补发新事件
+    with client.stream("GET", f"{url}&after_id={first}") as res:
+        block = read_event(res)
+    payloads = [
+        json.loads(line[len("data: "):])
+        for line in block.splitlines()
+        if line.startswith("data: ")
+    ]
+    assert payloads
+    assert payloads[0]["id"] == second
+    assert all(p["id"] > first for p in payloads)
