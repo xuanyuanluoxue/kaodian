@@ -97,5 +97,5 @@ make check     # pytest + 前端 lint + build
 
 - 默认只绑 `127.0.0.1`，无账号体系，不要暴露公网。
 - 代码沙箱默认关闭，`KAODIAN_ALLOW_CODE_RUN=1` 才启用。
-- 代码 MIT；内容与素材许可见内容仓库的 `LICENSES-素材.md` 和各 pack 的 `LICENSES.md`。
+- 代码 MIT；内容与素材许可见内容仓库的 `LICENSES.md` 和各 pack 的 `LICENSES.md`。
 - 真题只用改编版，不收录原卷。
