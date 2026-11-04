@@ -227,3 +227,31 @@ export interface LibraryStats {
   rejected: number;
   by_type: { type: string; n: number }[];
 }
+
+/** 分科目统计：无数据的科目也返回，数值补 0。 */
+export interface SubjectStats {
+  subject_id: string;
+  name: string;
+  short: string;
+  color: string | null;
+  icon: string | null;
+  answered: number;
+  correct: number;
+  seconds: number;
+  attempts: number;
+}
+
+/** 热力图每日一格，按日期升序，长度等于请求的 days。 */
+export interface HeatmapDay {
+  date: string;
+  seconds: number;
+  answered: number;
+}
+
+/** 分题型统计：只含有作答记录的题型。 */
+export interface TypeStats {
+  type: string;
+  label: string;
+  answered: number;
+  correct: number;
+}

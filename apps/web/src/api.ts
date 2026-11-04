@@ -1,4 +1,4 @@
-import type { AgentEvent, Attempt, DailyStats, LibraryStats, OutlineNode, PageDetail, PageSummary, Progress, Question, QuestionType, Quiz, QuizSummary, Subject } from "./types";
+import type { AgentEvent, Attempt, DailyStats, HeatmapDay, LibraryStats, OutlineNode, PageDetail, PageSummary, Progress, Question, QuestionType, Quiz, QuizSummary, Subject, SubjectStats, TypeStats } from "./types";
 
 const BASE = "/api";
 
@@ -97,6 +97,9 @@ export const api = {
   due: (subjectId?: string) =>
     request<Question[]>(`/reviews/due${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   today: () => request<DailyStats>("/stats/today"),
+  statsSubjects: (days = 30) => request<SubjectStats[]>(`/stats/subjects?days=${days}`),
+  statsHeatmap: (days = 90) => request<HeatmapDay[]>(`/stats/heatmap?days=${days}`),
+  statsTypes: (days = 30) => request<TypeStats[]>(`/stats/types?days=${days}`),
   pages: (subjectId?: string) =>
     request<PageSummary[]>(`/pages${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   page: (pageId: string) => request<PageDetail>(`/pages/${pageId}`),

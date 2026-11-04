@@ -6,6 +6,7 @@ import { QuizPage } from "./pages/Quiz";
 import { Result } from "./pages/Result";
 import { Review } from "./pages/Review";
 import { Console } from "./pages/Console";
+import { Stats } from "./pages/Stats";
 import { ThemeToggle } from "./components/ThemeToggle";
 
 function ScrollTop() {
@@ -31,6 +32,7 @@ export function App() {
           <NavLink to="/console">控制台</NavLink>
           <NavLink to="/build">组卷</NavLink>
           <NavLink to="/review">复习</NavLink>
+          <NavLink to="/stats">统计</NavLink>
         </nav>
         <div className="topbar-actions">
           <span className="topbar-note">Agent 协作 · v0.1</span>
@@ -46,6 +48,7 @@ export function App() {
           <Route path="/quiz/:quizId" element={<QuizPage />} />
           <Route path="/result/:attemptId" element={<Result />} />
           <Route path="/review" element={<Review />} />
+          <Route path="/stats" element={<Stats />} />
           <Route path="*" element={<Today />} />
         </Routes>
       </main>

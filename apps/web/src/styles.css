@@ -1146,6 +1146,9 @@ kbd {
   .topbar { padding: 0 16px; gap: 12px; }
   .topbar-note { display: none; }
   .brand-en { display: none; }
+  .nav { gap: 2px; min-width: 0; }
+  .nav a { font-size: 13px; padding: 6px 7px; white-space: nowrap; }
+  .brand { white-space: nowrap; }
   .hero { flex-direction: column; align-items: flex-start; gap: 20px; }
   .hero h1 { font-size: 30px; }
   .hero-stats { width: 100%; justify-content: space-between; gap: 12px; }
@@ -1951,3 +1954,208 @@ kbd {
   .lesson-select { max-width: 100%; }
   .lesson-toolbar { flex-wrap: wrap; }
 }
+
+/* ---------- stats ---------- */
+
+.stats-page { max-width: 940px; }
+
+.stats-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stats-summary .stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.stats-summary .stat b {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.stats-summary .stat span { font-size: 12px; color: var(--muted); }
+.stats-summary .stat b small { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+.stats-summary.is-stale .stat b,
+.stats-list.is-stale { opacity: 0.55; }
+
+.stats-empty { margin-top: 22px; }
+.stats-empty-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.heatmap-card {
+  /* 5 档颜色：浅色 / 深色主题各一套，保证对比度 */
+  --heat-cell: 13px;
+  --heat-gap: 3px;
+  --heat-0: #e9e7df;
+  --heat-1: #d6e9e2;
+  --heat-2: #a9d3c7;
+  --heat-3: #6cb3a0;
+  --heat-4: #2f7f6c;
+  padding: 20px;
+}
+
+[data-theme="dark"] .heatmap-card {
+  --heat-0: #262b26;
+  --heat-1: #1f3b33;
+  --heat-2: #2a5c4c;
+  --heat-3: #3d856e;
+  --heat-4: #74c9ae;
+}
+
+.heatmap-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 8px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.heat-months {
+  grid-column: 2;
+  display: grid;
+  gap: var(--heat-gap);
+  height: 13px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.heat-months > span { justify-self: start; transform: translateX(-1px); }
+
+.heat-weekdays {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(7, var(--heat-cell));
+  gap: var(--heat-gap);
+  font-size: 10px;
+  line-height: var(--heat-cell);
+  color: var(--muted);
+}
+
+.heat-weekdays .is-blank { color: transparent; }
+
+.heat-grid {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, var(--heat-cell));
+  gap: var(--heat-gap);
+  width: max-content;
+}
+
+.heat-cell {
+  display: block;
+  width: var(--heat-cell);
+  height: var(--heat-cell);
+  border-radius: 3px;
+  background: var(--heat-0);
+}
+
+.heat-cell.l1 { background: var(--heat-1); }
+.heat-cell.l2 { background: var(--heat-2); }
+.heat-cell.l3 { background: var(--heat-3); }
+.heat-cell.l4 { background: var(--heat-4); }
+.heat-cell.is-blank { background: transparent; }
+
+.heat-cell.is-today {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.heat-legend {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.heat-legend .heat-cell { width: 11px; height: 11px; }
+
+.stats-list { padding: 8px 22px 14px; }
+
+.stat-row,
+.type-row {
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.stat-row:last-child,
+.type-row:last-child { border-bottom: 0; }
+
+.stat-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.stat-row-head h3 { font-size: 15px; }
+
+.stat-row-meta { margin-left: auto; text-align: right; }
+
+.stat-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.stat-fill {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
+.stat-row-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .stats-summary { grid-template-columns: 1fr; gap: 10px; }
+  .stats-summary .stat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .stats-summary .stat b { font-size: 22px; }
+  .heatmap-card { padding: 16px 14px; --heat-cell: 12px; }
+  .stats-list { padding: 4px 16px 12px; }
+  .stat-row-meta { flex-basis: 100%; margin-left: 19px; text-align: left; }
+  .heat-months { font-size: 9px; }
+}
+
