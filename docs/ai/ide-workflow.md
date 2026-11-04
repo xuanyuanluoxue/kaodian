@@ -63,7 +63,25 @@ bin/kaodian doctor --json         # 路径、DB 版本、pack 状态
 
 如果只调后端/前端，仍可用 `make dev-api` + `make dev-web`。
 
-## 3. IDE 接 MCP
+## 3. MCP：stdio 或 HTTP
+
+IDE 内用 stdio（默认）：
+
+```bash
+bin/kaodian mcp --transport stdio
+```
+
+脱离 IDE、给其他 MCP 客户端用 HTTP：
+
+```bash
+bin/kaodian mcp --transport http --port 8020
+# MCP URL: http://127.0.0.1:8020/mcp
+```
+
+HTTP 模式目前**没有鉴权**，只绑定 `127.0.0.1`。不要直接暴露到局域网/公网；
+需要远程访问时，前面加反向代理和 token。
+
+## 4. IDE 接 MCP
 
 ```bash
 bin/kaodian mcp-config            # 输出可直接粘贴的 JSON
@@ -88,7 +106,7 @@ bin/kaodian mcp-config            # 输出可直接粘贴的 JSON
 
 MCP 只调 HTTP API，不直接读 SQLite。浏览器和 MCP 看到的是同一份运行时数据。
 
-## 4. 浏览器里学
+## 5. 浏览器里学
 
 1. 在 IDE 里让 Agent 组卷（MCP `build_quiz`）；
 2. 打开返回的 `url`，在浏览器答题；
@@ -96,7 +114,7 @@ MCP 只调 HTTP API，不直接读 SQLite。浏览器和 MCP 看到的是同一�
 4. 主观题用 `get_grading_queue` / `grade_answer` 回写分数；
 5. 讲义页在控制台阅读，素材走 `/media/<pack>/<file>`。
 
-## 5. 迁移真实数据
+## 6. 迁移真实数据
 
 ```bash
 # 1. 停服务

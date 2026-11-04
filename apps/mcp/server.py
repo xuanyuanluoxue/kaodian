@@ -497,4 +497,14 @@ def get_progress() -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run("stdio")
+    transport = os.environ.get("KAODIAN_MCP_TRANSPORT", "stdio").lower()
+    if transport == "http":
+        transport = "streamable-http"
+    if transport in {"sse", "streamable-http"}:
+        mcp.run(
+            transport,
+            host=os.environ.get("KAODIAN_MCP_HOST", "127.0.0.1"),
+            port=int(os.environ.get("KAODIAN_MCP_PORT", "8020")),
+        )
+    else:
+        mcp.run("stdio")

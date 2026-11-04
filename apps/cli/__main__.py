@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -200,6 +202,17 @@ def cmd_backup(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    env = os.environ.copy()
+    env["KAODIAN_MCP_TRANSPORT"] = args.transport
+    env["KAODIAN_MCP_HOST"] = args.host
+    env["KAODIAN_MCP_PORT"] = str(args.port)
+    env.setdefault("KAODIAN_API", args.api)
+    env.setdefault("KAODIAN_WEB", args.web)
+    server = ROOT / "apps" / "mcp" / "server.py"
+    return subprocess.call([sys.executable, str(server)], env=env)
+
+
 def cmd_mcp_config(args: argparse.Namespace) -> int:
     python = ROOT / ".venv" / "bin" / "python"
     payload = {
@@ -252,6 +265,14 @@ def build_parser() -> argparse.ArgumentParser:
     backup.add_argument("--db", help="覆盖数据库路径")
     backup.add_argument("--out", help="输出文件或目录")
     backup.set_defaults(func=cmd_backup)
+
+    mcp_run = sub.add_parser("mcp", help="启动 MCP 服务（stdio 或 HTTP）")
+    mcp_run.add_argument("--transport", choices=["stdio", "http", "sse"], default="stdio")
+    mcp_run.add_argument("--host", default="127.0.0.1")
+    mcp_run.add_argument("--port", type=int, default=8020)
+    mcp_run.add_argument("--api", default="http://127.0.0.1:8010")
+    mcp_run.add_argument("--web", default="http://127.0.0.1:8010")
+    mcp_run.set_defaults(func=cmd_mcp)
 
     mcp = sub.add_parser("mcp-config", help="输出 IDE 可用的 MCP JSON")
     mcp.add_argument("--json", action="store_true")

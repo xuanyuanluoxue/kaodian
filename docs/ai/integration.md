@@ -33,6 +33,15 @@ flowchart LR
 
 > 不需要为本项目写 IDE 插件。任何支持 MCP stdio 的客户端都能接。
 
+## HTTP 模式（脱离 IDE）
+
+```bash
+bin/kaodian mcp --transport http --port 8020
+# 客户端连接 http://127.0.0.1:8020/mcp
+```
+
+无鉴权，只绑本机；远程访问必须加反向代理和 token。
+
 ## 接入命令（OpenCode）
 
 ```bash
