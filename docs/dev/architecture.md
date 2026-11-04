@@ -22,7 +22,7 @@ kaodian/
 │   │   └── tests/
 │   └── mcp/                 # 开发源码：stdio MCP 服务（HTTP 的薄包装）
 ├── config/
-│   ├── subjects/            # 四科大纲 JSON
+│   ├── subjects/            # 科目大纲 JSON（示例四科）
 │   └── questions/           # 种子题库
 ├── docs/                    # 文档（本目录）
 ├── scripts/                 # 大纲导入、MCP 冒烟
@@ -70,14 +70,22 @@ flowchart LR
 
 | 表 | 内容 |
 |---|---|
-| `subject` / `outline_node` | 科目与考纲 |
+| `subject` / `outline_node` | 科目（含显示色/图标/排序）与考纲树 |
 | `question` | 题目，`status` = pending / approved / rejected |
 | `quiz` / `quiz_item` | 练习单 |
 | `attempt` / `answer` | 作答、逐题得分、`grading_status` |
 | `review` | 每题的掌握度、下次复习 |
-| `page` / `page_progress` | 讲义、完成状态 |
+| `page` / `page_progress` | 讲义（`sort_order`/`archived`）、完成状态 |
 | `study_time` | 阅读/练习时长（按天） |
 | `agent_session` / `agent_event` | AI 会话与事件流 |
+
+## 版本与内容同步
+
+- `PRAGMA user_version = 2`；旧库启动时先备份为 `*.bak-v{old}-{时间}`，再增量加列。
+- `config/` 每次启动同步：科目/大纲 UPSERT，题库只补新题；不会删除库里已有内容。
+- 新增科目只加 `config/subjects/*.json`，不需要改代码；新增题型只改 `config/question_types.json`。
+
+详见 [`framework-v2.md`](framework-v2.md)。
 
 ## 数据边界
 

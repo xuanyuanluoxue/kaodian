@@ -1,3 +1,5 @@
+import { ApiError } from "../api";
+
 export function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds} 秒`;
   const m = Math.floor(seconds / 60);
@@ -14,4 +16,8 @@ export function mmss(seconds: number): string {
 export function percent(part: number, total: number): string {
   if (!total) return "—";
   return `${Math.round((part / total) * 100)}%`;
+}
+
+export function errorText(e: unknown): string {
+  return e instanceof ApiError ? e.message : String(e);
 }

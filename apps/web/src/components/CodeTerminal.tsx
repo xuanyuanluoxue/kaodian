@@ -4,8 +4,7 @@ const STARTERS: Record<string, string> = {
   L01: `#include <stdio.h>
 
 int main() {
-    printf("姓名：你的名字\\n");
-    printf("目标：你的目标\\n");
+    printf("hello, world\\n");
     printf("今天：第 1 天\\n");
     return 0;
 }`,
@@ -39,6 +38,17 @@ int main() {
 }`,
 };
 
+const DEFAULT_STARTER = `#include <stdio.h>
+
+int main() {
+    printf("hello, world\\n");
+    return 0;
+}`;
+
+function starterFor(lessonKey?: string): string {
+  return (lessonKey && STARTERS[lessonKey]) || DEFAULT_STARTER;
+}
+
 interface RunHint {
   line: number | null;
   kind: string;
@@ -57,11 +67,16 @@ interface RunResult {
   hints?: RunHint[];
 }
 
-export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
-  const storageKey = `kaodian:code:${lessonKey}`;
-  const [code, setCode] = useState(
-    () => localStorage.getItem(storageKey) ?? STARTERS[lessonKey] ?? STARTERS.L01,
-  );
+interface CodeTerminalProps {
+  subjectId: string;
+  pageId: string;
+  lessonKey?: string;
+  language?: string;
+}
+
+export function CodeTerminal({ subjectId, pageId, lessonKey, language = "c" }: CodeTerminalProps) {
+  const storageKey = `kaodian:code:${subjectId || "subject"}:${pageId || lessonKey || "free"}`;
+  const [code, setCode] = useState(() => localStorage.getItem(storageKey) ?? starterFor(lessonKey));
   const [stdin, setStdin] = useState("");
   const [output, setOutput] = useState("");
   const [status, setStatus] = useState<"idle" | "running" | "ok" | "error">("idle");
@@ -99,7 +114,7 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
       const res = await fetch("/api/code/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, stdin }),
+        body: JSON.stringify({ code, stdin, language }),
       });
       const data = (await res.json()) as RunResult & { detail?: unknown };
       if (!res.ok) {
@@ -125,7 +140,7 @@ export function CodeTerminal({ lessonKey }: { lessonKey: string }) {
   }
 
   function reset() {
-    setCode(STARTERS[lessonKey] ?? STARTERS.L01);
+    setCode(starterFor(lessonKey));
     setOutput("");
     setStatus("idle");
     setDuration(null);

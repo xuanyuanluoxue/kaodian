@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
+import { errorText } from "../lib/format";
 import { MathText } from "../components/MathText";
 import type { Question, Subject } from "../types";
 
@@ -23,7 +24,7 @@ export function Review() {
         setDue(d as DueQuestion[]);
         setSubjects(s);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorText(e)));
   }, []);
 
   const grouped = useMemo(() => {
@@ -44,7 +45,8 @@ export function Review() {
       });
       navigate(`/quiz/${quiz.id}`);
     } catch (e) {
-      setError(String(e));
+      setError(errorText(e));
+    } finally {
       setBusy(false);
     }
   }

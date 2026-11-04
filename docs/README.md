@@ -7,7 +7,7 @@
 | 我要做什么 | 先读 | 再读 |
 |---|---|---|
 | 了解项目定位与功能 | [`product/overview.md`](product/overview.md) | [`product/roadmap.md`](product/roadmap.md) |
-| 改代码 / 看模块划分 | [`dev/architecture.md`](dev/architecture.md) | [`dev/tech-stack.md`](dev/tech-stack.md) |
+| 改代码 / 看模块划分 | [`dev/architecture.md`](dev/architecture.md) | [`dev/framework-v2.md`](dev/framework-v2.md) |
 | 本地跑起来 / 跑测试 | [`dev/development.md`](dev/development.md) | [`dev/tech-stack.md`](dev/tech-stack.md) |
 | 调 API | [`dev/api.md`](dev/api.md) | [`ai/pipelines.md`](ai/pipelines.md) |
 | 让 AI / IDE 接进来 | [`ai/integration.md`](ai/integration.md) | [`ai/protocols/agent.md`](ai/protocols/agent.md) |

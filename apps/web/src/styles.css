@@ -385,10 +385,6 @@ p { margin: 0; }
 .subject-top { display: flex; align-items: center; justify-content: space-between; }
 
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot-computer { background: #1d6b5c; }
-.dot-math { background: #2f5d8a; }
-.dot-english { background: #a8761f; }
-.dot-politics { background: #8a3b52; }
 
 .subject-card h3 { font-size: 18px; margin-top: 4px; }
 .subject-go { margin-top: auto; font-size: 13px; color: var(--accent); font-weight: 600; }
@@ -1024,11 +1020,6 @@ kbd {
 }
 
 .subject-error-title { color: var(--danger); font-weight: 700; }
-
-[data-theme="dark"] .dot-computer { background: #6fc3aa; }
-[data-theme="dark"] .dot-math { background: #7ea9d6; }
-[data-theme="dark"] .dot-english { background: #d6ae6a; }
-[data-theme="dark"] .dot-politics { background: #cf8ba0; }
 
 [data-theme="dark"] .option-key { color: var(--muted); }
 [data-theme="dark"] .inline-code { color: var(--ink); }

@@ -22,6 +22,24 @@ export interface Subject {
   node_count: number;
   hours: number;
   question_count: number;
+  color: string | null;
+  icon: string | null;
+  sort: number;
+  code_language: string | null;
+}
+
+export interface QuestionType {
+  id: string;
+  label: string;
+  input: "choice" | "judge" | "text" | "code";
+  grading: "auto" | "agent";
+  answer_schema: "letters" | "boolean" | "blanks" | "rubric" | "code" | "text";
+  min_options?: number;
+  max_options?: number;
+  requires_rubric?: boolean;
+  allow_partial?: boolean;
+  language?: string;
+  sort?: number;
 }
 
 export interface OutlineNode {
@@ -37,13 +55,15 @@ export interface OutlineNode {
   kind: "point" | "training";
   sort: number;
   question_count: number;
+  parent_code?: string | null;
+  depth?: number;
 }
 
 export interface Question {
   id: string;
   subject_id: string;
   outline_code: string;
-  type: QType;
+  type: string;
   stem: string;
   options?: string[] | null;
   score: number;
@@ -51,7 +71,7 @@ export interface Question {
   tags: string[];
   verified: boolean;
   source?: Record<string, unknown> | null;
-  answer?: string[] | null;
+  answer?: Array<string | string[]> | null;
   explanation?: string;
   reference_answer?: string | null;
   rubric?: RubricPoint[] | null;
@@ -118,17 +138,6 @@ export interface DailyStats {
   by_subject: { subject_id: string; n: number; ok: number }[];
 }
 
-export const TYPE_LABEL: Record<QType, string> = {
-  single: "单选",
-  multiple: "多选",
-  judge: "判断",
-  fill: "填空",
-  short: "简答",
-  calc: "计算",
-  code: "编程",
-  essay: "写作",
-};
-
 export const LETTERS = "ABCDEFGH";
 
 export interface AgentEvent {
@@ -151,6 +160,7 @@ export interface PageSummary {
   outline_codes: string[];
   kind: "outline" | "lesson" | "daily" | "note";
   status: "draft" | "published";
+  sort_order?: number;
   created_at: string;
   updated_at: string;
   excerpt?: string;

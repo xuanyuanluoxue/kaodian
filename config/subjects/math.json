@@ -2,6 +2,9 @@
   "id": "math",
   "name": "高等数学",
   "short": "高数",
+  "color": "#2f5d8a",
+  "icon": "sigma",
+  "sort": 2,
   "exam": {
     "score": 100,
     "minutes": 120

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { formatDuration } from "../lib/format";
+import { errorText, formatDuration } from "../lib/format";
 import type { DailyStats, Question, Subject } from "../types";
 
 function accuracy(ok: number, n: number): string {
@@ -23,7 +23,7 @@ export function Today() {
         setSubjects(subs);
         setDue(d);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorText(e)));
   }, []);
 
   // 今日统计：20 秒轮询 + 回到前台立刻刷新（阅读和答题都可能在其他页面产生时间）
@@ -33,7 +33,7 @@ export function Today() {
       api
         .today()
         .then((s) => alive && setStats(s))
-        .catch((e) => alive && setError(String(e)));
+        .catch((e) => alive && setError(errorText(e)));
     };
     load();
     const timer = setInterval(load, 20_000);
@@ -60,7 +60,7 @@ export function Today() {
       });
       navigate(`/quiz/${quiz.id}`);
     } catch (e) {
-      setError(String(e));
+      setError(errorText(e));
       setStarting(false);
     }
   }
@@ -131,14 +131,14 @@ export function Today() {
 
       <section className="section">
         <div className="section-head">
-          <h2>四科</h2>
+          <h2>{subjects.length ? `${subjects.length} 个科目` : "科目"}</h2>
           <span className="muted small">按考纲编号组卷，题不够会提示</span>
         </div>
         <div className="subject-grid">
           {subjects.map((s) => (
             <Link key={s.id} to={`/build?subject=${s.id}`} className="subject-card">
               <div className="subject-top">
-                <span className={`dot dot-${s.id}`} />
+                <span className="dot" style={s.color ? { background: s.color } : undefined} />
                 <span className="muted small">{s.exam_score} 分</span>
               </div>
               <h3>{s.short}</h3>

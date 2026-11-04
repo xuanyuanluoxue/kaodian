@@ -53,7 +53,7 @@ def _call(method: str, path: str, **kwargs: Any) -> Any:
 
 @mcp.tool()
 def list_subjects() -> list[dict]:
-    """列出四科：id、名称、题量、考点数。组卷前先看这个。"""
+    """列出全部科目：id、名称、题量、考点数。组卷前先看这个。"""
     return [
         {
             "id": s["id"],
@@ -72,7 +72,7 @@ def list_outline(subject_id: str = "") -> list[dict]:
     """列出考点编号与标题。组卷时 codes 必须从这里取，不能自己编。
 
     Args:
-        subject_id: computer / math / english / politics，留空返回全部。
+        subject_id: 科目 id，来自 list_subjects；留空返回全部。
     """
     path = "/api/outline" + (f"?subject_id={subject_id}" if subject_id else "")
     return [
@@ -162,7 +162,7 @@ def grade_answer(attempt_id: str, question_id: str, score: float, feedback: str 
 
 @mcp.tool()
 def build_quiz(
-    subject_id: str = "computer",
+    subject_id: str = "",
     codes: list[str] | None = None,
     types: list[str] | None = None,
     count: int = 10,
@@ -174,7 +174,7 @@ def build_quiz(
     """组一套题，返回可以直接发给用户的链接。
 
     Args:
-        subject_id: computer / math / english / politics。
+        subject_id: 科目 id，来自 list_subjects；留空表示跨科目。
         codes: 考点编号，如 ["C-08"]；留空表示全科目。
         types: single/multiple/judge/fill/short/calc/code/essay；留空表示不限。
         count: 题量 1-100。
@@ -185,18 +185,19 @@ def build_quiz(
     """
     sid = session_id
     if not sid:
-        sid = create_agent_session(title or f"{subject_id} · {count} 题")["id"]
+        sid = create_agent_session(title or f"练习 · {count} 题")["id"]
 
     body: dict[str, Any] = {
         "mode": mode,
         "count": count,
         "agent_session_id": sid,
         "filters": {
-            "subject_id": subject_id,
             "codes": codes or [],
             "types": types or [],
         },
     }
+    if subject_id:
+        body["filters"]["subject_id"] = subject_id
     if title:
         body["title"] = title
     if time_limit_minutes:
@@ -221,13 +222,17 @@ def send_hint(session_id: str, body: str) -> dict:
 
 
 @mcp.tool()
-def read_inbox(after_id: int = 0) -> list[dict]:
-    """读取用户的求助（help）和交卷结果（submitted），按时间倒序。
+def read_inbox(after_id: int = 0, session_id: str = "") -> list[dict]:
+    """读取用户的求助（help）和交卷结果（submitted），按时间正序。
 
     Args:
         after_id: 只返回 id 大于它的事件；第一次传 0。
+        session_id: 只读某个 Agent 会话的事件；留空表示全部。
     """
-    events = _call("GET", f"/api/agent/inbox?after_id={after_id}")
+    query = f"/api/agent/inbox?after_id={after_id}"
+    if session_id:
+        query += f"&session_id={session_id}"
+    events = _call("GET", query)
     for event in events:
         if event["kind"] == "submitted" and event.get("body"):
             try:
@@ -285,7 +290,7 @@ def get_due_reviews(subject_id: str = "") -> list[dict]:
 def publish_page(
     title: str,
     body: str,
-    subject_id: str = "computer",
+    subject_id: str = "",
     summary: str = "",
     outline_codes: list[str] | None = None,
     kind: str = "lesson",
@@ -297,23 +302,25 @@ def publish_page(
     Args:
         title: 页面标题。
         body: Markdown 正文，支持 `代码`、$公式$、表格、列表、details。
-        subject_id: computer / math / english / politics。
+        subject_id: 科目 id，来自 list_subjects；留空表示不属于具体科目。
         summary: 一句话摘要，显示在列表里。
         outline_codes: 关联的考点编号，如 ["C-01","C-02"]。
         kind: outline（大纲）/ lesson（讲义）/ daily（每日任务）/ note（笔记）。
         lesson_key: 章节号，如 L03；用来把草稿和课程路径绑定。
         status: published（直接发布）或 draft（缓存待审）。
     """
-    page = _call("POST", "/api/pages", json={
+    payload: dict[str, Any] = {
         "title": title,
         "body": body,
-        "subject_id": subject_id,
         "summary": summary or None,
         "outline_codes": outline_codes or [],
         "kind": kind,
         "lesson_key": lesson_key or None,
         "status": status,
-    })
+    }
+    if subject_id:
+        payload["subject_id"] = subject_id
+    page = _call("POST", "/api/pages", json=payload)
     return {
         "page_id": page["id"],
         "url": f"{WEB}/console?page={page['id']}",

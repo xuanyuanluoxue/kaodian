@@ -2,6 +2,9 @@
   "id": "english",
   "name": "英语",
   "short": "英语",
+  "color": "#a8761f",
+  "icon": "languages",
+  "sort": 3,
   "exam": {
     "score": 100,
     "minutes": 120

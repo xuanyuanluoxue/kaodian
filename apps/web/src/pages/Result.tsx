@@ -2,30 +2,28 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api";
 import { MathText } from "../components/MathText";
-import { formatDuration, percent } from "../lib/format";
-import { TYPE_LABEL } from "../types";
+import { errorText, formatDuration, percent } from "../lib/format";
+import { useQuestionTypes } from "../lib/useQuestionTypes";
 import type { Attempt, ResultItem } from "../types";
 
-function answerText(item: ResultItem): string {
-  const { question, response } = item;
-  if (question.type === "judge") {
+function answerText(item: ResultItem, input?: string): string {
+  const { response } = item;
+  if (input === "judge") {
     const v = Array.isArray(response) ? response[0] : response;
     if (v === "true") return "对";
     if (v === "false") return "错";
     return "未作答";
   }
-  if (question.type === "fill") {
-    return typeof response === "string" && response.trim() ? response : "未作答";
-  }
+  if (typeof response === "string") return response.trim() ? response : "未作答";
   if (Array.isArray(response)) return response.length ? response.join("") : "未作答";
   return response == null ? "未作答" : String(response);
 }
 
-function correctText(item: ResultItem): string {
+function correctText(item: ResultItem, input?: string): string {
   const a = item.question.answer;
   if (!a) return "见参考答案";
-  if (item.question.type === "judge") return a[0] === "true" ? "对" : "错";
-  return a.join("");
+  if (input === "judge") return a[0] === "true" ? "对" : "错";
+  return a.flat().join("");
 }
 
 export function Result() {
@@ -33,13 +31,14 @@ export function Result() {
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const { byId, label } = useQuestionTypes();
 
   useEffect(() => {
     if (!attemptId) return;
     api
       .attempt(attemptId)
       .then(setAttempt)
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorText(e)));
   }, [attemptId]);
 
   useEffect(() => {
@@ -144,12 +143,22 @@ export function Result() {
         <section className="card weak-card">
           <div className="card-kicker">薄弱考点</div>
           <div className="chips">
-            {attempt.weak.map((w) => (
-              <Link key={w.code} className="chip chip-code" to={`/build?subject=${attempt.quiz.questions[0]?.subject_id || "computer"}`}>
-                {w.code}
-                <span className="chip-num">{w.wrong}</span>
-              </Link>
-            ))}
+            {attempt.weak.map((w) => {
+              const subjectId =
+                results.find((r) => r.question.outline_code === w.code)?.question.subject_id ||
+                attempt.quiz.questions[0]?.subject_id ||
+                "";
+              return (
+                <Link
+                  key={w.code}
+                  className="chip chip-code"
+                  to={`/build${subjectId ? `?subject=${encodeURIComponent(subjectId)}` : ""}`}
+                >
+                  {w.code}
+                  <span className="chip-num">{w.wrong}</span>
+                </Link>
+              );
+            })}
           </div>
           <p className="muted small">这些编号的题已经排进复习队列，按掌握度间隔回来。</p>
         </section>
@@ -177,21 +186,21 @@ export function Result() {
               <div className="result-body">
                 <p className="meta-line">
                   <span className="code-chip">{q.outline_code}</span>
-                  <span className="muted small">{TYPE_LABEL[q.type]}</span>
+                  <span className="muted small">{label(q.type)}</span>
                   <span className="muted small">用时 {item.time_spent ?? 0} 秒</span>
                 </p>
                 <div className="answer-compare">
                   <div>
                     <span className="muted small">你的答案</span>
-                    {["short", "calc", "code", "essay"].includes(q.type) ? (
-                      <pre className="answer-text">{answerText(item)}</pre>
+                    {byId[q.type]?.grading === "agent" ? (
+                      <pre className="answer-text">{answerText(item, byId[q.type]?.input)}</pre>
                     ) : (
-                      <b>{answerText(item)}</b>
+                      <b>{answerText(item, byId[q.type]?.input)}</b>
                     )}
                   </div>
                   <div>
                     <span className="muted small">正确答案</span>
-                    <b>{correctText(item)}</b>
+                    <b>{correctText(item, byId[q.type]?.input)}</b>
                   </div>
                   {q.rubric && (
                     <div>

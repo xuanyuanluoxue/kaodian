@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import db as database
+from . import question_types
 from .grading import fingerprint, grade, validate_question
 from .review import apply_result
 
@@ -35,7 +36,7 @@ class QuestionIn(BaseModel):
     type: str
     stem: str
     options: list[str] | None = None
-    answer: list[str] | None = None
+    answer: list[Any] | None = None
     explanation: str = ""
     reference_answer: str | None = None
     rubric: list[dict] | None = None
@@ -44,6 +45,7 @@ class QuestionIn(BaseModel):
     source: dict | None = None
     tags: list[str] = Field(default_factory=list)
     verified: bool = False
+    language: str | None = None
     client_ref: str | None = None
 
 
@@ -129,6 +131,7 @@ class GradeIn(BaseModel):
 class CodeRunIn(BaseModel):
     code: str = Field(min_length=1, max_length=20000)
     stdin: str = Field(default="", max_length=10000)
+    language: str = "c"
 
 
 class PageIn(BaseModel):
@@ -139,7 +142,8 @@ class PageIn(BaseModel):
     body: str = Field(min_length=1)
     outline_codes: list[str] = Field(default_factory=list)
     kind: Literal["outline", "lesson", "daily", "note"] = "lesson"
-    status: Literal["draft", "published"] = "published"
+    status: Literal["draft", "published", "archived"] = "published"
+    sort_order: int = 1000
 
 
 class PagePatch(BaseModel):
@@ -149,7 +153,8 @@ class PagePatch(BaseModel):
     body: str | None = Field(default=None, min_length=1)
     outline_codes: list[str] | None = None
     kind: Literal["outline", "lesson", "daily", "note"] | None = None
-    status: Literal["draft", "published"] | None = None
+    status: Literal["draft", "published", "archived"] | None = None
+    sort_order: int | None = None
 
 
 # ---------------------------------------------------------------- helpers
@@ -174,6 +179,7 @@ def row_to_question(row: sqlite3.Row, reveal: bool = True) -> dict:
         "difficulty": row["difficulty"],
         "tags": load(row["tags"]) or [],
         "verified": bool(row["verified"]),
+        "language": row["language"] if "language" in row.keys() else None,
         "status": row["status"] if "status" in row.keys() else "approved",
         "reviewed_at": row["reviewed_at"] if "reviewed_at" in row.keys() else None,
         "review_note": row["review_note"] if "review_note" in row.keys() else None,
@@ -197,6 +203,7 @@ def page_dict(row: sqlite3.Row, full: bool = True) -> dict:
         "outline_codes": json.loads(row["outline_codes"]) if row["outline_codes"] else [],
         "kind": row["kind"],
         "status": row["status"],
+        "sort_order": row["sort_order"] if "sort_order" in row.keys() else 1000,
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "completed": row["completed_at"] is not None if "completed_at" in row.keys() else False,
@@ -459,7 +466,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"ok": True, "version": app.version}
+        return {"ok": True, "version": app.version, "schema_version": database.SCHEMA_VERSION}
 
     @app.get("/api/subjects")
     def subjects():
@@ -467,11 +474,15 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             rows = c.execute(
                 """SELECT s.*, COUNT(n.code) AS node_count, COALESCE(SUM(n.hours),0) AS hours
                    FROM subject s LEFT JOIN outline_node n ON n.subject_id = s.id
-                   GROUP BY s.id ORDER BY s.id"""
+                   GROUP BY s.id ORDER BY s.sort, s.id"""
             ).fetchall()
             counts = {r["subject_id"]: r["n"] for r in c.execute(
                 "SELECT subject_id, COUNT(*) AS n FROM question GROUP BY subject_id")}
         return [{**dict(r), "question_count": counts.get(r["id"], 0)} for r in rows]
+
+    @app.get("/api/question-types")
+    def question_type_list():
+        return question_types.load_types()
 
     @app.get("/api/outline")
     def outline(subject_id: str | None = None):
@@ -739,7 +750,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                               (attempt_id, q["id"])).fetchone()
                 response = json.loads(a["response"]) if a and a["response"] else None
                 self_grade = json.loads(a["self_grade"]) if a and a["self_grade"] else None
-                subjective = q["type"] in {"short", "calc", "code", "essay"}
+                subjective = not question_types.is_objective(q["type"])
                 answered = (isinstance(response, str) and response.strip() != "") or bool(self_grade)
 
                 if subjective and answered:
@@ -891,9 +902,13 @@ def create_app(db_file: Path | None = None) -> FastAPI:
 
     @app.get("/api/grading/queue")
     def grading_queue(limit: int = Query(20, ge=1, le=100)):
+        agent_types = question_types.agent_graded_ids()
+        if not agent_types:
+            return []
+        marks = ",".join("?" * len(agent_types))
         with conn() as c:
             rows = c.execute(
-                """SELECT a.attempt_id, a.question_id, a.response, a.self_grade, a.time_spent,
+                f"""SELECT a.attempt_id, a.question_id, a.response, a.self_grade, a.time_spent,
                           q.type, q.stem, q.rubric, q.reference_answer, q.score AS q_score,
                           q.outline_code, q.tags, z.title AS quiz_title, t.ended_at
                    FROM answer a
@@ -901,11 +916,11 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                    JOIN question q ON q.id = a.question_id
                    LEFT JOIN quiz z ON z.id = t.quiz_id
                    WHERE t.status = 'submitted'
-                     AND q.type IN ('short', 'calc', 'code', 'essay')
+                     AND q.type IN ({marks})
                      AND a.score IS NULL
                      AND a.response IS NOT NULL AND a.response != ''
                    ORDER BY t.ended_at ASC LIMIT ?""",
-                (limit,),
+                (*agent_types, limit),
             ).fetchall()
 
         def load(value, fallback=None):
@@ -937,6 +952,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
 
     @app.post("/api/grading/{attempt_id}/{question_id}")
     def grade_answer(attempt_id: str, question_id: str, body: GradeIn):
+        agent_types = question_types.agent_graded_ids()
         with conn() as c:
             row = c.execute(
                 """SELECT a.*, q.type, q.score AS q_score, q.outline_code
@@ -947,7 +963,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             ).fetchone()
             if not row:
                 raise HTTPException(404, "作答记录不存在")
-            if row["type"] not in {"short", "calc", "code", "essay"}:
+            if question_types.is_objective(row["type"]):
                 raise HTTPException(422, "只有主观题需要 Agent 评分")
             max_score = float(row["q_score"])
             if body.score > max_score:
@@ -962,14 +978,23 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             if first_grade:
                 apply_result(c, question_id, correct)
 
-            pending = c.execute(
-                """SELECT COUNT(*) AS n FROM answer a JOIN question q ON q.id = a.question_id
-                   WHERE a.attempt_id = ? AND q.type IN ('short', 'calc', 'code', 'essay')
-                     AND a.score IS NULL AND a.response IS NOT NULL AND a.response != ''""",
-                (attempt_id,),
-            ).fetchone()["n"]
+            if agent_types:
+                marks = ",".join("?" * len(agent_types))
+                pending = c.execute(
+                    f"""SELECT COUNT(*) AS n FROM answer a JOIN question q ON q.id = a.question_id
+                       WHERE a.attempt_id = ? AND q.type IN ({marks})
+                         AND a.score IS NULL AND a.response IS NOT NULL AND a.response != ''""",
+                    (attempt_id, *agent_types),
+                ).fetchone()["n"]
+            else:
+                pending = 0
             total = c.execute(
-                "SELECT COALESCE(SUM(score), 0) AS s FROM answer WHERE attempt_id = ?", (attempt_id,)
+                """SELECT COALESCE(SUM(a.score), 0) AS s
+                   FROM answer a
+                   JOIN attempt t ON t.id = a.attempt_id
+                   JOIN quiz_item i ON i.quiz_id = t.quiz_id AND i.question_id = a.question_id
+                   WHERE a.attempt_id = ?""",
+                (attempt_id,),
             ).fetchone()["s"]
             status = "pending" if pending else "done"
             c.execute("UPDATE attempt SET score = ?, grading_status = ? WHERE id = ?",
@@ -1004,10 +1029,12 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             pid = database.new_id("p")
             now = database.now_iso()
             c.execute(
-                """INSERT INTO page(id, subject_id, lesson_key, title, summary, body, outline_codes, kind, status, created_at, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                """INSERT INTO page(id, subject_id, lesson_key, title, summary, body, outline_codes,
+                                   kind, status, sort_order, created_at, updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (pid, body.subject_id, body.lesson_key, body.title, body.summary, body.body,
-                 json.dumps(body.outline_codes, ensure_ascii=False), body.kind, body.status, now, now),
+                 json.dumps(body.outline_codes, ensure_ascii=False), body.kind, body.status,
+                 body.sort_order, now, now),
             )
             row = c.execute("SELECT * FROM page WHERE id = ?", (pid,)).fetchone()
             return page_dict(row)
@@ -1022,7 +1049,8 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         if subject_id:
             sql += " AND p.subject_id = ?"
             args.append(subject_id)
-        sql += " ORDER BY COALESCE(p.lesson_key, 'ZZZ') ASC, p.created_at ASC LIMIT ?"
+        sql += (" ORDER BY COALESCE(p.sort_order, 1000) ASC,"
+                " COALESCE(p.lesson_key, 'ZZZ') ASC, p.created_at ASC LIMIT ?")
         args.append(limit)
         with conn() as c:
             return [page_dict(r, full=False) for r in c.execute(sql, args)]
@@ -1210,6 +1238,8 @@ def create_app(db_file: Path | None = None) -> FastAPI:
 
     @app.post("/api/code/run")
     def run_code(body: CodeRunIn):
+        if body.language != "c":
+            raise HTTPException(422, f"暂不支持 language={body.language}，当前只有 c")
         if not code_run_enabled():
             raise HTTPException(403, "代码运行未启用；启动时设置 KAODIAN_ALLOW_CODE_RUN=1")
         if not shutil.which("gcc") or not shutil.which("bwrap"):
@@ -1236,9 +1266,11 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             ]
             started = __import__("time").monotonic()
             try:
+                sandbox_env = {"PATH": "/usr/local/bin:/usr/bin:/bin",
+                               "LANG": "C.UTF-8", "HOME": "/tmp"}
                 compile_proc = subprocess.run(
                     [*bwrap, "gcc", "main.c", "-o", "main", "-std=c11", "-O0"],
-                    capture_output=True, text=True, timeout=20,
+                    capture_output=True, text=True, timeout=20, env=sandbox_env,
                 )
             except subprocess.TimeoutExpired:
                 return {"ok": False, "stage": "compile", "output": "编译超时（20 秒）", "exit_code": None}
@@ -1251,18 +1283,23 @@ def create_app(db_file: Path | None = None) -> FastAPI:
                     "hints": explain_diagnostics(compile_output),
                 }
 
+            out_path = work / "stdout.txt"
             try:
-                run_proc = subprocess.run(
-                    [*bwrap, "bash", "-c", "ulimit -v 262144 -u 64 -t 3 -f 1024 2>/dev/null; exec ./main"],
-                    input=body.stdin, capture_output=True, text=True, timeout=6,
-                )
+                # stdout 直接落盘，ulimit -f 64（64KB）限制写入；避免把无限输出读进 API 内存。
+                with open(out_path, "w", encoding="utf-8") as out_file:
+                    run_proc = subprocess.run(
+                        [*bwrap, "bash", "-c",
+                         "ulimit -v 262144 -u 64 -t 3 -f 64 2>/dev/null; exec ./main"],
+                        input=body.stdin, stdout=out_file, stderr=subprocess.STDOUT,
+                        text=True, timeout=6, env=sandbox_env,
+                    )
             except subprocess.TimeoutExpired:
                 return {
                     "ok": False, "stage": "run", "output": "运行超时（3 秒 CPU / 6 秒墙钟），检查是否有死循环。",
                     "exit_code": None,
                 }
 
-            output = run_proc.stdout + run_proc.stderr
+            output = out_path.read_text(encoding="utf-8", errors="replace")[-65536:]
             runtime_hints: list[dict] = []
             if run_proc.returncode in (124, 137) or run_proc.returncode < 0:
                 output += "\n[进程被终止：可能是死循环、CPU 超时或内存超限]"

@@ -1,12 +1,27 @@
-import type { AgentEvent, Attempt, DailyStats, LibraryStats, OutlineNode, PageDetail, PageSummary, Progress, Question, Quiz, QuizSummary, Subject } from "./types";
+import type { AgentEvent, Attempt, DailyStats, LibraryStats, OutlineNode, PageDetail, PageSummary, Progress, Question, QuestionType, Quiz, QuizSummary, Subject } from "./types";
 
 const BASE = "/api";
+
+function messageOf(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (detail && typeof detail === "object" && "message" in detail) {
+    const message = (detail as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  if (Array.isArray(detail)) {
+    const parts = detail.map((item) =>
+      typeof item === "string" ? item : (item as { msg?: unknown })?.msg,
+    );
+    if (parts.every((part) => typeof part === "string")) return parts.join("；");
+  }
+  return JSON.stringify(detail);
+}
 
 export class ApiError extends Error {
   status: number;
   detail: unknown;
   constructor(status: number, detail: unknown) {
-    super(typeof detail === "string" ? detail : JSON.stringify(detail));
+    super(messageOf(detail));
     this.status = status;
     this.detail = detail;
   }
@@ -48,6 +63,7 @@ export interface BuildQuizBody {
 
 export const api = {
   subjects: () => request<Subject[]>("/subjects"),
+  questionTypes: () => request<QuestionType[]>("/question-types"),
   outline: (subjectId?: string) =>
     request<OutlineNode[]>(`/outline${subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : ""}`),
   questions: (params: { subject_id?: string; code?: string; type?: string; limit?: number }) => {

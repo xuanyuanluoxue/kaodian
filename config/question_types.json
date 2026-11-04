@@ -1,0 +1,75 @@
+[
+  {
+    "id": "single",
+    "label": "单选",
+    "input": "choice",
+    "grading": "auto",
+    "answer_schema": "letters",
+    "min_options": 2,
+    "max_options": 8,
+    "sort": 10
+  },
+  {
+    "id": "multiple",
+    "label": "多选",
+    "input": "choice",
+    "grading": "auto",
+    "answer_schema": "letters",
+    "min_options": 2,
+    "max_options": 8,
+    "sort": 20
+  },
+  {
+    "id": "judge",
+    "label": "判断",
+    "input": "judge",
+    "grading": "auto",
+    "answer_schema": "boolean",
+    "sort": 30
+  },
+  {
+    "id": "fill",
+    "label": "填空",
+    "input": "text",
+    "grading": "auto",
+    "answer_schema": "blanks",
+    "sort": 40
+  },
+  {
+    "id": "short",
+    "label": "简答",
+    "input": "text",
+    "grading": "agent",
+    "answer_schema": "rubric",
+    "requires_rubric": true,
+    "sort": 50
+  },
+  {
+    "id": "calc",
+    "label": "计算",
+    "input": "text",
+    "grading": "agent",
+    "answer_schema": "rubric",
+    "requires_rubric": true,
+    "sort": 60
+  },
+  {
+    "id": "code",
+    "label": "代码",
+    "input": "code",
+    "grading": "agent",
+    "answer_schema": "code",
+    "requires_rubric": true,
+    "language": "c",
+    "sort": 70
+  },
+  {
+    "id": "essay",
+    "label": "论述",
+    "input": "text",
+    "grading": "agent",
+    "answer_schema": "rubric",
+    "requires_rubric": true,
+    "sort": 80
+  }
+]

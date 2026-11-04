@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import shutil
 import sqlite3
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -375,3 +377,122 @@ def test_answer_must_belong_to_quiz(client):
         json={"answers": [{"question_id": outsider["id"], "response": "A"}]},
     )
     assert r.status_code == 422
+
+
+def test_question_type_registry(client):
+    types = client.get("/api/question-types").json()
+    by_id = {t["id"]: t for t in types}
+    assert by_id["single"]["grading"] == "auto"
+    assert by_id["single"]["input"] == "choice"
+    assert by_id["essay"]["grading"] == "agent"
+    assert by_id["code"]["input"] == "code"
+    assert by_id["fill"]["answer_schema"] == "blanks"
+
+
+def test_subject_display_fields(client):
+    subjects = client.get("/api/subjects").json()
+    computer = next(s for s in subjects if s["id"] == "computer")
+    assert computer["color"].startswith("#")
+    assert computer["icon"]
+    assert computer["sort"] == 1
+    assert computer["code_language"] == "c"
+    assert [s["sort"] for s in subjects] == sorted(s["sort"] for s in subjects)
+
+
+def test_content_sync_is_idempotent(tmp_path):
+    from apps.api.app import db as database
+
+    path = tmp_path / "sync.db"
+    database.init_db(path)
+    database.init_db(path)
+    with database.session(path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM subject").fetchone()[0] == 4
+        assert conn.execute("SELECT COUNT(*) FROM outline_node").fetchone()[0] == 161
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == database.SCHEMA_VERSION
+
+
+def test_multi_blank_fill_grading():
+    from apps.api.app.grading import grade
+
+    q = {
+        "type": "fill",
+        "score": 4,
+        "answer": [["2", "二"], ["3", "三"]],
+    }
+    assert grade(q, ["2", "3"])["score"] == 4
+    assert grade(q, ["2", "4"])["score"] == 0
+    assert grade(q, "2")["score"] == 0
+
+
+def test_page_sort_order(client):
+    def make(title, order):
+        return client.post("/api/pages", json={
+            "subject_id": "math",
+            "title": title,
+            "body": "正文内容",
+            "kind": "lesson",
+            "status": "published",
+            "sort_order": order,
+        }).json()
+
+    make("后", 20)
+    make("前", 10)
+    titles = [p["title"] for p in client.get("/api/pages?subject_id=math").json()]
+    assert titles.index("前") < titles.index("后")
+
+
+def test_new_subject_only_needs_config(tmp_path, monkeypatch):
+    cfg = tmp_path / "config"
+    shutil.copytree(Path(__file__).resolve().parents[3] / "config", cfg)
+    (cfg / "subjects" / "physics.json").write_text(
+        json.dumps({
+            "id": "physics",
+            "name": "物理",
+            "short": "物理",
+            "color": "#336699",
+            "icon": "atom",
+            "sort": 9,
+            "exam": {"score": 100, "minutes": 90},
+            "nodes": [{"code": "PH-01", "title": "质点运动"}],
+        }, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("KAODIAN_CONFIG_DIR", str(cfg))
+    app = create_app(tmp_path / "physics.db")
+    with TestClient(app) as c:
+        subjects = c.get("/api/subjects").json()
+        assert any(s["id"] == "physics" for s in subjects)
+        assert subjects[-1]["id"] == "physics"
+        nodes = c.get("/api/outline?subject_id=physics").json()
+        assert nodes[0]["code"] == "PH-01"
+        res = c.post("/api/questions/batch", json={"questions": [{
+            "outline_code": "PH-01",
+            "type": "single",
+            "stem": "一个质点做匀速直线运动，下列说法正确的是（ ）",
+            "options": ["速度不变", "加速度变大", "位移不变", "速率变小"],
+            "answer": ["A"],
+            "explanation": "匀速直线运动速度大小和方向都不变。",
+            "difficulty": 1,
+            "score": 2,
+        }]})
+        assert res.status_code == 201
+        assert res.json()["created"] == 1
+
+
+def test_code_run_output_is_capped(client, monkeypatch):
+    if not shutil.which("gcc") or not shutil.which("bwrap"):
+        pytest.skip("需要 gcc 和 bubblewrap")
+    monkeypatch.setenv("KAODIAN_ALLOW_CODE_RUN", "1")
+    code = (
+        '#include <stdio.h>\n'
+        'int main(){for(int i=0;i<20000;i++)printf("0123456789");return 0;}'
+    )
+    res = client.post("/api/code/run", json={"code": code})
+    assert res.status_code == 200
+    assert len(res.json()["output"]) <= 65536
+
+
+def test_code_run_rejects_unknown_language(client, monkeypatch):
+    monkeypatch.setenv("KAODIAN_ALLOW_CODE_RUN", "1")
+    res = client.post("/api/code/run", json={"code": "print(1)", "language": "python"})
+    assert res.status_code == 422

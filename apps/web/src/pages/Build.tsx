@@ -1,36 +1,57 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { api, ApiError } from "../api";
-import { TYPE_LABEL } from "../types";
-import type { OutlineNode, QType, Subject } from "../types";
-
-const TYPES: QType[] = ["single", "multiple", "judge", "fill", "short", "calc", "code", "essay"];
+import { api } from "../api";
+import { errorText } from "../lib/format";
+import { useQuestionTypes } from "../lib/useQuestionTypes";
+import type { OutlineNode, Subject } from "../types";
 
 export function Build() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [subjectId, setSubjectId] = useState(params.get("subject") || "computer");
+  const [subjectId, setSubjectId] = useState(params.get("subject") || "");
   const [nodes, setNodes] = useState<OutlineNode[]>([]);
   const [codes, setCodes] = useState<Set<string>>(new Set());
-  const [types, setTypes] = useState<Set<QType>>(new Set(["single", "multiple", "judge", "fill"]));
+  const [types, setTypes] = useState<Set<string>>(new Set());
   const [count, setCount] = useState(10);
   const [mode, setMode] = useState<"practice" | "exam">("practice");
   const [minutes, setMinutes] = useState("");
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const { types: questionTypes, loading: typesLoading } = useQuestionTypes();
 
   useEffect(() => {
-    api.subjects().then(setSubjects).catch((e) => setError(String(e)));
+    api
+      .subjects()
+      .then((list) => {
+        setSubjects(list);
+        setSubjectId((current) =>
+          current && list.some((s) => s.id === current) ? current : list[0]?.id || "",
+        );
+      })
+      .catch((e) => setError(errorText(e)));
   }, []);
 
   useEffect(() => {
+    if (!questionTypes.length) return;
+    setTypes((current) => {
+      if (current.size) return current;
+      const auto = questionTypes.filter((t) => t.grading === "auto").map((t) => t.id);
+      return new Set(auto.length ? auto : questionTypes.map((t) => t.id));
+    });
+  }, [questionTypes]);
+
+  useEffect(() => {
     setCodes(new Set());
+    if (!subjectId) {
+      setNodes([]);
+      return;
+    }
     api
       .outline(subjectId)
       .then(setNodes)
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorText(e)));
   }, [subjectId]);
 
   const sections = useMemo(() => {
@@ -61,7 +82,7 @@ export function Build() {
     setCodes(next);
   }
 
-  function toggleType(t: QType) {
+  function toggleType(t: string) {
     const next = new Set(types);
     if (next.has(t)) next.delete(t);
     else next.add(t);
@@ -86,12 +107,7 @@ export function Build() {
       });
       navigate(`/quiz/${quiz.id}`);
     } catch (e) {
-      if (e instanceof ApiError) {
-        const detail = e.detail as { message?: string };
-        setError(detail?.message || String(e.detail));
-      } else {
-        setError(String(e));
-      }
+      setError(errorText(e));
       setBusy(false);
     }
   }
@@ -161,11 +177,16 @@ export function Build() {
         <div className="field">
           <label>题型</label>
           <div className="chips">
-            {TYPES.map((t) => (
-              <button key={t} className={`chip ${types.has(t) ? "on" : ""}`} onClick={() => toggleType(t)}>
-                {TYPE_LABEL[t]}
+            {questionTypes.map((t) => (
+              <button
+                key={t.id}
+                className={`chip ${types.has(t.id) ? "on" : ""}`}
+                onClick={() => toggleType(t.id)}
+              >
+                {t.label}
               </button>
             ))}
+            {typesLoading && <span className="muted small">正在读取题型…</span>}
           </div>
         </div>
 

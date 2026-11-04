@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { api, ApiError } from "../api";
+import { api } from "../api";
 import { Markdown } from "../components/Markdown";
 import { CodeTerminal } from "../components/CodeTerminal";
+import { errorText } from "../lib/format";
 import type { LibraryStats, PageDetail, PageSummary, Progress, QuizSummary, Subject } from "../types";
 
 const KIND_LABEL: Record<string, string> = {
@@ -137,8 +138,10 @@ export function Console() {
   const [completing, setCompleting] = useState(false);
 
   const selectedId = params.get("page");
-  const subjectId = params.get("subject") || "computer";
+  const subjectId = params.get("subject") || subjects[0]?.id || "";
   const reading = !!selectedId;
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
   useReadingTimer(selectedId);
 
   useEffect(() => {
@@ -151,42 +154,45 @@ export function Console() {
         setLibrary(lib);
         setSubjectsLoaded(true);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => {
+        setError(errorText(e));
+        setSubjectsLoaded(true);
+      });
   }, []);
 
   useEffect(() => {
-    if (!selectedId) {
-      setPage(null);
-      return;
-    }
+    setPage(null);
+    if (!selectedId) return;
     let alive = true;
     api
       .page(selectedId)
-      .then((p) => alive && setPage(p))
-      .catch((e) => alive && setError(e instanceof ApiError ? String(e.message) : String(e)));
+      .then((p) => {
+        if (alive && selectedRef.current === selectedId) setPage(p);
+      })
+      .catch((e) => alive && setError(errorText(e)));
     return () => {
       alive = false;
     };
   }, [selectedId]);
 
   const subjectPages = useMemo(
-    () => pages.filter((p) => (p.subject_id || "computer") === subjectId),
-    [pages, subjectId],
+    () => pages.filter((p) => (p.subject_id || subjects[0]?.id || "") === subjectId),
+    [pages, subjectId, subjects],
   );
   const outlinePage = subjectPages.find((p) => p.kind === "outline");
   const lessons = useMemo(() => subjectPages.filter((p) => p.kind !== "outline"), [subjectPages]);
   const nextLesson = lessons.find((p) => !p.completed) || lessons[lessons.length - 1];
-  const pageSubject = page?.subject_id || "computer";
+  const pageSubject = page?.subject_id || subjects[0]?.id || "";
   const readingLessons = useMemo(
-    () => pages.filter((p) => p.kind !== "outline" && (p.subject_id || "computer") === pageSubject),
-    [pages, pageSubject],
+    () => pages.filter((p) => p.kind !== "outline" && (p.subject_id || subjects[0]?.id || "") === pageSubject),
+    [pages, pageSubject, subjects],
   );
   const subject = useMemo(() => subjects.find((s) => s.id === page?.subject_id), [subjects, page]);
+  const codeLanguage = subject?.code_language || null;
   const pathSubject = subjects.find((s) => s.id === subjectId);
   // subjects 加载完成前不判定“未知科目”，避免加载中被误报
   const unknownSubject =
     subjectsLoaded && subjects.length > 0 && !subjects.some((s) => s.id === subjectId);
-  const computerLabel = subjects.find((s) => s.id === "computer")?.short || "计算机";
 
   async function practice(target?: PageDetail | PageSummary) {
     const p = target || page;
@@ -200,26 +206,30 @@ export function Console() {
         mode: "practice",
         count: 6,
         agent_session_id: session.id,
-        filters: { subject_id: p.subject_id || "computer", codes: p.outline_codes },
+        filters: {
+          ...(p.subject_id ? { subject_id: p.subject_id } : {}),
+          codes: p.outline_codes,
+        },
       });
       navigate(`/quiz/${quiz.id}`);
     } catch (e) {
-      setError(e instanceof ApiError ? String(e.message) : String(e));
+      setError(errorText(e));
       setBusy(false);
     }
   }
 
   async function complete() {
-    if (!page) return;
+    const target = page;
+    if (!target || target.id !== selectedRef.current) return;
     setCompleting(true);
     try {
-      const res = await api.completePage(page.id);
-      const [fresh, prog] = await Promise.all([api.page(page.id), api.progress()]);
-      setPage(fresh);
+      const res = await api.completePage(target.id);
+      const [fresh, prog] = await Promise.all([api.page(target.id), api.progress()]);
       setProgress(prog);
-      setPages((prev) => prev.map((p) => (p.id === page.id ? { ...p, completed: true, xp: res.xp } : p)));
+      setPages((prev) => prev.map((p) => (p.id === target.id ? { ...p, completed: true, xp: res.xp } : p)));
+      if (selectedRef.current === target.id) setPage(fresh);
     } catch (e) {
-      setError(e instanceof ApiError ? String(e.message) : String(e));
+      setError(errorText(e));
     } finally {
       setCompleting(false);
     }
@@ -229,6 +239,18 @@ export function Console() {
   const todayMinutes = progress?.today_minutes ?? 0;
 
   /* ---------------- 学习路径 ---------------- */
+
+  if (!reading && !subjectsLoaded) {
+    return (
+      <div className="path-page">
+        <main className="path-main">
+          <div className="empty-state">
+            <p>正在读取科目…</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!reading) {
     if (unknownSubject) {
@@ -256,9 +278,9 @@ export function Console() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setParams({ subject: "computer" })}
+                onClick={() => subjects[0] && setParams({ subject: subjects[0].id })}
               >
-                回到 {computerLabel} 路径
+                回到 {subjects[0]?.short || "首个科目"}路径
               </button>
             </div>
           </main>
@@ -414,9 +436,15 @@ export function Console() {
   /* ---------------- 阅读 ---------------- */
 
   return (
-    <div className={`console-page reading${pageSubject === "computer" ? "" : " no-code"}`}>
-      {pageSubject === "computer" && page && (
-        <CodeTerminal key={page.lesson_key || page.id} lessonKey={page.lesson_key || "L01"} />
+    <div className={`console-page reading${codeLanguage ? "" : " no-code"}`}>
+      {codeLanguage && page && (
+        <CodeTerminal
+          key={`${pageSubject}:${page.id}`}
+          subjectId={pageSubject}
+          pageId={page.id}
+          lessonKey={page.lesson_key || undefined}
+          language={codeLanguage}
+        />
       )}
 
       <main className="console-main">

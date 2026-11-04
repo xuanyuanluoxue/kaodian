@@ -2,6 +2,9 @@
   "id": "politics",
   "name": "政治理论",
   "short": "政治",
+  "color": "#8a3b52",
+  "icon": "landmark",
+  "sort": 4,
   "exam": {
     "score": 100,
     "minutes": 120

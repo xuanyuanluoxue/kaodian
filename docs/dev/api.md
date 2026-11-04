@@ -7,8 +7,9 @@ Base：`http://127.0.0.1:8010/api`（本地）
 
 | 方法 | 路径 | 作用 |
 |---|---|---|
-| GET | `/subjects` | 四科与题量 |
-| GET | `/outline?subject_id=` | 考点树 |
+| GET | `/subjects` | 科目列表（含 `color/icon/sort/code_language` 与题量） |
+| GET | `/outline?subject_id=` | 考点树（含 `parent_code/depth`） |
+| GET | `/question-types` | 题型注册表：`input/grading/answer_schema` |
 | GET | `/stats/library` | 题库状态（approved/pending/rejected） |
 
 ## 题目
@@ -26,7 +27,7 @@ Base：`http://127.0.0.1:8010/api`（本地）
 |---|---|---|
 | GET | `/pages?subject_id=&status=` | 页面列表（不含正文） |
 | GET | `/pages/{id}` | 页面全文 |
-| POST | `/pages` | 发布页面（`status` 可为 draft） |
+| POST | `/pages` | 发布页面（`status` 可为 draft/archived，支持 `sort_order`） |
 | PATCH | `/pages/{id}` | 更新标题/正文/状态 |
 | DELETE | `/pages/{id}` | 删除 |
 | POST | `/pages/{id}/complete` | 标记完成，+10 XP |
@@ -74,11 +75,12 @@ Base：`http://127.0.0.1:8010/api`（本地）
 | 方法 | 路径 | 作用 |
 |---|---|---|
 | GET | `/code/status` | 是否启用 |
-| POST | `/code/run` | `{code, stdin}` → gcc + bwrap 运行 |
+| POST | `/code/run` | `{code, stdin, language}` → gcc + bwrap 运行（当前仅 `c`） |
 
 ## 约定
 
 - 失败返回 `{"detail": ...}`，批量校验失败返回 422 + 逐条 errors
 - 时间戳为本地朴素时间（`YYYY-MM-DDTHH:MM:SS`）
 - 组卷只抽 `status=approved` 的题
+- 主观题 = 题型注册表里 `grading=agent`；判分按 `answer_schema`
 - 主观题交卷后 `score=null`、`grading_status=pending`，由 Agent 评分

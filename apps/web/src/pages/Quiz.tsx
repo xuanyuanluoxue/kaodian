@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { api, ApiError } from "../api";
+import { api } from "../api";
 import { MathText } from "../components/MathText";
-import { LETTERS, TYPE_LABEL } from "../types";
+import { errorText } from "../lib/format";
+import { useQuestionTypes } from "../lib/useQuestionTypes";
+import { LETTERS } from "../types";
 import type { AgentEvent, Attempt, Question } from "../types";
 
 function mmss(seconds: number): string {
@@ -26,34 +28,37 @@ function sameSet(a: string[], b: string[]): boolean {
   return [...sa].every((x) => sb.has(x));
 }
 
-function localCorrect(q: Question, response: unknown): boolean | null {
+function localCorrect(q: Question, response: unknown, schema?: string): boolean | null {
   if (!q.answer) return null;
-  if (q.type === "fill") {
-    const accepted = q.answer.map(normalize);
+  if (schema === "blanks") {
+    const accepted = q.answer.flat().map(normalize);
     return accepted.includes(normalize(response));
   }
-  if (q.type === "judge") {
+  if (schema === "boolean") {
     const got = Array.isArray(response) ? response[0] : response;
     return normalize(got) === normalize(q.answer[0]);
   }
-  if (q.type === "single" || q.type === "multiple") {
+  if (schema === "letters") {
     const got = Array.isArray(response) ? response.map(String) : [String(response)];
-    return sameSet(got, q.answer);
+    return sameSet(got, q.answer.flat().map(String));
   }
   return null;
 }
 
-function hasAnswer(q: Question, response: unknown): boolean {
-  if (q.type === "short" || q.type === "calc" || q.type === "code" || q.type === "essay") {
+function hasAnswer(input: string | undefined, response: unknown): boolean {
+  if (input === "text" || input === "code") {
     return typeof response === "string" && response.trim().length > 0;
   }
-  if (q.type === "fill") return typeof response === "string" && response.trim().length > 0;
+  if (input === "choice" || input === "judge") return Array.isArray(response) && response.length > 0;
+  // 未知题型：字符串或数组都算已作答
+  if (typeof response === "string") return response.trim().length > 0;
   return Array.isArray(response) && response.length > 0;
 }
 
 export function QuizPage() {
   const { quizId } = useParams();
   const navigate = useNavigate();
+  const { byId, label, loading: typesLoading } = useQuestionTypes();
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [index, setIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, unknown>>({});
@@ -108,7 +113,7 @@ export function QuizPage() {
         activeRef.current = a.active_seconds;
         enterAt.current = Date.now();
       })
-      .catch((e) => setError(e instanceof ApiError ? String(e.message) : String(e)));
+      .catch((e) => setError(errorText(e)));
     return () => {
       alive = false;
     };
@@ -197,24 +202,31 @@ export function QuizPage() {
   const reveal = (qid: string) => setRevealed((prev) => new Set(prev).add(qid));
 
   function toggleOption(question: Question, letter: string) {
-    if (question.type === "single" || question.type === "judge" || question.type === "fill") {
-      const value = question.type === "judge" ? [letter === "A" ? "true" : "false"] : [letter];
-      setResponse(question.id, value);
+    const meta = byId[question.type];
+    if (!meta) return;
+    if (meta.input === "judge") {
+      setResponse(question.id, [letter === "A" ? "true" : "false"]);
       if (practice) reveal(question.id);
       return;
     }
-    if (question.type === "multiple") {
-      const current = Array.isArray(responses[question.id]) ? (responses[question.id] as string[]) : [];
-      const next = current.includes(letter) ? current.filter((x) => x !== letter) : [...current, letter];
-      setResponse(question.id, next);
-      if (practice && revealed.has(question.id)) {
-        // 改答案后收起批改，等重新核对
-        setRevealed((prev) => {
-          const copy = new Set(prev);
-          copy.delete(question.id);
-          return copy;
-        });
-      }
+    if (meta.input !== "choice") return;
+    // 注册表暂未区分单选/多选，沿用已知的 multiple 题型 id 作为多选开关
+    const multiple = question.type === "multiple";
+    if (!multiple) {
+      setResponse(question.id, [letter]);
+      if (practice) reveal(question.id);
+      return;
+    }
+    const current = Array.isArray(responses[question.id]) ? (responses[question.id] as string[]) : [];
+    const next = current.includes(letter) ? current.filter((x) => x !== letter) : [...current, letter];
+    setResponse(question.id, next);
+    if (practice && revealed.has(question.id)) {
+      // 改答案后收起批改，等重新核对
+      setRevealed((prev) => {
+        const copy = new Set(prev);
+        copy.delete(question.id);
+        return copy;
+      });
     }
   }
 
@@ -231,18 +243,20 @@ export function QuizPage() {
       await api.sendHelp(
         attempt.id,
         q.id,
-        `${helpText.trim()}\n\n[${q.outline_code} · ${TYPE_LABEL[q.type]} · 本题已用 ${spent}s]`,
+        `${helpText.trim()}\n\n[${q.outline_code} · ${label(q.type)} · 本题已用 ${spent}s]`,
       );
       setHelpSent(true);
       setHelpText("");
     } catch (e) {
-      setError(e instanceof ApiError ? String(e.message) : String(e));
+      setError(errorText(e));
     }
   }
 
   const submit = useCallback(async () => {
     if (!attempt || submitting || submitted.current) return;
-    const unanswered = questions.filter((item) => !hasAnswer(item, responses[item.id])).length;
+    const unanswered = questions.filter(
+      (item) => !hasAnswer(byId[item.type]?.input, responses[item.id]),
+    ).length;
     if (unanswered > 0 && !window.confirm(`还有 ${unanswered} 题没有作答，确定交卷？`)) return;
 
     setSubmitting(true);
@@ -267,10 +281,10 @@ export function QuizPage() {
       sessionStorage.removeItem(`kaodian:attempt:${quizId}`);
       navigate(`/result/${attempt.id}`);
     } catch (e) {
-      setError(e instanceof ApiError ? String(e.message) : String(e));
+      setError(errorText(e));
       setSubmitting(false);
     }
-  }, [attempt, questions, responses, selfGrades, flagged, index, submitting, navigate]);
+  }, [attempt, questions, responses, selfGrades, flagged, index, submitting, navigate, byId]);
 
   submitRef.current = submit;
 
@@ -286,9 +300,10 @@ export function QuizPage() {
       if (!question) return;
       if (/^[1-8]$/.test(e.key)) {
         const n = Number(e.key) - 1;
-        if (question.type === "judge") {
+        const meta = byId[question.type];
+        if (meta?.input === "judge") {
           if (n < 2) toggleOption(question, n === 0 ? "A" : "B");
-        } else if (question.type === "single" || question.type === "multiple") {
+        } else if (meta?.input === "choice") {
           if (question.options && n < question.options.length) toggleOption(question, LETTERS[n]);
         }
       } else if (e.key === "Enter") {
@@ -307,7 +322,7 @@ export function QuizPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [questions, index, go, responses, revealed, practice]);
+  }, [questions, index, go, responses, revealed, practice, byId]);
 
   const latestNote = useMemo(
     () => [...agentEvents].reverse().find((e) => e.kind === "note"),
@@ -315,8 +330,8 @@ export function QuizPage() {
   );
 
   const answeredCount = useMemo(
-    () => questions.filter((item) => hasAnswer(item, responses[item.id])).length,
-    [questions, responses, selfGrades],
+    () => questions.filter((item) => hasAnswer(byId[item.type]?.input, responses[item.id])).length,
+    [questions, responses, byId],
   );
 
   if (error && !attempt) {
@@ -327,7 +342,7 @@ export function QuizPage() {
     );
   }
 
-  if (!attempt || !q) {
+  if (!attempt || !q || typesLoading) {
     return (
       <div className="page">
         <p className="muted">正在开始计时…</p>
@@ -335,13 +350,17 @@ export function QuizPage() {
     );
   }
 
-  const correct = practice ? localCorrect(q, responses[q.id]) : null;
+  const meta = byId[q.type];
+  const input = meta?.input;
+  const schema = meta?.answer_schema;
+  const subjective = meta?.grading === "agent";
+  const multiChoice = q.type === "multiple";
+  const correct = practice ? localCorrect(q, responses[q.id], schema) : null;
   const isRevealed = practice && (revealed.has(q.id) || (correct !== null && correct));
-  const subjective = ["short", "calc", "code", "essay"].includes(q.type);
   const rubric = q.rubric || [];
   const selfScore = (selfGrades[q.id] || []).reduce((sum, i) => sum + (rubric[i]?.score || 0), 0);
   const optionValues =
-    q.type === "judge" ? ["true", "false"] : (q.options || []).map((_, i) => LETTERS[i]);
+    input === "judge" ? ["true", "false"] : (q.options || []).map((_, i) => LETTERS[i]);
 
   return (
     <div className="quiz-shell">
@@ -391,7 +410,7 @@ export function QuizPage() {
         <div className="quiz-head">
           <div>
             <p className="eyebrow">
-              {attempt.quiz.mode === "exam" ? "考试模式" : "练习模式"} · {TYPE_LABEL[q.type]}
+              {attempt.quiz.mode === "exam" ? "考试模式" : "练习模式"} · {label(q.type)}
             </p>
             <h1>{attempt.quiz.title}</h1>
           </div>
@@ -410,7 +429,7 @@ export function QuizPage() {
             <MathText text={q.stem} />
           </div>
 
-          {q.type === "fill" && (
+          {input === "text" && schema === "blanks" && (
             <input
               className="answer-input"
               placeholder="填答案，回车下一题"
@@ -426,9 +445,9 @@ export function QuizPage() {
             />
           )}
 
-          {q.type === "judge" && (
+          {input === "judge" && (
             <div className="options judge-options">
-              {["对", "错"].map((label, i) => {
+              {["对", "错"].map((text, i) => {
                 const value = optionValues[i];
                 const picked = Array.isArray(responses[q.id]) && (responses[q.id] as string[])[0] === value;
                 const showCorrect = isRevealed && q.answer?.[0] === value;
@@ -440,14 +459,14 @@ export function QuizPage() {
                     onClick={() => toggleOption(q, i === 0 ? "A" : "B")}
                   >
                     <span className="option-key">{i === 0 ? "1" : "2"}</span>
-                    {label}
+                    {text}
                   </button>
                 );
               })}
             </div>
           )}
 
-          {q.options && q.type !== "judge" && (
+          {input === "choice" && q.options && (
             <div className="options">
               {q.options.map((opt, i) => {
                 const letter = LETTERS[i];
@@ -470,11 +489,14 @@ export function QuizPage() {
             </div>
           )}
 
-          {practice && (q.type === "multiple" || q.type === "fill") && !revealed.has(q.id) && (
-            <button className="btn btn-ghost check-btn" onClick={() => reveal(q.id)}>
-              核对本题
-            </button>
-          )}
+          {practice &&
+            meta?.grading === "auto" &&
+            (multiChoice || schema === "blanks") &&
+            !revealed.has(q.id) && (
+              <button className="btn btn-ghost check-btn" onClick={() => reveal(q.id)}>
+                核对本题
+              </button>
+            )}
 
           {subjective && (
             <>
@@ -488,11 +510,9 @@ export function QuizPage() {
                   value={typeof responses[q.id] === "string" ? (responses[q.id] as string) : ""}
                   onChange={(e) => setResponse(q.id, e.target.value)}
                   placeholder={
-                    q.type === "code"
+                    input === "code"
                       ? "贴出你的代码；写清思路和边界情况。"
-                      : q.type === "calc"
-                        ? "写出关键步骤和最终结果，公式可以用 $...$。"
-                        : "分点写：定义 / 要点 / 结论。"
+                      : "写出完整解答：关键步骤、依据和最终结论。公式可以用 $...$。"
                   }
                 />
               </div>
@@ -527,7 +547,33 @@ export function QuizPage() {
             </>
           )}
 
-          {practice && isRevealed && (
+          {!meta && (
+            <div className="answer-box">
+              <label htmlFor={`ans-${q.id}`}>你的答案</label>
+              <textarea
+                id={`ans-${q.id}`}
+                rows={5}
+                value={typeof responses[q.id] === "string" ? (responses[q.id] as string) : ""}
+                onChange={(e) => setResponse(q.id, e.target.value)}
+                placeholder="当前前端未适配该题型，答案仍会提交。"
+              />
+            </div>
+          )}
+
+          {meta && input === "text" && schema !== "blanks" && !subjective && (
+            <div className="answer-box">
+              <label htmlFor={`ans-${q.id}`}>你的答案</label>
+              <textarea
+                id={`ans-${q.id}`}
+                rows={5}
+                value={typeof responses[q.id] === "string" ? (responses[q.id] as string) : ""}
+                onChange={(e) => setResponse(q.id, e.target.value)}
+                placeholder="写出你的答案，提交后统一判分。"
+              />
+            </div>
+          )}
+
+          {practice && isRevealed && correct !== null && (
             <div className={`feedback ${correct ? "ok" : "bad"}`}>
               <b>{correct ? "答对了" : "答错了"}</b>
               <p>
@@ -585,7 +631,7 @@ export function QuizPage() {
             <button
               key={item.id}
               className={`q-cell ${i === index ? "current" : ""} ${
-                hasAnswer(item, responses[item.id]) ? "done" : ""
+                hasAnswer(byId[item.type]?.input, responses[item.id]) ? "done" : ""
               } ${flagged[item.id] ? "flagged" : ""}`}
               onClick={() => go(i)}
             >

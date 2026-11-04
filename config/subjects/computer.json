@@ -2,6 +2,10 @@
   "id": "computer",
   "name": "计算机基础与程序设计",
   "short": "计算机",
+  "color": "#1d6b5c",
+  "icon": "cpu",
+  "sort": 1,
+  "code_language": "c",
   "exam": {
     "score": 200,
     "minutes": 150

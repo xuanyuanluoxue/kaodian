@@ -5,7 +5,11 @@ CREATE TABLE IF NOT EXISTS subject (
     name          TEXT NOT NULL,
     short         TEXT NOT NULL,
     exam_score    INTEGER NOT NULL,
-    exam_minutes  INTEGER NOT NULL
+    exam_minutes  INTEGER NOT NULL,
+    color         TEXT,
+    icon          TEXT,
+    sort          INTEGER NOT NULL DEFAULT 0,
+    code_language TEXT
 );
 
 CREATE TABLE IF NOT EXISTS outline_node (
@@ -19,7 +23,9 @@ CREATE TABLE IF NOT EXISTS outline_node (
     stage        TEXT,
     assessment   TEXT,
     kind         TEXT NOT NULL DEFAULT 'point',
-    sort         INTEGER NOT NULL DEFAULT 0
+    sort         INTEGER NOT NULL DEFAULT 0,
+    parent_code  TEXT,
+    depth        INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_outline_subject ON outline_node(subject_id, sort);
@@ -40,6 +46,7 @@ CREATE TABLE IF NOT EXISTS question (
     source           TEXT,
     tags             TEXT,
     verified         INTEGER NOT NULL DEFAULT 0,
+    language         TEXT,
     status           TEXT NOT NULL DEFAULT 'approved',
     reviewed_at      TEXT,
     review_note      TEXT,
@@ -150,11 +157,13 @@ CREATE TABLE IF NOT EXISTS page (
     outline_codes TEXT,
     kind          TEXT NOT NULL DEFAULT 'lesson',
     status        TEXT NOT NULL DEFAULT 'published',
+    sort_order    INTEGER NOT NULL DEFAULT 1000,
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_page_subject ON page(subject_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_page_subject ON page(subject_id, sort_order, created_at);
+CREATE INDEX IF NOT EXISTS idx_page_status ON page(status, subject_id);
 
 
 CREATE TABLE IF NOT EXISTS page_progress (
