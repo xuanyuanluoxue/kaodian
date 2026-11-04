@@ -4,8 +4,8 @@ const STARTERS: Record<string, string> = {
   L01: `#include <stdio.h>
 
 int main() {
-    printf("姓名：陈新捷\\n");
-    printf("目标：2028 公办计算机\\n");
+    printf("姓名：你的名字\\n");
+    printf("目标：你的目标\\n");
     printf("今天：第 1 天\\n");
     return 0;
 }`,

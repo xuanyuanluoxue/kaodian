@@ -5,6 +5,7 @@ PY := .venv/bin/python
 setup:
 	python3 -m venv .venv
 	.venv/bin/pip install -r apps/api/requirements-dev.txt
+	.venv/bin/pip install -r apps/mcp/requirements.txt
 	cd apps/web && npm install
 
 dev-api:

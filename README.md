@@ -27,7 +27,7 @@ AI **不在网页里跑**：它是 IDE 里的 MCP 客户端，通过 stdio 启�
 
 ## 快速开始
 
-需要 Python 3.10+、Node 20+；代码练习另需 `gcc` 与 `bubblewrap`。
+需要 Python 3.11+、Node 20.19+；代码练习另需 `gcc` 与 `bubblewrap`。
 
 ```bash
 make setup          # 建 venv、装后端依赖、npm install

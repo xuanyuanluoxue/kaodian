@@ -375,6 +375,15 @@ def weak_for(results: list[dict]) -> list[dict]:
     return [{"code": k, "wrong": v} for k, v in sorted(weak.items(), key=lambda x: -x[1])]
 
 def upsert_answer(conn: sqlite3.Connection, attempt_id: str, a: AnswerIn) -> None:
+    quiz = conn.execute("SELECT quiz_id FROM attempt WHERE id = ?", (attempt_id,)).fetchone()
+    if not quiz:
+        raise HTTPException(404, "作答记录不存在")
+    belongs = conn.execute(
+        "SELECT 1 FROM quiz_item WHERE quiz_id = ? AND question_id = ?",
+        (quiz["quiz_id"], a.question_id),
+    ).fetchone()
+    if not belongs:
+        raise HTTPException(422, "题目不在本次练习中")
     conn.execute(
         """INSERT INTO answer(attempt_id, question_id, response, time_spent, flagged, self_grade)
            VALUES (?,?,?,?,?,?)
@@ -1155,13 +1164,17 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         return [dict(r) for r in rows]
 
     @app.get("/api/agent/inbox")
-    def agent_inbox(after_id: int = 0, limit: int = Query(50, ge=1, le=200)):
+    def agent_inbox(after_id: int = 0, session_id: str | None = None,
+                    limit: int = Query(50, ge=1, le=200)):
+        sql = ("SELECT * FROM agent_event WHERE kind IN ('help', 'submitted') AND id > ?")
+        params: list[Any] = [after_id]
+        if session_id:
+            sql += " AND session_id = ?"
+            params.append(session_id)
+        sql += " ORDER BY id ASC LIMIT ?"
+        params.append(limit)
         with conn() as c:
-            rows = c.execute(
-                """SELECT * FROM agent_event WHERE kind IN ('help', 'submitted') AND id > ?
-                   ORDER BY id DESC LIMIT ?""",
-                (after_id, limit),
-            ).fetchall()
+            rows = c.execute(sql, params).fetchall()
         return [dict(r) for r in rows]
 
     @app.post("/api/agent/help", status_code=201)
@@ -1202,7 +1215,7 @@ def create_app(db_file: Path | None = None) -> FastAPI:
         if not shutil.which("gcc") or not shutil.which("bwrap"):
             raise HTTPException(503, "服务器缺少 gcc 或 bubblewrap")
 
-        work = Path(tempfile.mkdtemp(prefix="kaodian-run-", dir="/tmp/opencode"))
+        work = Path(tempfile.mkdtemp(prefix="kaodian-run-"))
         try:
             (work / "main.c").write_text(body.code, encoding="utf-8")
             bwrap = [
@@ -1278,17 +1291,19 @@ def create_app(db_file: Path | None = None) -> FastAPI:
 
     # -------- static (production build)
 
-    if WEB_DIST.exists():
+    if (WEB_DIST / "index.html").is_file() and (WEB_DIST / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")
 
         @app.get("/{path:path}")
         def spa(path: str):
             if path.startswith("api"):
                 raise HTTPException(404, "Not Found")
-            target = WEB_DIST / path
-            if path and target.is_file():
+            root = WEB_DIST.resolve()
+            target = (root / path).resolve()
+            # 只允许 dist 内的文件；禁止 ../ 逃逸到 user-data / 源码。
+            if path and target.is_file() and target.is_relative_to(root):
                 return FileResponse(target)
-            return FileResponse(WEB_DIST / "index.html")
+            return FileResponse(root / "index.html")
 
     return app
 

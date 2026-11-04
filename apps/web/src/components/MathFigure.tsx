@@ -59,6 +59,29 @@ function assertNames(names: string[]) {
   }
 }
 
+/** 允许在表达式里调用的数学函数与常量（其余标识符一律拒绝）。 */
+const MATH_NAMES = [
+  "sin", "cos", "tan", "asin", "acos", "atan",
+  "sqrt", "abs", "exp", "log", "log10", "floor", "ceil", "round",
+  "min", "max", "pow", "PI", "E",
+] as const;
+const MATH_PRELUDE = `const {${MATH_NAMES.join(",")}}=Math;`;
+
+/**
+ * 讲义内容来自 Agent / 用户，不能直接丢给 `new Function`。
+ * 只允许数字、运算符、括号、逗号、空白，以及滑块变量 / x / 白名单函数。
+ */
+function assertSafeExpr(expr: string, names: string[]) {
+  if (expr.length > 200) throw new Error("表达式过长（上限 200 字符）");
+  if (/[^0-9A-Za-z_$+\-*/^().,\s]/.test(expr)) {
+    throw new Error("表达式含非法字符");
+  }
+  const allowed = new Set<string>([...names, "x", ...MATH_NAMES]);
+  for (const id of expr.match(/[A-Za-z_$][\w$]*/g) ?? []) {
+    if (!allowed.has(id)) throw new Error(`不允许的标识符：${id}`);
+  }
+}
+
 /**
  * 数学写法里的 `^` 在 JS 中是按位异或（1^2 === 3），
  * 这里统一转成幂运算，让 spec 可以写 `a*x^2`。
@@ -74,10 +97,11 @@ function curveEvaluator(
   values: () => number[],
 ): (x: number) => number {
   assertNames(names);
+  assertSafeExpr(expr, names);
   const fn = new Function(
     ...names,
     "x",
-    `"use strict"; return (${mathExpr(expr)});`,
+    `"use strict"; ${MATH_PRELUDE} return (${mathExpr(expr)});`,
   ) as (...args: number[]) => unknown;
   return (x: number) => Number(fn(...values(), x));
 }
@@ -89,9 +113,10 @@ function atEvaluator(
   values: () => number[],
 ): () => number {
   assertNames(names);
+  assertSafeExpr(expr, names);
   const fn = new Function(
     ...names,
-    `"use strict"; return (${mathExpr(expr)});`,
+    `"use strict"; ${MATH_PRELUDE} return (${mathExpr(expr)});`,
   ) as (...args: number[]) => unknown;
   return () => Number(fn(...values()));
 }

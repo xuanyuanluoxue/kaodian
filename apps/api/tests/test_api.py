@@ -340,3 +340,38 @@ def test_code_run_explains_typo(client, monkeypatch):
     assert "#inclaude" in first["reason"]
     assert "#include" in first["reason"]
     assert "#include" in first["fix"]
+
+
+def test_spa_blocks_path_traversal(client):
+    for path in (
+        "/../../../README.md",
+        "/%2e%2e/%2e%2e/%2e%2e/user-data/kaodian.db",
+    ):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert r.content.startswith(b"<!doctype html>")
+        assert b"SQLite format" not in r.content
+
+
+def test_answer_must_belong_to_quiz(client):
+    quiz = client.post(
+        "/api/quizzes",
+        json={
+            "mode": "practice",
+            "count": 1,
+            "filters": {"subject_id": "computer", "types": ["single"]},
+        },
+    ).json()
+    attempt = client.post("/api/attempts", json={"quiz_id": quiz["id"]}).json()
+    in_quiz = {q["id"] for q in quiz["questions"]}
+
+    outsider = next(
+        q
+        for q in client.get("/api/questions?subject_id=computer&limit=50").json()
+        if q["id"] not in in_quiz
+    )
+    r = client.patch(
+        f"/api/attempts/{attempt['id']}",
+        json={"answers": [{"question_id": outsider["id"], "response": "A"}]},
+    )
+    assert r.status_code == 422
