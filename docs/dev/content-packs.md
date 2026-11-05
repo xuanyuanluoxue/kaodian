@@ -8,7 +8,7 @@
 
 1. 环境变量 `KAODIAN_CONTENT_DIR` / `KAODIAN_DATA_DIR` / `KAODIAN_DB`
 2. 框架根目录的 `kaodian.toml`
-3. 默认：`examples/demo-content` + `data/`
+3. 默认：`starter-content/` + `data/`
 
 ```toml
 # kaodian.toml（本机配置，不提交）
@@ -201,7 +201,8 @@ pack 里删除的内容不自动删库，改 frontmatter `status: archived`。
 
 ## 8. 迁移顺序
 
-1. 框架实现 pack 加载、v4 迁移、`/media`、CLI，用 `examples/demo-content` 测试。
+1. 框架实现 pack 加载、v4 迁移、`/media`、CLI，用 `examples/demo-content` 测试；
+   公开仓库另带 `starter-content/`，由 `scripts/export-starter-content.py` 从完整内容导出。
 2. 本机建 `kaodian.toml` 指向 `./content` 与 `./data`。
 3. 停服务，把旧库复制到 `data/api/kaodian.db`，备份后启动迁移。
 4. `content sync` 按自然键回填 `pack_id`，确认无重复页/题。

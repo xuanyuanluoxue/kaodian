@@ -1,0 +1,86 @@
+[
+  {
+    "id": "e2_e10_1_s1",
+    "subject_id": "english",
+    "outline_code": "E-10",
+    "type": "single",
+    "stem": "If I ______ more free time, I would learn another foreign language.",
+    "options": [
+      "had",
+      "would have",
+      "have",
+      "am having"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "主句用 would learn，说明是与现在事实相反的虚拟条件句，if 从句用一般过去时 had；从句中不能用 would have。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e2_e10_1_s2",
+    "subject_id": "english",
+    "outline_code": "E-10",
+    "type": "single",
+    "stem": "If he had listened to the doctor, he ______ so ill now.",
+    "options": [
+      "would not be",
+      "would not have been",
+      "will not be",
+      "is not"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "从句 had listened 指过去，主句有时间状语 now，指现在，属于混合虚拟：主句按现在时间用 would not be，不能用 would not have been。",
+    "score": 3,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e2_e10_1_f1",
+    "subject_id": "english",
+    "outline_code": "E-10",
+    "type": "fill",
+    "stem": "If I ______ (be) you, I would take the job without hesitation.",
+    "answer": [
+      "were"
+    ],
+    "explanation": "与现在事实相反的虚拟条件句中，be 动词一律用 were，主语是 I 也不能用 was，所以填 were。",
+    "score": 2,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e2_e10_1_j1",
+    "subject_id": "english",
+    "outline_code": "E-10",
+    "type": "judge",
+    "stem": "“If he had left earlier, he would catch the train.” 这句话的虚拟语气形式完全正确。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "从句 had left 表示与过去事实相反，主句也应用 would have done，应为 would have caught the train；would catch 是现在或将来的形式，前后时间不一致。",
+    "score": 2,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  }
+]

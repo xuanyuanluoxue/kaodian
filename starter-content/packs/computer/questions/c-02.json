@@ -1,0 +1,177 @@
+[
+  {
+    "id": "seed_c02_01",
+    "subject_id": "computer",
+    "outline_code": "C-02",
+    "type": "single",
+    "stem": "下列选项中，能用作 C 语言自定义标识符的是（ ）",
+    "options": [
+      "_6_",
+      "6_6",
+      "define",
+      "typedef"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "标识符由字母、数字、下划线组成，且不能以数字开头；`define`、`typedef` 是关键字，不能作标识符。`_6_` 合法。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "adapted",
+      "year": 2022,
+      "paper": "广东专升本·计算机基础与程序设计",
+      "no": 4,
+      "note": "根据公开真题改编，非原卷"
+    },
+    "tags": [
+      "标识符",
+      "关键字"
+    ],
+    "verified": 1,
+    "fingerprint": "8b001a900463959e6e2c",
+    "created_at": "2026-11-01T16:28:05+08:00",
+    "status": "approved",
+    "reviewed_at": null,
+    "review_note": null,
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "c2_c02_1",
+    "subject_id": "computer",
+    "outline_code": "C-02",
+    "type": "single",
+    "stem": "下列关于 C 语言变量与常量的叙述，正确的是（ ）",
+    "options": [
+      "变量的值在程序运行过程中可以改变，常量的值在定义后不能改变",
+      "用 const 定义的常量在程序运行过程中可以重新赋值",
+      "变量必须先赋初值，然后才能定义",
+      "用 #define 定义的符号常量 N 在运行时会占用一块独立的存储单元"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "变量代表一块可读写的存储单元，运行中可以通过赋值改变其值；常量在定义后不允许修改，所以 A 正确。const 常量若被赋值，编译器会报错，B 错；定义变量时可以不赋初值（局部变量此时为随机值），C 错；#define 定义的符号常量只是预处理阶段的文本替换，不占存储单元，D 错。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "变量",
+      "常量",
+      "const"
+    ]
+  },
+  {
+    "id": "c2_c02_2",
+    "subject_id": "computer",
+    "outline_code": "C-02",
+    "type": "single",
+    "stem": "下列选项中，属于 C 语言关键字的是（ ）",
+    "options": [
+      "main",
+      "printf",
+      "sizeof",
+      "define"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "sizeof 是 C 语言的关键字，它本身是一个运算符，用来求类型或表达式所占的字节数。main 和 printf 都是函数名，属于用户或库提供的标识符；define 只出现在预处理指令 #define 中，本身不是关键字。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "关键字",
+      "sizeof"
+    ]
+  },
+  {
+    "id": "c2_c02_3",
+    "subject_id": "computer",
+    "outline_code": "C-02",
+    "type": "single",
+    "stem": "阅读下面的程序，输出结果是（ ）\n\n```c\n#include <stdio.h>\n#define N 3\nint main(void)\n{\n    int n = N;\n    n = n + N * 2;\n    printf(\"%d\\n\", n);\n    return 0;\n}\n```\n\n（选填一个选项）",
+    "options": [
+      "6",
+      "9",
+      "12",
+      "15"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "N 是用 #define 定义的符号常量，预处理时把代码中的 N 原样替换成 3。n = N 使 n 得 3；接着 n = n + N * 2 变成 3 + 3 * 2 = 9。宏替换只是文本替换，不会自动加括号，所以这里先算乘法。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "符号常量",
+      "#define",
+      "宏替换"
+    ]
+  },
+  {
+    "id": "c2_c02_4",
+    "subject_id": "computer",
+    "outline_code": "C-02",
+    "type": "fill",
+    "stem": "C 语言规定，标识符只能由字母、数字和下划线组成，并且第一个字符不能是 ______。",
+    "options": [],
+    "answer": [
+      "数字",
+      "数字字符"
+    ],
+    "explanation": "C 标识符的命名规则是：由字母、数字、下划线组成，第一个字符必须是字母或下划线，不能是数字。例如 a1、_x 合法，1a 不合法；同时标识符区分大小写，且不能与关键字同名。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "标识符",
+      "命名规则"
+    ]
+  },
+  {
+    "id": "c2_c02_5",
+    "subject_id": "computer",
+    "outline_code": "C-02",
+    "type": "judge",
+    "stem": "在 C 语言中可以把关键字 int 当作变量名使用，例如 int int = 5; 是合法的定义。",
+    "options": [],
+    "answer": [
+      "false"
+    ],
+    "explanation": "关键字是编译器保留的、有固定含义的单词，不能再用作标识符。int 是基本类型关键字，写成 int int = 5; 会在编译时报错。C 语言共有 32 个关键字（C99 起），如 int、for、return、sizeof 等。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "关键字",
+      "标识符"
+    ]
+  }
+]

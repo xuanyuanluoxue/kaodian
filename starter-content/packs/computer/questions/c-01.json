@@ -1,0 +1,218 @@
+[
+  {
+    "id": "seed_c01_01",
+    "subject_id": "computer",
+    "outline_code": "C-01",
+    "type": "single",
+    "stem": "以下关于 C 程序的叙述，错误的是（ ）",
+    "options": [
+      "语句最后必须是分号",
+      "程序的基本组成单位是函数",
+      "注释可以用反斜杠 `\\` 开头",
+      "一条语句可以分成多行来写"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "C 的注释只有两种写法：`//` 单行注释和 `/* */` 块注释。反斜杠 `\\` 是续行符，不是注释符。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "adapted",
+      "year": 2024,
+      "paper": "广东专升本·计算机基础与程序设计",
+      "no": 1,
+      "note": "根据公开真题改编，非原卷"
+    },
+    "tags": [
+      "注释",
+      "程序结构"
+    ],
+    "verified": 1,
+    "fingerprint": "2c5807ecc7289b561994",
+    "created_at": "2026-11-01T16:28:05+08:00",
+    "status": "approved",
+    "reviewed_at": null,
+    "review_note": null,
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "seed_c01_02",
+    "subject_id": "computer",
+    "outline_code": "C-01",
+    "type": "single",
+    "stem": "C 语言中使用 `strcmp` 函数需要包含的头文件是（ ）",
+    "options": [
+      "string.h",
+      "math.h",
+      "stdlib.h",
+      "stdio.h"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "字符串处理函数 `strlen`、`strcpy`、`strcat`、`strcmp` 都声明在 `<string.h>` 中。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "adapted",
+      "year": 2024,
+      "paper": "广东专升本·计算机基础与程序设计",
+      "no": 2,
+      "note": "根据公开真题改编，非原卷"
+    },
+    "tags": [
+      "头文件",
+      "字符串函数"
+    ],
+    "verified": 1,
+    "fingerprint": "2a517a0c27c0bc6086cc",
+    "created_at": "2026-11-01T16:28:05+08:00",
+    "status": "approved",
+    "reviewed_at": null,
+    "review_note": null,
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "c2_c01_1",
+    "subject_id": "computer",
+    "outline_code": "C-01",
+    "type": "single",
+    "stem": "一个 C 源程序从编辑完成到生成可执行文件，通常要经历预处理、编译、汇编、链接等阶段。下列顺序正确的是（ ）",
+    "options": [
+      "预处理 → 编译 → 汇编 → 链接",
+      "编译 → 预处理 → 汇编 → 链接",
+      "汇编 → 编译 → 预处理 → 链接",
+      "链接 → 汇编 → 编译 → 预处理"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "gcc 处理 .c 文件的顺序是：预处理展开 #include、#define 等指令；编译把预处理后的代码翻译成汇编代码；汇编把汇编代码翻译成目标文件（.o）；链接把目标文件与库函数合并，生成可执行文件。所以正确顺序是预处理→编译→汇编→链接。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "编译过程",
+      "预处理",
+      "链接"
+    ]
+  },
+  {
+    "id": "c2_c01_2",
+    "subject_id": "computer",
+    "outline_code": "C-01",
+    "type": "single",
+    "stem": "下列关于 C 程序结构的叙述，正确的是（ ）",
+    "options": [
+      "一个 C 程序可以包含多个 main 函数",
+      "注释会在预处理阶段被替换成等价的机器指令",
+      "一个 C 程序有且只有一个 main 函数，程序从 main 开始执行",
+      "#include <stdio.h> 会把 stdio.h 的内容复制进最终的可执行文件"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "C 程序由若干函数组成，其中有且只有一个 main 函数，程序总是从 main 开始执行，所以 C 正确。一个程序出现两个 main 会在链接阶段报重复定义；注释在预处理阶段就被删除，不会生成任何指令，B 错；#include 只是把被包含文件的内容插入到预处理后的源文件中，并不是复制进可执行文件，D 错。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "main",
+      "程序结构",
+      "头文件"
+    ]
+  },
+  {
+    "id": "c2_c01_3",
+    "subject_id": "computer",
+    "outline_code": "C-01",
+    "type": "single",
+    "stem": "阅读下面的程序，输出结果是（ ）\n\n```c\n#include <stdio.h>\nint main(void)\n{\n    int s = 0;   /* 初始化 */\n    s = 3;\n    // s = 10;\n    /* s = 20;\n       s = 30;  */\n    printf(\"%d\\n\", s);\n    return 0;\n}\n```\n\n（选填一个选项）",
+    "options": [
+      "3",
+      "10",
+      "20",
+      "30"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "// 单行注释和 /* */ 块注释中的内容在预处理阶段就被删除，不参与编译。因此 s = 10、s = 20、s = 30 三条赋值语句全部无效，s 只在 s = 3 处被赋值，程序输出 3。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "注释",
+      "程序结构"
+    ]
+  },
+  {
+    "id": "c2_c01_4",
+    "subject_id": "computer",
+    "outline_code": "C-01",
+    "type": "fill",
+    "stem": "在 C 语言中，预处理命令（如 #include、#define）都必须以 ______ 符号开头。",
+    "options": [],
+    "answer": [
+      "#"
+    ],
+    "explanation": "C 的预处理命令以 # 开头，且 # 必须是该行的第一个非空白字符。常见形式有 #include <stdio.h>、#define N 10、#if 0 等，它们在预处理阶段被处理，不属于 C 语句，行末不加分号。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "预处理",
+      "#include"
+    ]
+  },
+  {
+    "id": "c2_c01_5",
+    "subject_id": "computer",
+    "outline_code": "C-01",
+    "type": "judge",
+    "stem": "C 语言的块注释可以嵌套使用，因此 /* a /* b */ c */ 能把 a、b、c 全部注释掉。",
+    "options": [],
+    "answer": [
+      "false"
+    ],
+    "explanation": "块注释不能嵌套。编译器读到第一个 */ 就认为注释已经结束，后面的 c */ 会被当作普通代码参与编译，从而报语法错误。若确实要注释掉包含块注释的代码，应改用 #if 0 ... #endif。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "注释",
+      "嵌套注释"
+    ]
+  }
+]

@@ -15,3 +15,4 @@ apps/mcp
 **/*.md
 !apps/web/public/**/*.md
 !examples/**/*.md
+!starter-content/**/*.md

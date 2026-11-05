@@ -1,0 +1,86 @@
+[
+  {
+    "id": "e07_1_s1",
+    "subject_id": "english",
+    "outline_code": "E-07",
+    "type": "single",
+    "stem": "The man ______ helped me yesterday is a doctor.",
+    "options": [
+      "which",
+      "whom",
+      "who",
+      "whose"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "先行词 the man 是人，从句 ______ helped me 缺主语，要用主格 who；whom 只能作宾语。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e07_1_s2",
+    "subject_id": "english",
+    "outline_code": "E-07",
+    "type": "single",
+    "stem": "This is the house in ______ my grandparents lived.",
+    "options": [
+      "that",
+      "which",
+      "who",
+      "what"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "先行词 the house 是物，介词 in 后面要用 which，不能用 that；in which 相当于 where。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e07_1_f1",
+    "subject_id": "english",
+    "outline_code": "E-07",
+    "type": "fill",
+    "stem": "I know a girl ______ father is a doctor.",
+    "answer": [
+      "whose"
+    ],
+    "explanation": "从句缺“女孩的”这个定语，表示所属关系，用关系代词 whose；whose father 相当于 the girl's father。",
+    "score": 2,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e07_1_j1",
+    "subject_id": "english",
+    "outline_code": "E-07",
+    "type": "judge",
+    "stem": "非限制性定语从句可以用 that 引导。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "非限制性定语从句用逗号与主句隔开，起补充说明作用，只能用 who、whom、which、whose 等，不能用 that。",
+    "score": 2,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  }
+]

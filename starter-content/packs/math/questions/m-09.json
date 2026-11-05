@@ -1,0 +1,250 @@
+[
+  {
+    "id": "q_1116f44c5d45",
+    "subject_id": "math",
+    "outline_code": "M-09",
+    "type": "short",
+    "stem": "用导数定义求 $f(x)=x^{2}$ 在 $x=1$ 处的导数，并求曲线 $y=x^{2}$ 在点 $(1,1)$ 处的切线方程与法线方程。",
+    "options": null,
+    "answer": null,
+    "explanation": "先按定义写出差商并取极限得 $f'(1)=2$，再用点斜式写切线，用法线斜率与切线斜率互为负倒数写 法线。",
+    "reference_answer": "由导数定义，$f'(1)=\\lim_{h\\to 0}\\dfrac{f(1+h)-f(1)}{h}=\\lim_{h\\to 0}\\dfrac{(1+h)^{2}-1}{h}=\\lim_{h\\to 0}\\dfrac{2h+h^{2}}{h}=\\lim_{h\\to 0}(2+h)=2$。因此曲线在 $(1,1)$ 处的切线斜率为 $2$，切线方程为 $y-1=2(x-1)$，即 $y=2x-1$。法线斜率为 $-\\dfrac{1}{2}$，法线方程为 $y-1=-\\dfrac{1}{2}(x-1)$，即 $y=-\\dfrac{1}{2}x+\\dfrac{3}{2}$。",
+    "rubric": [
+      {
+        "point": "写出导数定义式 $\\lim_{h\\to0}\\dfrac{(1+h)^2-1}{h}$",
+        "score": 3
+      },
+      {
+        "point": "展开并约分得 $\\lim_{h\\to0}(2+h)$",
+        "score": 3
+      },
+      {
+        "point": "求得 $f'(1)=2$",
+        "score": 1
+      },
+      {
+        "point": "切线方程 $y=2x-1$",
+        "score": 2
+      },
+      {
+        "point": "法线方程 $y=-\\frac{1}{2}x+\\frac{3}{2}$",
+        "score": 1
+      }
+    ],
+    "score": 10.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "切线",
+      "法线"
+    ],
+    "verified": 1,
+    "fingerprint": "be174933b38d065d6506",
+    "created_at": "2026-11-04T18:58:29",
+    "status": "approved",
+    "reviewed_at": "2026-11-04T19:00:38",
+    "review_note": "主 Agent 抽查：法线、隐函数二阶导、分段可导、洛必达失效、tanx-x 等价，均为正确",
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "q_3cf1178bf358",
+    "subject_id": "math",
+    "outline_code": "M-09",
+    "type": "single",
+    "stem": "曲线 $y=\\dfrac{1}{x}$ 在点 $(1,1)$ 处的法线方程是（ ）",
+    "options": [
+      "$y=-x+2$",
+      "$y=x$",
+      "$y=x+1$",
+      "$y=-x$"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "$y'=-\\dfrac{1}{x^{2}}$，在 $x=1$ 处切线斜率为 $-1$，故法线斜率为 $1$；过 $(1,1)$ 得 $y-1=x-1$，即 $y=x$。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "法线",
+      "切线",
+      "几何意义"
+    ],
+    "verified": 1,
+    "fingerprint": "0f6d46a1cf184fa94a09",
+    "created_at": "2026-11-04T18:58:29",
+    "status": "approved",
+    "reviewed_at": "2026-11-04T19:00:38",
+    "review_note": "主 Agent 抽查：法线、隐函数二阶导、分段可导、洛必达失效、tanx-x 等价，均为正确",
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "q_8fcadd8a73cd",
+    "subject_id": "math",
+    "outline_code": "M-09",
+    "type": "fill",
+    "stem": "用导数定义求 $f(x)=\\dfrac{1}{x}$ 在 $x=2$ 处的导数：$f'(2)=$ ____。",
+    "options": null,
+    "answer": [
+      "-1/4",
+      "-0.25",
+      "-\\frac{1}{4}"
+    ],
+    "explanation": "$f'(2)=\\lim_{h\\to 0}\\dfrac{\\frac{1}{2+h}-\\frac{1}{2}}{h}=\\lim_{h\\to 0}\\dfrac{-h}{2h(2+h)}=-\\dfrac{1}{4}$。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "分式函数"
+    ],
+    "verified": 1,
+    "fingerprint": "7d6270d590d88fbe3de3",
+    "created_at": "2026-11-04T18:58:29",
+    "status": "approved",
+    "reviewed_at": "2026-11-04T19:00:38",
+    "review_note": "主 Agent 抽查：法线、隐函数二阶导、分段可导、洛必达失效、tanx-x 等价，均为正确",
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "q_e39dfa40dcca",
+    "subject_id": "math",
+    "outline_code": "M-09",
+    "type": "judge",
+    "stem": "若 $f(x)$ 在 $x_0$ 处可导，则曲线 $y=f(x)$ 在点 $(x_0,f(x_0))$ 处一定存在切线。",
+    "options": null,
+    "answer": [
+      "true"
+    ],
+    "explanation": "可导意味着差商极限 $f'(x_0)$ 存在且有限，该极限就是切线斜率，因此切线一定存在且不是竖直线。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 2.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "切线存在性"
+    ],
+    "verified": 1,
+    "fingerprint": "5a242d2e288d9d91aab4",
+    "created_at": "2026-11-04T18:58:29",
+    "status": "approved",
+    "reviewed_at": "2026-11-04T19:00:38",
+    "review_note": "主 Agent 抽查：法线、隐函数二阶导、分段可导、洛必达失效、tanx-x 等价，均为正确",
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "q_f0f4d5ae01bb",
+    "subject_id": "math",
+    "outline_code": "M-09",
+    "type": "single",
+    "stem": "曲线 $y=x^{3}$ 在点 $(1,1)$ 处的切线方程是（ ）",
+    "options": [
+      "$y=3x-2$",
+      "$y=3x+1$",
+      "$y=x$",
+      "$y=2x-1$"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "$y'=3x^{2}$，在 $x=1$ 处切线斜率为 $3$，由点斜式 $y-1=3(x-1)$ 得 $y=3x-2$。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "切线",
+      "几何意义"
+    ],
+    "verified": 1,
+    "fingerprint": "51c1e06315b18a9b9ee0",
+    "created_at": "2026-11-04T18:58:29",
+    "status": "approved",
+    "reviewed_at": "2026-11-04T19:00:38",
+    "review_note": "主 Agent 抽查：法线、隐函数二阶导、分段可导、洛必达失效、tanx-x 等价，均为正确",
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "q_fa86cf4ebf19",
+    "subject_id": "math",
+    "outline_code": "M-09",
+    "type": "single",
+    "stem": "设 $f(x)=x^{2}$，则 $f'(2)=$（ ）",
+    "options": [
+      "$0$",
+      "$2$",
+      "$8$",
+      "$4$"
+    ],
+    "answer": [
+      "D"
+    ],
+    "explanation": "$f'(x)=2x$，代入 $x=2$ 得 $f'(2)=4$。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "导数定义",
+      "幂函数求导"
+    ],
+    "verified": 1,
+    "fingerprint": "cebcdbe26f1e27b16666",
+    "created_at": "2026-11-04T18:58:29",
+    "status": "approved",
+    "reviewed_at": "2026-11-04T19:00:38",
+    "review_note": "主 Agent 抽查：法线、隐函数二阶导、分段可导、洛必达失效、tanx-x 等价，均为正确",
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  }
+]

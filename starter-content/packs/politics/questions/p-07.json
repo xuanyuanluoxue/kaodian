@@ -1,0 +1,102 @@
+[
+  {
+    "id": "p_p07_1_1",
+    "subject_id": "politics",
+    "outline_code": "P-07",
+    "type": "single",
+    "stem": "社会主义本质中“最终达到”的是（ ）",
+    "options": [
+      "按劳分配",
+      "共同富裕",
+      "公有制为主体",
+      "人的全面发展"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "社会主义本质的五句话以“最终达到共同富裕”为落脚点。按劳分配、公有制为主体属于社会主义基本经济特征，不是本质表述中的“最终达到”的目标。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "邓小平理论",
+      "社会主义本质"
+    ]
+  },
+  {
+    "id": "p_p07_1_2",
+    "subject_id": "politics",
+    "outline_code": "P-07",
+    "type": "single",
+    "stem": "邓小平明确提出社会主义本质是在（ ）",
+    "options": [
+      "1978 年党的十一届三中全会",
+      "1982 年党的十二大",
+      "1992 年南方谈话",
+      "1997 年党的十五大"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "1992 年南方谈话中，邓小平针对“姓资姓社”的争论，明确提出“社会主义的本质，是解放生产力，发展生产力，消灭剥削，消除两极分化，最终达到共同富裕”。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "邓小平理论",
+      "南方谈话"
+    ]
+  },
+  {
+    "id": "p_p07_1_3",
+    "subject_id": "politics",
+    "outline_code": "P-07",
+    "type": "fill",
+    "stem": "社会主义的本质是解放生产力、发展生产力，消灭剥削、消除两极分化，最终达到________。",
+    "answer": [
+      "共同富裕"
+    ],
+    "explanation": "这是邓小平 1992 年南方谈话对社会主义本质的完整概括，落脚点是最终达到共同富裕，体现了生产力、生产关系与价值目标的统一。",
+    "score": 2,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "邓小平理论",
+      "社会主义本质"
+    ]
+  },
+  {
+    "id": "p_p07_1_4",
+    "subject_id": "politics",
+    "outline_code": "P-07",
+    "type": "judge",
+    "stem": "共同富裕就是同步富裕、同等富裕。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "共同富裕是逐步实现的历史过程，允许一部分地区、一部分人先富起来，通过先富带后富最终实现，不是同步富裕、同等富裕，也不是平均主义。",
+    "score": 2,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "邓小平理论",
+      "共同富裕"
+    ]
+  }
+]

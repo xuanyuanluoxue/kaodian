@@ -1,0 +1,254 @@
+[
+  {
+    "id": "e05_1_s1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "single",
+    "stem": "My brother usually ______ to school by bike, but today he ______ a bus.",
+    "options": [
+      "rides; takes",
+      "is riding; takes",
+      "rides; is taking",
+      "is riding; is taking"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "usually 表示长期习惯，用一般现在时，主语是第三人称单数，所以第一空填 rides；but today 表示今天这一天的临时情况，用现在进行时 is taking。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_1_s2",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "single",
+    "stem": "下列句子中，语法正确的是（ ）",
+    "options": [
+      "I am knowing the answer.",
+      "She is wanting a cup of tea.",
+      "He is having lunch now.",
+      "They are belonging to the same club."
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "have lunch 表示“吃午饭”，是具体动作，可以用现在进行时；know、want、belong 都是状态动词，通常不用进行时，应改为 know、wants、belong。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_1_f1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "fill",
+    "stem": "Look! The children ______ (play) football in the playground.",
+    "answer": [
+      "are playing"
+    ],
+    "explanation": "Look! 提示动作此刻正在发生，主语 the children 是复数，所以用 are playing。",
+    "score": 2,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_1_j1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "judge",
+    "stem": "“The train leaves at 8:00 tomorrow.” 用一般现在时表示将来，是因为火车时刻表属于固定安排。",
+    "answer": [
+      "true"
+    ],
+    "explanation": "按时刻表、日程表发生的将来动作，常用一般现在时表示，强调这是固定安排，而不是临时决定。",
+    "score": 2,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_2_s1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "single",
+    "stem": "She ______ in this school since 2020.",
+    "options": [
+      "teaches",
+      "taught",
+      "has taught",
+      "is teaching"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "since 2020 表示从过去持续到现在，用现在完成时 has taught；一般现在时和一般过去时都不能表达“持续到现在”。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_2_s2",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "single",
+    "stem": "We ______ the museum last Sunday.",
+    "options": [
+      "have visited",
+      "visited",
+      "have been visiting",
+      "visit"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "last Sunday 是明确的过去时间，句子只交代上周日发生了什么，用一般过去时 visited；现在完成时不能与明确的过去时间连用。",
+    "score": 2,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_2_f1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "fill",
+    "stem": "My grandfather ______ (live) in Beijing for ten years, but he lives in Shanghai now.",
+    "answer": [
+      "lived"
+    ],
+    "explanation": "他现在住在上海，说明“在北京住十年”是已经结束的过去经历，用一般过去时 lived；现在完成时 has lived 会表示至今仍住北京，与后半句矛盾。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_2_j1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "judge",
+    "stem": "现在完成时可以和 yesterday 这样的明确过去时间连用。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "现在完成时强调过去动作与现在的联系，不能与 yesterday、last week、two days ago 等明确过去时间连用，这些时间要用一般过去时。",
+    "score": 2,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_3_s1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "single",
+    "stem": "The classroom ______ every day.",
+    "options": [
+      "cleans",
+      "is cleaned",
+      "is cleaning",
+      "has cleaned"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "教室是“被打扫”的，主语是动作承受者，要用被动语态；every day 表示一般现在时，所以是 is cleaned。",
+    "score": 3,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_3_s2",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "single",
+    "stem": "A new library ______ in our town next year.",
+    "options": [
+      "will build",
+      "will be built",
+      "is building",
+      "has built"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "图书馆是“被建造”的，next year 表示将来，将来时的被动结构是 will be done，所以选 will be built。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_3_f1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "fill",
+    "stem": "The window ______ (break) by Tom yesterday.",
+    "answer": [
+      "was broken"
+    ],
+    "explanation": "窗户是被 Tom 打破的，yesterday 表示一般过去时，被动结构为 was/were + 过去分词，主语是单数，所以填 was broken。",
+    "score": 2,
+    "difficulty": 1,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  },
+  {
+    "id": "e05_3_j1",
+    "subject_id": "english",
+    "outline_code": "E-05",
+    "type": "judge",
+    "stem": "“The accident was happened last night.” 这句话的被动语态是正确的。",
+    "answer": [
+      "false"
+    ],
+    "explanation": "happen 是不及物动词，没有宾语，不能构成被动语态；应改为 The accident happened last night.",
+    "score": 2,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    }
+  }
+]

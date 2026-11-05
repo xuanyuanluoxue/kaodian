@@ -34,6 +34,7 @@ COPY --chown=1000:1000 apps/api/app ./apps/api/app
 COPY --chown=1000:1000 apps/cli ./apps/cli
 COPY --chown=1000:1000 bin ./bin
 COPY --chown=1000:1000 config ./config
+COPY --chown=1000:1000 starter-content ./starter-content
 COPY --chown=1000:1000 examples ./examples
 COPY --chown=1000:1000 --from=web /web/dist ./apps/web/dist
 
@@ -43,7 +44,7 @@ RUN groupadd -g 1000 kaodian 2>/dev/null || true \
 
 USER 1000:1000
 VOLUME ["/data"]
-# /content 由宿主机内容仓库只读挂载
+# /content 由宿主机内容仓库只读挂载；未挂载时可用 /app/starter-content
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

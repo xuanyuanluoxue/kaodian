@@ -7,11 +7,11 @@
 
 | 层 | 默认 | 说明 |
 |---|---|---|
-| 框架 | 本仓库 | 代码、CLI、示例内容，不含真实学科内容 |
+| 框架 | 本仓库 | 代码、CLI、`starter-content/`，不含完整学科内容 |
 | 内容 | `content/`（`KAODIAN_CONTENT_DIR` / `kaodian.toml`） | Markdown、题目 JSON、素材 |
 | 数据 | `data/`（`KAODIAN_DATA_DIR`） | SQLite、备份、导出、日志 |
 
-优先级：环境变量 → 仓库根 `kaodian.toml` → `examples/demo-content` + `data/`。
+优先级：环境变量 → 仓库根 `kaodian.toml` → `starter-content/` + `data/`。
 
 ```bash
 cp kaodian.example.toml kaodian.toml

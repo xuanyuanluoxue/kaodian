@@ -32,7 +32,8 @@ kaodian/                       # 框架仓库（无学科内容）
 │   ├── mcp/                   # logs
 │   ├── cli/                   # cache
 │   └── shared/                # logs / sandbox
-├── examples/demo-content/     # 示例内容包（首次启动 / 测试）
+├── starter-content/           # 随框架分发的起始内容（12 页 / 71 题）
+├── examples/demo-content/     # 测试用最小内容包
 ├── docs/
 ├── kaodian.example.toml       # 本机路径配置示例
 └── AGENTS.md
@@ -119,7 +120,7 @@ flowchart LR
 
 - **源码**：`apps/`、`bin/`，进 Git。
 - **框架配置**：`config/`（题型注册表），进 Git；旧学科配置在迁移完成前保留。
-- **内容**：独立内容仓库，进它自己的 Git；框架仓库只有 `examples/demo-content`。
+- **内容**：独立内容仓库，进它自己的 Git；框架仓库只带 `starter-content/`（子集）与 `examples/demo-content`（测试）。
 - **用户进度**：`data_dir()/api/kaodian.db`（默认 `data/`），不进 Git。
 - **学习内容源文件**：内容仓库内的 Markdown / JSON / assets。
 

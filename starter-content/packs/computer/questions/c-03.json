@@ -1,0 +1,177 @@
+[
+  {
+    "id": "seed_c03_01",
+    "subject_id": "computer",
+    "outline_code": "C-03",
+    "type": "single",
+    "stem": "执行 `int a=1, b=4, c; c=a/b;` 后，c 的值是（ ）",
+    "options": [
+      "1",
+      "0.25",
+      "0",
+      "4"
+    ],
+    "answer": [
+      "C"
+    ],
+    "explanation": "两个 int 相除是整数除法，1/4 直接截断为 0。若想得到小数，需要写成 `(double)a/b`。",
+    "reference_answer": null,
+    "rubric": null,
+    "score": 3.0,
+    "difficulty": 1,
+    "source": {
+      "kind": "adapted",
+      "year": 2021,
+      "paper": "广东专升本·计算机基础与程序设计",
+      "no": 3,
+      "note": "根据公开真题改编，非原卷"
+    },
+    "tags": [
+      "整数除法",
+      "类型转换"
+    ],
+    "verified": 1,
+    "fingerprint": "2b01f885a345c00a9140",
+    "created_at": "2026-11-01T16:28:05+08:00",
+    "status": "approved",
+    "reviewed_at": null,
+    "review_note": null,
+    "language": null,
+    "group_id": null,
+    "group_position": 0,
+    "media": null
+  },
+  {
+    "id": "c2_c03_1",
+    "subject_id": "computer",
+    "outline_code": "C-03",
+    "type": "single",
+    "stem": "在本题所用的 gcc（64 位 Linux）环境下，运行下面的程序，输出是（ ）\n\n```c\n#include <stdio.h>\nint main(void)\n{\n    printf(\"%zu %zu %zu\\n\", sizeof(char), sizeof(int), sizeof(double));\n    return 0;\n}\n```\n\n（选填一个选项）",
+    "options": [
+      "1 4 8",
+      "1 2 4",
+      "1 4 4",
+      "1 2 8"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "实测输出为 1 4 8。char 恒占 1 字节；该环境下 int 占 4 字节，double 占 8 字节。C 标准只保证 sizeof(char) == 1 以及各类型的最小范围，int、double 的具体字节数由平台决定，考试中一般按 int 4 字节、double 8 字节计算。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "sizeof",
+      "数据类型",
+      "字节数"
+    ]
+  },
+  {
+    "id": "c2_c03_2",
+    "subject_id": "computer",
+    "outline_code": "C-03",
+    "type": "single",
+    "stem": "在常见的 gcc 环境中，unsigned char 类型变量能表示的最大整数是（ ）",
+    "options": [
+      "127",
+      "255",
+      "32767",
+      "65535"
+    ],
+    "answer": [
+      "B"
+    ],
+    "explanation": "unsigned char 占 1 字节即 8 位，没有符号位，取值范围是 0~255，最大值 255。127 是 signed char 的最大值；32767 是 short 的最大值；65535 是 unsigned short 的最大值。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "unsigned char",
+      "取值范围"
+    ]
+  },
+  {
+    "id": "c2_c03_3",
+    "subject_id": "computer",
+    "outline_code": "C-03",
+    "type": "single",
+    "stem": "阅读下面的程序，输出结果是（ ）\n\n```c\n#include <stdio.h>\nint main(void)\n{\n    double x = 3.9;\n    int n = x;\n    printf(\"%d %d\\n\", n, (int)(x + 0.5));\n    return 0;\n}\n```\n\n（选填一个选项）",
+    "options": [
+      "3 4",
+      "4 4",
+      "3 3",
+      "4 3"
+    ],
+    "answer": [
+      "A"
+    ],
+    "explanation": "把 double 赋给 int 时直接截断小数部分，不做四舍五入，所以 n 得 3；x + 0.5 = 4.4，再用 (int) 强制转换同样截断，得 4。故输出 3 4。若想四舍五入，常用 (int)(x + 0.5) 这种写法。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "类型转换",
+      "截断",
+      "强制转换"
+    ]
+  },
+  {
+    "id": "c2_c03_4",
+    "subject_id": "computer",
+    "outline_code": "C-03",
+    "type": "fill",
+    "stem": "在 C 语言中（本题 gcc 环境），表达式 sizeof('A') 的值是 ______（填数字）。",
+    "options": [],
+    "answer": [
+      "4"
+    ],
+    "explanation": "字符常量 'A' 在 C 语言中的类型是 int 而不是 char，所以 sizeof('A') 等于 sizeof(int)，在本环境为 4。这是与 C++ 不同的经典易错点，C++ 中 'A' 的类型是 char，结果为 1。",
+    "score": 3,
+    "difficulty": 3,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "sizeof",
+      "字符常量",
+      "易错点"
+    ]
+  },
+  {
+    "id": "c2_c03_5",
+    "subject_id": "computer",
+    "outline_code": "C-03",
+    "type": "judge",
+    "stem": "float 类型的变量能够精确表示十进制小数 0.1。",
+    "options": [],
+    "answer": [
+      "false"
+    ],
+    "explanation": "float 采用二进制浮点格式存储，0.1 的二进制表示是无限循环小数，只能近似存储，因此 float x = 0.1f 得到的并不是精确的 0.1。这也是浮点数不能用 == 直接比较、货币计算常用整数（以分为单位）的原因。",
+    "score": 3,
+    "difficulty": 2,
+    "source": {
+      "kind": "ai",
+      "model": "subagent",
+      "date": "2026-11-04"
+    },
+    "tags": [
+      "float",
+      "浮点误差"
+    ]
+  }
+]

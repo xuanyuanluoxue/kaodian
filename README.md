@@ -8,7 +8,8 @@
 ```
 kaodian/
 ├── apps/                 框架仓库（公开）：web / api / mcp / cli
-├── content/              内容仓库（公开，独立 git）：讲义 / 题库 / 素材
+├── starter-content/      随框架分发的起始内容：12 页讲义 / 71 题
+├── content/              完整内容仓库（可选，独立 git）：讲义 / 题库 / 素材
 └── data/                 运行时数据（不进 Git）
     ├── api/              kaodian.db、backups、exports
     ├── web/              uploads
@@ -20,7 +21,7 @@ kaodian/
 | 层 | 内容 | 能否重建 |
 |---|---|---|
 | 框架 | `apps/{web,api,mcp,cli}` | 代码，Git 版本化 |
-| 内容 | `content/packs/<科目>/` | 文件是源，DB 只是索引 |
+| 内容 | `starter-content/` 或 `content/packs/<科目>/` | 文件是源，DB 只是索引 |
 | 数据 | `data/api/kaodian.db`、备份、导出 | 用户数据，只能备份 |
 
 ## 快速开始
@@ -28,17 +29,26 @@ kaodian/
 需要 Python 3.11+、Node 20.19+。
 
 ```bash
-git clone <framework> kaodian
+git clone https://github.com/xuanyuanluoxue/kaodian.git kaodian
 cd kaodian
-git clone <content> content
 make setup
 bin/kaodian content validate
 bin/kaodian serve --port 8010
 # http://127.0.0.1:8010
 ```
 
-`content/` 是独立 git 仓库，被框架的 `.gitignore` 排除；`data/` 整个目录也不进 Git。
-不克隆内容时，默认加载 `examples/demo-content`，数据写到 `./data/`，用于试跑。
+仓库自带 `starter-content/`：四个科目各 3 页讲义、71 道题，clone 完就能阅读、作答、看统计。
+`data/` 是运行时数据，不进 Git。
+
+想接自己的完整题库：把内容仓库放到 `./content`，再复制本机配置。
+
+```bash
+git clone <你的内容仓库> content
+cp kaodian.example.toml kaodian.toml     # [paths] content = "./content"
+bin/kaodian content sync
+```
+
+`content/` 被框架的 `.gitignore` 排除；`kaodian.toml` 也不进 Git。
 
 ## IDE 是控制面
 
@@ -61,18 +71,19 @@ opencode mcp add kaodian --global \
 ## 内容包
 
 ```
-content/
+content/                     # 或 starter-content/
 ├── registry.json
 └── packs/math/
-    ├── pack.json          # 科目、版本、考试参数
-    ├── outline.json       # 考纲节点
-    ├── lessons/*.md       # frontmatter + Markdown
-    ├── questions/*.json
-    ├── assets/*           # /media/math/xxx.svg
+    ├── pack.json            # 科目、版本、考试参数
+    ├── outline.json         # 考纲节点
+    ├── lessons/*.md         # frontmatter + Markdown
+    ├── questions/<code>.json
+    ├── assets/*             # /media/math/xxx.svg
     └── LICENSES.md
 ```
 
 新增一科只加一个 pack；新增一页只加一个 Markdown；不用改框架代码。
+`starter-content/` 由 `scripts/export-starter-content.py` 从完整内容仓库导出，不要手改。
 
 ## 目录
 
@@ -84,7 +95,7 @@ apps/cli/      kaodian 命令
 bin/kaodian    CLI 入口
 config/        框架默认配置（题型注册表）
 docs/          产品 / 开发 / AI / 内容
-examples/      演示内容包（测试与首次启动）
+examples/      测试用最小内容包
 ```
 
 ## 验证
@@ -97,5 +108,5 @@ make check     # pytest + 前端 lint + build
 
 - 默认只绑 `127.0.0.1`，无账号体系，不要暴露公网。
 - 代码沙箱默认关闭，`KAODIAN_ALLOW_CODE_RUN=1` 才启用。
-- 代码 MIT；内容与素材许可见内容仓库的 `LICENSES.md` 和各 pack 的 `LICENSES.md`。
+- 代码 MIT；`starter-content/` 的素材许可见其 `LICENSES.md` 与各 pack 的 `LICENSES.md`。
 - 真题只用改编版，不收录原卷。

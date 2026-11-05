@@ -4,7 +4,7 @@
 
 1. 环境变量 ``KAODIAN_CONTENT_DIR`` / ``KAODIAN_DATA_DIR`` / ``KAODIAN_DB``
 2. 仓库根目录的 ``kaodian.toml``
-3. 默认 ``examples/demo-content`` + ``data/``
+3. 默认仓库自带的 ``starter-content/`` + ``data/``
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_CONTENT = ROOT / "examples" / "demo-content"
+DEFAULT_CONTENT = ROOT / "starter-content"
 DEFAULT_DATA = ROOT / "data"
 
 

@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "computer",
+      "path": "packs/computer"
+    },
+    {
+      "id": "english",
+      "path": "packs/english"
+    },
+    {
+      "id": "math",
+      "path": "packs/math"
+    },
+    {
+      "id": "politics",
+      "path": "packs/politics"
+    }
+  ]
+}

@@ -8,7 +8,7 @@ services:
     ports:
       - "127.0.0.1:8010:8000"
     volumes:
-      - "${KAODIAN_CONTENT_HOST:-./content}:/content:ro"
+      - "${KAODIAN_CONTENT_HOST:-./starter-content}:/content:ro"
       - "${KAODIAN_DATA_HOST:-./data}:/data"
     environment:
       KAODIAN_CONTENT_DIR: /content
