@@ -14,7 +14,7 @@
 | 任务 | 主目录 | 先读 |
 |---|---|---|
 | 前端 / 后端 / MCP / CLI | `apps/`、`bin/` | `docs/dev/architecture.md`、`docs/dev/api.md` |
-| 讲义 / 题库 / 素材 / 考纲 | `content/`（或 `starter-content/` 的源） | `docs/dev/content-packs.md`、`docs/content/format.md` |
+| 讲义 / 题库 / 素材 / 考纲 | `content/`（`starter-content/` 由它导出） | `docs/dev/content-packs.md`、`docs/content/format.md` |
 | 讲义版式 / 交互块 | `apps/web/src/components/blocks/` | `docs/dev/blocks.md` |
 | 学习画像 / 目标 / 阶段 | `apps/api/app/profile.py`、`apps/web/src/pages/Profile.tsx` | `docs/dev/profile.md` |
 | 复习算法 / 判分 | `apps/api/app/review.py`、`grading.py` | `docs/dev/architecture.md` |
@@ -277,6 +277,7 @@ CI（`.github/workflows/ci.yml`）分 backend（Python 3.12 + pytest）与 front
 - 子 Agent 不 commit；主 Agent 验收后统一提交。
 - 提交前确认 `git status` 不含 `data/`、`content/`、`kaodian.toml`、`.venv/`。
 - 不提交密钥、真实姓名、个人院校与绝对路径；示例用「示例大学 A/B/C/D」。
+- 公开文档里的示例数据必须明显虚构：校名、分数、排名、地区、阶段日期一起换，不能只改校名。
 
 ## 10. 编码约定
 

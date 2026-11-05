@@ -182,7 +182,7 @@ sequenceDiagram
 
 ```text
 姓名：张三
-目标：2028 公办计算机
+目标：通过考试
 今天：第 1 天
 ```
 
@@ -222,7 +222,7 @@ sequenceDiagram
 
 int main() {
     printf("姓名：张三\n");
-    printf("目标：2028 公办计算机\n");
+    printf("目标：通过考试\n");
     printf("今天：第 1 天\n");
     return 0;
 }
@@ -232,7 +232,7 @@ int main() {
 
 ```text
 姓名：张三
-目标：2028 公办计算机
+目标：通过考试
 今天：第 1 天
 ```
 

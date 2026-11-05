@@ -29,13 +29,13 @@
 ```json
 [
   {"tier": "冲", "school": "示例大学 A", "major": "计算机科学与技术",
-   "score": 424, "rank": 120, "location": "珠海（协同培养）", "note": ""},
+   "score": 400, "rank": 100, "location": "示例城市 A（协同培养）", "note": ""},
   {"tier": "稳", "school": "示例大学 B", "major": "计算机科学与技术",
-   "score": 413, "rank": 200, "location": "梅州", "note": ""},
+   "score": 390, "rank": 200, "location": "示例城市 B", "note": ""},
   {"tier": "保", "school": "示例大学 C", "major": "软件工程",
-   "score": 404, "rank": 308, "location": "惠州（联合培养）", "note": ""},
+   "score": 380, "rank": 300, "location": "示例城市 C（联合培养）", "note": ""},
   {"tier": "兜底", "school": "示例大学 D", "major": "计算机应用工程",
-   "score": 182, "rank": 7599, "location": "广州（民办）", "note": ""}
+   "score": 360, "rank": 400, "location": "示例城市 D（民办）", "note": ""}
 ]
 ```
 
@@ -50,7 +50,7 @@
 
 | 字段 | 说明 |
 |---|---|
-| `subject_targets` | JSON 对象，`{subject_id: 目标分}`，如 `{"computer":190,"math":85,"english":55,"politics":80}` |
+| `subject_targets` | JSON 对象，`{subject_id: 目标分}`，如 `{"computer":150,"math":80,"english":60,"politics":70}` |
 
 键必须是已存在科目；分数 0–`exam_total`。
 
@@ -112,12 +112,12 @@ total_hours INTEGER
   "next_questions": [],
   "phase": {
     "name": "P1",
-    "goal": "C 语言基础 + 高数第一轮；2027 报名考试拿真实排位",
-    "start": "2026-11-01",
-    "end": "2027-03-31",
-    "daily_minutes": 120,
-    "days_left": 146,
-    "progress": 0.02
+    "goal": "示例阶段目标：打基础 + 第一轮复习",
+    "start": "2027-09-01",
+    "end": "2028-01-31",
+    "daily_minutes": 90,
+    "days_left": 200,
+    "progress": 0.1
   }
 }
 ```

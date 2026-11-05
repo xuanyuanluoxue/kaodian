@@ -114,7 +114,7 @@ Claude Desktop 的等价配置：
 
 ```json
 [{"tier": "冲", "school": "示例大学 A", "major": "计算机科学与技术",
-  "score": 424, "rank": 120, "location": "珠海（协同培养）", "note": ""}]
+  "score": 400, "rank": 100, "location": "示例城市 A（协同培养）", "note": ""}]
 ```
 
 `tier` 只能是 `冲` / `稳` / `保` / `兜底`，最多 8 条；写入后
