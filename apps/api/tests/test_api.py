@@ -348,14 +348,18 @@ def test_code_run_explains_typo(client, monkeypatch):
 
 
 def test_spa_blocks_path_traversal(client):
+    built = (ROOT / "apps" / "web" / "dist" / "index.html").is_file()
     for path in (
         "/../../../README.md",
         "/%2e%2e/%2e%2e/%2e%2e/data/api/kaodian.db",
     ):
         r = client.get(path)
-        assert r.status_code == 200
-        assert r.content.startswith(b"<!doctype html>")
+        # 未构建前端时没有 SPA 兜底，直接 404；构建后应回落到 index.html。
+        assert r.status_code == (200 if built else 404)
+        if built:
+            assert r.content.startswith(b"<!doctype html>")
         assert b"SQLite format" not in r.content
+        assert "# 考点 · Kaodian".encode() not in r.content
 
 
 def test_answer_must_belong_to_quiz(client):
