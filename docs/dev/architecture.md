@@ -3,7 +3,7 @@
 ## 目录
 
 ```
-kaodian/                       # 框架仓库（无学科内容）
+kaodian/                       # 框架仓库（代码 + 起始内容子集）
 ├── apps/
 │   ├── web/                   # 开发源码：前端（React + Vite）
 │   │   ├── public/            # UI 素材（favicon、主题脚本）
@@ -23,7 +23,7 @@ kaodian/                       # 框架仓库（无学科内容）
 │   └── mcp/                   # stdio MCP 服务（HTTP 的薄包装）
 ├── bin/kaodian                # CLI shell wrapper
 ├── config/                    # 框架默认配置（题型注册表）
-├── content/                   # 内容仓库（独立 git，公开，框架 .gitignore）
+├── content/                   # 完整内容仓库（可选，独立 git，框架 .gitignore）
 │   ├── registry.json
 │   └── packs/<科目>/          # 大纲 / 讲义 / 题库 / 素材
 ├── data/                      # 运行时数据（不进 Git）
