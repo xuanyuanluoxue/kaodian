@@ -68,8 +68,13 @@ export interface BuildQuizBody {
 
 export const api = {
   profile: () => request<Profile>("/profile"),
-  updateProfile: (body: ProfileUpdate) =>
-    request<Profile>("/profile", { method: "PUT", body: JSON.stringify(body) }),
+  updateProfile: (body: ProfileUpdate) => {
+    // 页面表单不负责 AI 摘要与来源标记；即使调用方误传也在这里剔除。
+    const payload = { ...body } as Record<string, unknown>;
+    delete payload.ai_summary;
+    delete payload.updated_by;
+    return request<Profile>("/profile", { method: "PUT", body: JSON.stringify(payload) });
+  },
   subjects: () => request<Subject[]>("/subjects"),
   questionTypes: () => request<QuestionType[]>("/question-types"),
   outline: (subjectId?: string) =>

@@ -430,11 +430,44 @@ export interface TypeStats {
   correct: number;
 }
 
+/** 志愿表档位，固定按此顺序展示与保存。 */
+export type ProfileTier = "冲" | "稳" | "保" | "兜底";
+
+/** 志愿表一行；score / rank 可为空。 */
+export interface ProfileTarget {
+  tier: ProfileTier;
+  school: string;
+  major: string;
+  score: number | null;
+  rank: number | null;
+  location: string;
+  note: string;
+}
+
+export type ProfilePlanPhase = "P1" | "P2" | "P3";
+
+/** GET /api/profile 实时计算的当前阶段；无阶段为 null。 */
+export interface ProfilePhase {
+  name: string | null;
+  goal: string | null;
+  start: string | null;
+  end: string | null;
+  daily_minutes: number | null;
+  /** phase_end - today，可为负。 */
+  days_left: number | null;
+  /** 已过天数 / 总天数，0–1；无起止为 null。 */
+  progress: number | null;
+}
+
 /** 学习画像静态目标，存 profile 单行表。 */
 export interface ProfileStatic {
   target_exam: string | null;
   target_date: string | null;
   target_score: number | null;
+  /** 志愿表，按志愿顺序；最多 8 条。 */
+  targets: ProfileTarget[];
+  /** 满分，默认 500。 */
+  exam_total: number;
   target_school: string | null;
   target_major: string | null;
   target_region: string | null;
@@ -443,8 +476,12 @@ export interface ProfileStatic {
   exam_type: string | null;
   current_education: string | null;
   graduation_year: number | null;
+  /** 硬线说明，如「三科 105 / 专业综合课 60」。 */
+  hard_lines: string | null;
   daily_minutes: number;
   subjects: string[];
+  /** 分科目标分，{subject_id: 分数}。 */
+  subject_targets: Record<string, number>;
   study_window: string | null;
   constraints: string | null;
   strengths: string | null;
@@ -455,6 +492,14 @@ export interface ProfileStatic {
   ai_summary: string;
   preferred_tone: string;
   preferred_examples: string;
+  /** 当前执行阶段；换阶段时覆盖。 */
+  plan_phase: string | null;
+  phase_start: string | null;
+  phase_end: string | null;
+  phase_daily_minutes: number | null;
+  phase_goal: string | null;
+  /** 全程预算小时。 */
+  total_hours: number | null;
   updated_by: "user" | "agent";
 }
 
@@ -516,4 +561,6 @@ export interface Profile {
   /** 尚未填写的字段，必填优先。 */
   missing: string[];
   next_questions: ProfileQuestion[];
+  /** 当前阶段进度；没有阶段信息为 null。 */
+  phase: ProfilePhase | null;
 }

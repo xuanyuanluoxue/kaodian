@@ -10,6 +10,7 @@
 | 改前端/后端/MCP/CLI | 框架仓库 | `docs/dev/architecture.md`、`docs/dev/content-packs.md` |
 | 改讲义/题库/素材 | `content/` | `content/README.md`、`content/AGENTS.md` |
 | 迁移/备份/导出 | `data/` + `bin/kaodian` | `docs/dev/development.md` |
+| 改目标/画像 | 框架仓库 + `data/` | `docs/dev/profile.md` |
 | 接 IDE / MCP | 框架仓库 | `docs/ai/integration.md`、`docs/ai/ide-workflow.md` |
 | 产品/路线 | 框架仓库 `docs/product/` | `final-state.md` |
 
@@ -39,6 +40,7 @@
 make check
 bin/kaodian content validate
 bin/kaodian content sync
+bin/kaodian profile show --json
 bin/kaodian doctor --json
 bin/kaodian serve --port 8010
 ```

@@ -6,15 +6,46 @@ import { errorText, formatDuration } from "../lib/format";
 import type {
   Profile as ProfileData,
   ProfileDynamic,
+  ProfilePlanPhase,
   ProfileStatic,
+  ProfileTarget,
+  ProfileTier,
   ProfileUpdate,
   Subject,
 } from "../types";
+
+const TIERS: ProfileTier[] = ["冲", "稳", "保", "兜底"];
+const PHASES: ProfilePlanPhase[] = ["P1", "P2", "P3"];
+const MAX_TARGETS = 8;
+
+/** 志愿表编辑态；数字字段用字符串承载输入框的空值。 */
+interface TargetRow {
+  tier: ProfileTier;
+  school: string;
+  major: string;
+  score: string;
+  rank: string;
+  location: string;
+  note: string;
+}
+
+const EMPTY_TARGET: TargetRow = {
+  tier: "保",
+  school: "",
+  major: "",
+  score: "",
+  rank: "",
+  location: "",
+  note: "",
+};
 
 interface FormState {
   target_exam: string;
   target_date: string;
   target_score: string;
+  targets: TargetRow[];
+  exam_total: string;
+  hard_lines: string;
   target_school: string;
   target_major: string;
   target_region: string;
@@ -25,6 +56,13 @@ interface FormState {
   graduation_year: string;
   daily_minutes: string;
   subjects: string[];
+  subject_targets: Record<string, string>;
+  plan_phase: string;
+  phase_start: string;
+  phase_end: string;
+  phase_daily_minutes: string;
+  phase_goal: string;
+  total_hours: string;
   study_window: string;
   constraints: string;
   strengths: string;
@@ -39,6 +77,9 @@ const FIELD_LABELS: Record<string, string> = {
   target_exam: "考试名称",
   target_date: "考试日期",
   target_score: "目标分",
+  targets: "志愿表",
+  exam_total: "满分",
+  hard_lines: "硬线",
   target_school: "目标院校",
   target_major: "目标专业",
   target_region: "目标地区",
@@ -49,6 +90,13 @@ const FIELD_LABELS: Record<string, string> = {
   graduation_year: "毕业年份",
   daily_minutes: "每日分钟",
   subjects: "科目",
+  subject_targets: "分科目标",
+  plan_phase: "阶段",
+  phase_start: "阶段开始",
+  phase_end: "阶段结束",
+  phase_daily_minutes: "阶段日均分钟",
+  phase_goal: "阶段目标",
+  total_hours: "总预算小时",
   study_window: "学习时段",
   constraints: "限制",
   strengths: "优势",
@@ -61,11 +109,39 @@ function labelOf(field: string): string {
   return FIELD_LABELS[field] ?? field;
 }
 
+function asTier(value: unknown): ProfileTier {
+  return TIERS.includes(value as ProfileTier) ? (value as ProfileTier) : "保";
+}
+
+function numText(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "";
+  return String(value);
+}
+
+function targetsFromStatic(value: ProfileStatic | null | undefined): TargetRow[] {
+  return (value?.targets ?? []).map((target) => ({
+    tier: asTier(target.tier),
+    school: target.school ?? "",
+    major: target.major ?? "",
+    score: numText(target.score),
+    rank: numText(target.rank),
+    location: target.location ?? "",
+    note: target.note ?? "",
+  }));
+}
+
 function formFromStatic(value: ProfileStatic | null | undefined): FormState {
+  const subjectTargets: Record<string, string> = {};
+  Object.entries(value?.subject_targets ?? {}).forEach(([key, score]) => {
+    subjectTargets[key] = numText(score);
+  });
   return {
     target_exam: value?.target_exam ?? "",
     target_date: value?.target_date ?? "",
     target_score: value?.target_score == null ? "" : String(value.target_score),
+    targets: targetsFromStatic(value),
+    exam_total: value?.exam_total == null ? "500" : String(value.exam_total),
+    hard_lines: value?.hard_lines ?? "",
     target_school: value?.target_school ?? "",
     target_major: value?.target_major ?? "",
     target_region: value?.target_region ?? "",
@@ -76,6 +152,14 @@ function formFromStatic(value: ProfileStatic | null | undefined): FormState {
     graduation_year: value?.graduation_year == null ? "" : String(value.graduation_year),
     daily_minutes: value ? String(value.daily_minutes) : "30",
     subjects: value?.subjects ?? [],
+    subject_targets: subjectTargets,
+    plan_phase: value?.plan_phase ?? "",
+    phase_start: value?.phase_start ?? "",
+    phase_end: value?.phase_end ?? "",
+    phase_daily_minutes:
+      value?.phase_daily_minutes == null ? "" : String(value.phase_daily_minutes),
+    phase_goal: value?.phase_goal ?? "",
+    total_hours: value?.total_hours == null ? "" : String(value.total_hours),
     study_window: value?.study_window ?? "",
     constraints: value?.constraints ?? "",
     strengths: value?.strengths ?? "",
@@ -85,6 +169,32 @@ function formFromStatic(value: ProfileStatic | null | undefined): FormState {
     preferred_tone: value?.preferred_tone ?? "",
     preferred_examples: value?.preferred_examples ?? "",
   };
+}
+
+/** 保存前剔除院校为空的行，并按固定档位顺序排序。 */
+function cleanTargets(rows: TargetRow[]): ProfileTarget[] {
+  return rows
+    .filter((row) => row.school.trim() !== "")
+    .map((row) => ({
+      tier: asTier(row.tier),
+      school: row.school.trim().slice(0, 100),
+      major: row.major.trim().slice(0, 100),
+      score: row.score.trim() === "" ? null : Number(row.score),
+      rank: row.rank.trim() === "" ? null : Number(row.rank),
+      location: row.location.trim().slice(0, 100),
+      note: row.note.trim().slice(0, 200),
+    }))
+    .sort((a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier));
+}
+
+function cleanSubjectTargets(map: Record<string, string>): Record<string, number> {
+  const out: Record<string, number> = {};
+  Object.entries(map).forEach(([key, raw]) => {
+    const text = raw.trim();
+    if (!text) return;
+    out[key] = Number(text);
+  });
+  return out;
 }
 
 /** 只提交相对上次保存发生变化的字段，避免误覆盖其他端写入的内容。 */
@@ -125,6 +235,37 @@ function diffForm(form: FormState, baseline: FormState): ProfileUpdate {
   nullable("strengths");
   nullable("weaknesses");
   nullable("motivation");
+  nullable("hard_lines");
+
+  if (JSON.stringify(cleanTargets(form.targets)) !== JSON.stringify(cleanTargets(baseline.targets))) {
+    body.targets = cleanTargets(form.targets);
+  }
+  if (form.exam_total !== baseline.exam_total) {
+    body.exam_total = Number(text("exam_total"));
+  }
+  if (JSON.stringify(cleanSubjectTargets(form.subject_targets)) !== JSON.stringify(cleanSubjectTargets(baseline.subject_targets))) {
+    body.subject_targets = cleanSubjectTargets(form.subject_targets);
+  }
+  if (form.plan_phase !== baseline.plan_phase) {
+    body.plan_phase = form.plan_phase || null;
+  }
+  if (form.phase_start !== baseline.phase_start) {
+    body.phase_start = form.phase_start || null;
+  }
+  if (form.phase_end !== baseline.phase_end) {
+    body.phase_end = form.phase_end || null;
+  }
+  if (form.phase_daily_minutes !== baseline.phase_daily_minutes) {
+    const value = text("phase_daily_minutes");
+    body.phase_daily_minutes = value ? Number(value) : null;
+  }
+  if (form.phase_goal !== baseline.phase_goal) {
+    body.phase_goal = form.phase_goal.trim() || null;
+  }
+  if (form.total_hours !== baseline.total_hours) {
+    const value = text("total_hours");
+    body.total_hours = value ? Number(value) : null;
+  }
 
   if (form.daily_minutes !== baseline.daily_minutes) {
     body.daily_minutes = Number(text("daily_minutes"));
@@ -162,6 +303,33 @@ function countdownText(dynamic: ProfileDynamic): string {
   if (dynamic.days_to_exam == null) return "设置日期";
   if (dynamic.days_to_exam < 0) return `目标日期已过 ${-dynamic.days_to_exam} 天`;
   return `距目标还有 ${dynamic.days_to_exam} 天`;
+}
+
+function parseDay(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function todayDay(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function dayDiff(from: Date, to: Date): number {
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
+}
+
+function daysLeftText(days: number | null): string {
+  if (days == null) return "—";
+  if (days < 0) return "已结束";
+  if (days === 0) return "今天结束";
+  return `${days} 天`;
+}
+
+function scoreText(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function summaryText(staticProfile: ProfileStatic, subjectNames: Record<string, string>): string {
@@ -315,6 +483,43 @@ export function Profile() {
     setSaveError("");
   }
 
+  function patchTarget(index: number, changes: Partial<TargetRow>) {
+    setForm((current) => ({
+      ...current,
+      targets: current.targets.map((row, i) => (i === index ? { ...row, ...changes } : row)),
+    }));
+    setSaved(false);
+    setSaveError("");
+  }
+
+  function addTarget() {
+    setForm((current) =>
+      current.targets.length >= MAX_TARGETS
+        ? current
+        : { ...current, targets: [...current.targets, { ...EMPTY_TARGET }] },
+    );
+    setSaved(false);
+    setSaveError("");
+  }
+
+  function removeTarget(index: number) {
+    setForm((current) => ({
+      ...current,
+      targets: current.targets.filter((_, i) => i !== index),
+    }));
+    setSaved(false);
+    setSaveError("");
+  }
+
+  function patchSubjectTarget(id: string, value: string) {
+    setForm((current) => ({
+      ...current,
+      subject_targets: { ...current.subject_targets, [id]: value },
+    }));
+    setSaved(false);
+    setSaveError("");
+  }
+
   function validate(): string {
     const minutes = Number(form.daily_minutes);
     if (
@@ -325,10 +530,15 @@ export function Profile() {
     ) {
       return "每日目标需在 1–600 分钟之间";
     }
+    const examTotalText = form.exam_total.trim();
+    const examTotal = examTotalText ? Number(examTotalText) : 500;
+    if (!examTotalText || !Number.isInteger(examTotal) || examTotal < 1 || examTotal > 1000) {
+      return "满分需是 1–1000 的整数";
+    }
     if (form.target_score.trim()) {
       const score = Number(form.target_score);
-      if (!Number.isFinite(score) || score < 0) {
-        return "目标分需是非负数字";
+      if (!Number.isFinite(score) || score < 0 || score > examTotal) {
+        return `目标总分需在 0–${examTotal} 之间`;
       }
     }
     const targetDate = form.target_date.trim();
@@ -339,6 +549,57 @@ export function Profile() {
       const year = Number(form.graduation_year);
       if (!Number.isInteger(year) || year < 1950 || year > 2100) {
         return "毕业年份需是 1950–2100 的整数";
+      }
+    }
+    if (form.targets.length > MAX_TARGETS) {
+      return `志愿表最多 ${MAX_TARGETS} 条`;
+    }
+    for (let i = 0; i < form.targets.length; i += 1) {
+      const row = form.targets[i];
+      if (!row.school.trim()) continue;
+      const prefix = `志愿第 ${i + 1} 条`;
+      if (row.school.trim().length > 100) return `${prefix}的院校不能超过 100 字`;
+      if (row.score.trim()) {
+        const score = Number(row.score);
+        if (!Number.isFinite(score) || score < 0 || score > examTotal) {
+          return `${prefix}的 2026 线需在 0–${examTotal} 之间`;
+        }
+      }
+      if (row.rank.trim()) {
+        const rank = Number(row.rank);
+        if (!Number.isInteger(rank) || rank < 0 || rank > 1_000_000) {
+          return `${prefix}的排位需是 0–1000000 的整数`;
+        }
+      }
+    }
+    for (const [id, raw] of Object.entries(form.subject_targets)) {
+      if (!raw.trim()) continue;
+      const score = Number(raw);
+      if (!Number.isInteger(score) || score < 0 || score > examTotal) {
+        return `${subjectNames[id] || id} 的目标分需是 0–${examTotal} 的整数`;
+      }
+    }
+    const phaseStart = form.phase_start.trim();
+    const phaseEnd = form.phase_end.trim();
+    if (phaseStart && !/^\d{4}-\d{2}-\d{2}$/.test(phaseStart)) {
+      return "阶段开始日期格式需为 YYYY-MM-DD";
+    }
+    if (phaseEnd && !/^\d{4}-\d{2}-\d{2}$/.test(phaseEnd)) {
+      return "阶段结束日期格式需为 YYYY-MM-DD";
+    }
+    if (phaseStart && phaseEnd && phaseEnd < phaseStart) {
+      return "阶段结束日期不能早于开始日期";
+    }
+    if (form.phase_daily_minutes.trim()) {
+      const value = Number(form.phase_daily_minutes);
+      if (!Number.isInteger(value) || value < 1 || value > 600) {
+        return "阶段日均需在 1–600 分钟之间";
+      }
+    }
+    if (form.total_hours.trim()) {
+      const value = Number(form.total_hours);
+      if (!Number.isInteger(value) || value < 0 || value > 100_000) {
+        return "总预算小时需是 0–100000 的整数";
       }
     }
     return "";
@@ -380,6 +641,52 @@ export function Profile() {
   const missing = profile?.missing ?? [];
   const nextQuestions = (profile?.next_questions ?? []).slice(0, 3);
   const aiSummary = profile?.static.ai_summary?.trim() ?? "";
+
+  const examTotal = useMemo(() => {
+    const value = Number(form.exam_total);
+    return Number.isInteger(value) && value > 0 ? value : 500;
+  }, [form.exam_total]);
+
+  const phaseMetrics = useMemo(() => {
+    const start = parseDay(form.phase_start);
+    const end = parseDay(form.phase_end);
+    const today = todayDay();
+    const daysLeft = end ? dayDiff(today, end) : null;
+    let progress: number | null = null;
+    if (start && end) {
+      const total = Math.max(dayDiff(start, end), 1);
+      progress = Math.min(Math.max(dayDiff(start, today) / total, 0), 1);
+    }
+    return { daysLeft, progress };
+  }, [form.phase_start, form.phase_end]);
+
+  const phaseDateError =
+    form.phase_start && form.phase_end && form.phase_end < form.phase_start
+      ? "结束日期不能早于开始日期"
+      : "";
+
+  const scoreSubjects = useMemo(() => {
+    const stats = new Map((dynamic?.subjects ?? []).map((subject) => [subject.id, subject]));
+    const base = subjectList.length
+      ? subjectList.map((subject) => ({
+          id: subject.id,
+          name: subject.short || subject.name,
+          color: subject.color,
+        }))
+      : (dynamic?.subjects ?? []).map((subject) => ({
+          id: subject.id,
+          name: subject.short || subject.name,
+          color: subject.color,
+        }));
+    return base.map((subject) => {
+      const stat = stats.get(subject.id);
+      return {
+        ...subject,
+        answered: stat?.answered ?? 0,
+        accuracy: stat?.accuracy ?? null,
+      };
+    });
+  }, [subjectList, dynamic]);
 
   const aiPrompt = useMemo(() => {
     if (!profile) return "";
@@ -436,7 +743,13 @@ export function Profile() {
             <dl className="profile-target-meta">
               <div>
                 <dt>目标分</dt>
-                <dd>{profile.static.target_score ?? "—"}</dd>
+                <dd>
+                  {scoreText(profile.static.target_score)} / {profile.static.exam_total}
+                </dd>
+              </div>
+              <div>
+                <dt>阶段</dt>
+                <dd>{form.plan_phase || profile.phase?.name || "—"}</dd>
               </div>
               <div>
                 <dt>每日目标</dt>
@@ -448,6 +761,305 @@ export function Profile() {
               </div>
             </dl>
           </section>
+
+          <form id="profile-form" onSubmit={handleSubmit}>
+            <section className="card profile-phase">
+              <div className="profile-phase-head">
+                <div>
+                  <p className="card-kicker">阶段计划</p>
+                  <h2>{form.plan_phase || "未选阶段"}</h2>
+                </div>
+                <div className="profile-phase-switch" role="group" aria-label="阶段切换">
+                  {PHASES.map((phase) => (
+                    <button
+                      key={phase}
+                      type="button"
+                      className={form.plan_phase === phase ? "is-active" : ""}
+                      aria-pressed={form.plan_phase === phase}
+                      onClick={() => patch("plan_phase", phase)}
+                    >
+                      {phase}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <dl className="profile-phase-meta">
+                <div>
+                  <dt>剩余</dt>
+                  <dd>{daysLeftText(phaseMetrics.daysLeft)}</dd>
+                </div>
+                <div>
+                  <dt>进度</dt>
+                  <dd>{percentText(phaseMetrics.progress)}</dd>
+                </div>
+                <div>
+                  <dt>总预算</dt>
+                  <dd>{form.total_hours.trim() ? `${form.total_hours} 小时` : "—"}</dd>
+                </div>
+              </dl>
+              <div
+                className="stat-track profile-phase-track"
+                role="progressbar"
+                aria-label="阶段进度"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round((phaseMetrics.progress ?? 0) * 100)}
+              >
+                <span
+                  className="stat-fill"
+                  style={{ width: barWidth(phaseMetrics.progress) }}
+                />
+              </div>
+              <div className="profile-form-grid profile-phase-fields">
+                <div className="field profile-span-2">
+                  <label htmlFor="profile-phase-goal">阶段目标</label>
+                  <textarea
+                    id="profile-phase-goal"
+                    rows={2}
+                    maxLength={500}
+                    value={form.phase_goal}
+                    onChange={(e) => patch("phase_goal", e.target.value)}
+                    placeholder="如 C 语言基础 + 高数第一轮"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-phase-start">开始日期</label>
+                  <input
+                    id="profile-phase-start"
+                    type="date"
+                    value={form.phase_start}
+                    onChange={(e) => patch("phase_start", e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-phase-end">结束日期</label>
+                  <input
+                    id="profile-phase-end"
+                    type="date"
+                    value={form.phase_end}
+                    onChange={(e) => patch("phase_end", e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-phase-minutes">阶段日均（分钟）</label>
+                  <input
+                    id="profile-phase-minutes"
+                    type="number"
+                    inputMode="numeric"
+                    step="1"
+                    min="1"
+                    max="600"
+                    value={form.phase_daily_minutes}
+                    onChange={(e) => patch("phase_daily_minutes", e.target.value)}
+                    placeholder="如 120"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-total-hours">总预算（小时）</label>
+                  <input
+                    id="profile-total-hours"
+                    type="number"
+                    inputMode="numeric"
+                    step="1"
+                    min="0"
+                    max="100000"
+                    value={form.total_hours}
+                    onChange={(e) => patch("total_hours", e.target.value)}
+                    placeholder="如 1248"
+                  />
+                </div>
+              </div>
+              {phaseDateError && (
+                <p className="profile-field-error" role="alert">
+                  {phaseDateError}
+                </p>
+              )}
+            </section>
+
+            <section className="section">
+              <div className="section-head">
+                <h2>志愿表</h2>
+                <span className="muted small">冲 / 稳 / 保 / 兜底 · 最多 {MAX_TARGETS} 条</span>
+              </div>
+              <div className="card profile-targets">
+                <div className="profile-targets-head" aria-hidden="true">
+                  <span>档位</span>
+                  <span>院校</span>
+                  <span>专业</span>
+                  <span>2026 线</span>
+                  <span>排位</span>
+                  <span>地点</span>
+                  <span>备注</span>
+                  <span>操作</span>
+                </div>
+                <div className="profile-targets-list">
+                  {form.targets.length === 0 && (
+                    <p className="muted small">还没有志愿，点下方添加。</p>
+                  )}
+                  {form.targets.map((row, index) => (
+                    <div className="profile-target-row" key={index}>
+                      <label className="profile-target-cell">
+                        <span className="profile-target-cell-label">档位</span>
+                        <select
+                          value={row.tier}
+                          aria-label={`第 ${index + 1} 条档位`}
+                          onChange={(e) =>
+                            patchTarget(index, { tier: asTier(e.target.value) })
+                          }
+                        >
+                          {TIERS.map((tier) => (
+                            <option key={tier} value={tier}>
+                              {tier}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="profile-target-cell">
+                        <span className="profile-target-cell-label">院校</span>
+                        <input
+                          maxLength={100}
+                          value={row.school}
+                          aria-label={`第 ${index + 1} 条院校`}
+                          placeholder="院校名称"
+                          onChange={(e) => patchTarget(index, { school: e.target.value })}
+                        />
+                      </label>
+                      <label className="profile-target-cell">
+                        <span className="profile-target-cell-label">专业</span>
+                        <input
+                          maxLength={100}
+                          value={row.major}
+                          aria-label={`第 ${index + 1} 条专业`}
+                          placeholder="专业"
+                          onChange={(e) => patchTarget(index, { major: e.target.value })}
+                        />
+                      </label>
+                      <label className="profile-target-cell">
+                        <span className="profile-target-cell-label">2026 线</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="1"
+                          min="0"
+                          max={examTotal}
+                          value={row.score}
+                          aria-label={`第 ${index + 1} 条 2026 线`}
+                          placeholder="—"
+                          onChange={(e) => patchTarget(index, { score: e.target.value })}
+                        />
+                      </label>
+                      <label className="profile-target-cell">
+                        <span className="profile-target-cell-label">排位</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          step="1"
+                          min="0"
+                          max="1000000"
+                          value={row.rank}
+                          aria-label={`第 ${index + 1} 条排位`}
+                          placeholder="—"
+                          onChange={(e) => patchTarget(index, { rank: e.target.value })}
+                        />
+                      </label>
+                      <label className="profile-target-cell">
+                        <span className="profile-target-cell-label">地点</span>
+                        <input
+                          maxLength={100}
+                          value={row.location}
+                          aria-label={`第 ${index + 1} 条地点`}
+                          placeholder="地点"
+                          onChange={(e) => patchTarget(index, { location: e.target.value })}
+                        />
+                      </label>
+                      <label className="profile-target-cell">
+                        <span className="profile-target-cell-label">备注</span>
+                        <input
+                          maxLength={200}
+                          value={row.note}
+                          aria-label={`第 ${index + 1} 条备注`}
+                          placeholder="备注"
+                          onChange={(e) => patchTarget(index, { note: e.target.value })}
+                        />
+                      </label>
+                      <div className="profile-target-cell profile-target-actions">
+                        <button
+                          type="button"
+                          className="profile-target-remove"
+                          aria-label={`删除第 ${index + 1} 条志愿`}
+                          onClick={() => removeTarget(index)}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="profile-targets-actions">
+                  <button
+                    type="button"
+                    className="btn btn-small"
+                    onClick={addTarget}
+                    disabled={form.targets.length >= MAX_TARGETS}
+                  >
+                    + 添加志愿
+                  </button>
+                  <span className="hint">
+                    院校留空的行保存时自动忽略；保存后按冲 → 稳 → 保 → 兜底排序。
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <section className="section">
+              <div className="section-head">
+                <h2>分数模型</h2>
+                <span className="muted small">目标分 / 当前正确率 / 作答数</span>
+              </div>
+              <div className="card profile-score-model">
+                <div className="profile-score-head" aria-hidden="true">
+                  <span>科目</span>
+                  <span>目标分</span>
+                  <span>正确率</span>
+                  <span>作答</span>
+                </div>
+                {scoreSubjects.map((subject) => (
+                  <div className="profile-score-row" key={subject.id}>
+                    <div className="profile-score-name">
+                      <span
+                        className="dot"
+                        style={{ background: subject.color || "var(--accent)" }}
+                        aria-hidden="true"
+                      />
+                      <span>{subject.name}</span>
+                    </div>
+                    <label className="profile-score-cell">
+                      <span className="profile-score-cell-label">目标分</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        step="1"
+                        min="0"
+                        max={examTotal}
+                        value={form.subject_targets[subject.id] ?? ""}
+                        aria-label={`${subject.name} 目标分`}
+                        placeholder="—"
+                        onChange={(e) => patchSubjectTarget(subject.id, e.target.value)}
+                      />
+                    </label>
+                    <div className="profile-score-stat">
+                      <span>正确率</span>
+                      <b>{percentText(subject.accuracy)}</b>
+                    </div>
+                    <div className="profile-score-stat">
+                      <span>作答</span>
+                      <b>{subject.answered ? `${subject.answered} 题` : "—"}</b>
+                    </div>
+                  </div>
+                ))}
+                {!scoreSubjects.length && <p className="muted small">暂无科目数据。</p>}
+              </div>
+            </section>
 
           <section className="card profile-completeness">
             <div className="profile-completeness-head">
@@ -552,14 +1164,14 @@ export function Profile() {
             </div>
           </section>
 
-          <section className="section" id="profile-form">
+          <section className="section">
             <div className="section-head">
               <h2>画像信息</h2>
               <span className={dirty ? "profile-dirty" : "muted small"}>
                 {dirty ? "有未保存修改" : saved ? "已保存" : "改动后记得保存"}
               </span>
             </div>
-            <form className="card profile-form" onSubmit={handleSubmit}>
+            <div className="card profile-form">
               <div className="profile-group">
                 <div className="profile-group-head">
                   <h3>升学目标</h3>
@@ -592,9 +1204,24 @@ export function Profile() {
                       inputMode="decimal"
                       step="0.5"
                       min="0"
+                      max={examTotal}
                       value={form.target_score}
                       onChange={(e) => patch("target_score", e.target.value)}
                       placeholder="如 425"
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="profile-exam-total">满分</label>
+                    <input
+                      id="profile-exam-total"
+                      type="number"
+                      inputMode="numeric"
+                      step="1"
+                      min="1"
+                      max="1000"
+                      value={form.exam_total}
+                      onChange={(e) => patch("exam_total", e.target.value)}
+                      placeholder="如 500"
                     />
                   </div>
                   <div className="field">
@@ -680,6 +1307,17 @@ export function Profile() {
                       onChange={(e) => patch("graduation_year", e.target.value)}
                       placeholder="如 2028"
                     />
+                  </div>
+                  <div className="field profile-span-2">
+                    <label htmlFor="profile-hard-lines">硬线</label>
+                    <input
+                      id="profile-hard-lines"
+                      maxLength={200}
+                      value={form.hard_lines}
+                      onChange={(e) => patch("hard_lines", e.target.value)}
+                      placeholder="如 三科 105 / 专业综合课 60"
+                    />
+                    <p className="hint">单科或总分不达线时的硬性要求，留空表示没有。</p>
                   </div>
                 </div>
               </div>
@@ -838,8 +1476,18 @@ export function Profile() {
                 </button>
                 {saved && <span className="profile-save-ok">已保存，只提交了改动的字段</span>}
               </div>
-            </form>
+
+              {dirty && (
+                <div className="profile-savebar" role="status">
+                  <span>有未保存修改</span>
+                  <button className="btn btn-primary btn-small" type="submit" disabled={saving}>
+                    {saving ? "保存中…" : "保存"}
+                  </button>
+                </div>
+              )}
+            </div>
           </section>
+          </form>
 
           <section className="section">
             <div className="section-head">
