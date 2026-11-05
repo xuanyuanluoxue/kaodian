@@ -28,13 +28,13 @@
 
 ```json
 [
-  {"tier": "冲", "school": "韩山师范学院", "major": "计算机科学与技术",
+  {"tier": "冲", "school": "示例大学 A", "major": "计算机科学与技术",
    "score": 424, "rank": 120, "location": "珠海（协同培养）", "note": ""},
-  {"tier": "稳", "school": "嘉应学院", "major": "计算机科学与技术",
+  {"tier": "稳", "school": "示例大学 B", "major": "计算机科学与技术",
    "score": 413, "rank": 200, "location": "梅州", "note": ""},
-  {"tier": "保", "school": "惠州学院", "major": "软件工程",
+  {"tier": "保", "school": "示例大学 C", "major": "软件工程",
    "score": 404, "rank": 308, "location": "惠州（联合培养）", "note": ""},
-  {"tier": "兜底", "school": "广州科技职业技术大学", "major": "计算机应用工程",
+  {"tier": "兜底", "school": "示例大学 D", "major": "计算机应用工程",
    "score": 182, "rank": 7599, "location": "广州（民办）", "note": ""}
 ]
 ```

@@ -181,7 +181,7 @@ sequenceDiagram
 用纸笔写一个「个人名片」程序，输出三行：
 
 ```text
-姓名：陈新捷
+姓名：张三
 目标：2028 公办计算机
 今天：第 1 天
 ```
@@ -221,7 +221,7 @@ sequenceDiagram
 #include <stdio.h>
 
 int main() {
-    printf("姓名：陈新捷\n");
+    printf("姓名：张三\n");
     printf("目标：2028 公办计算机\n");
     printf("今天：第 1 天\n");
     return 0;
@@ -231,7 +231,7 @@ int main() {
 输出：
 
 ```text
-姓名：陈新捷
+姓名：张三
 目标：2028 公办计算机
 今天：第 1 天
 ```

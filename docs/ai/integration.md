@@ -113,7 +113,7 @@ Claude Desktop 的等价配置：
 `targets` 用 JSON 数组一次传，不拆成多个参数：
 
 ```json
-[{"tier": "冲", "school": "韩山师范学院", "major": "计算机科学与技术",
+[{"tier": "冲", "school": "示例大学 A", "major": "计算机科学与技术",
   "score": 424, "rank": 120, "location": "珠海（协同培养）", "note": ""}]
 ```
 
