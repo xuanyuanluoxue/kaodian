@@ -865,7 +865,7 @@ export function Profile() {
                     max="100000"
                     value={form.total_hours}
                     onChange={(e) => patch("total_hours", e.target.value)}
-                    placeholder="如 1248"
+                    placeholder="如 600"
                   />
                 </div>
               </div>
@@ -1207,7 +1207,7 @@ export function Profile() {
                       max={examTotal}
                       value={form.target_score}
                       onChange={(e) => patch("target_score", e.target.value)}
-                      placeholder="如 425"
+                      placeholder="如 400"
                     />
                   </div>
                   <div className="field">
@@ -1231,7 +1231,7 @@ export function Profile() {
                       maxLength={100}
                       value={form.target_school}
                       onChange={(e) => patch("target_school", e.target.value)}
-                      placeholder="如 广东技术师范大学"
+                      placeholder="如 示例大学 A"
                     />
                   </div>
                   <div className="field">
@@ -1251,7 +1251,7 @@ export function Profile() {
                       maxLength={50}
                       value={form.target_region}
                       onChange={(e) => patch("target_region", e.target.value)}
-                      placeholder="如 广州"
+                      placeholder="如 示例城市 A"
                     />
                   </div>
                   <div className="field">
@@ -1315,7 +1315,7 @@ export function Profile() {
                       maxLength={200}
                       value={form.hard_lines}
                       onChange={(e) => patch("hard_lines", e.target.value)}
-                      placeholder="如 三科 105 / 专业综合课 60"
+                      placeholder="如 三科 100 / 专业综合课 60"
                     />
                     <p className="hint">单科或总分不达线时的硬性要求，留空表示没有。</p>
                   </div>

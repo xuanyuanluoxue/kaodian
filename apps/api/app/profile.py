@@ -109,7 +109,7 @@ QUESTIONS = {
     "weaknesses": "目前最薄弱的环节是什么？",
     "exam_total": "这场考试满分是多少？",
     "subject_targets": "各科目标分大概是多少？比如高数 85、英语 55。",
-    "hard_lines": "有没有硬性分数线要求？比如「三科 105 / 专业综合课 60」。",
+    "hard_lines": "有没有硬性分数线要求？比如「三科 100 / 专业综合课 60」。",
     "plan_phase": "现在处在哪个阶段？P1 打基础、P2 强化、P3 冲刺。",
     "phase_start": "当前阶段从哪天开始？用 YYYY-MM-DD 回答。",
     "phase_end": "当前阶段到哪天结束？用 YYYY-MM-DD 回答。",

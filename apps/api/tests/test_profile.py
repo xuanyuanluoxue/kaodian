@@ -124,46 +124,46 @@ def test_new_database_has_default_profile(client):
 def test_put_then_get_roundtrip(client):
     body = {
         "target_exam": "2028 广东专升本",
-        "target_date": "2028-03-28",
-        "target_score": 425,
+        "target_date": "2028-04-15",
+        "target_score": 400,
         "targets": [
-            {"tier": "冲", "school": "广东技术师范大学", "major": "计算机科学与技术",
-             "score": 424, "rank": 120, "location": "广州", "note": ""},
-            {"tier": "兜底", "school": "广东白云学院", "major": "软件工程",
-             "score": 300, "rank": 3000, "location": "广州", "note": ""},
+            {"tier": "冲", "school": "示例大学 A", "major": "计算机科学与技术",
+             "score": 400, "rank": 100, "location": "示例城市 A", "note": ""},
+            {"tier": "兜底", "school": "示例大学 D", "major": "软件工程",
+             "score": 360, "rank": 400, "location": "示例城市 D", "note": ""},
         ],
         "exam_total": 500,
-        "subject_targets": {"demo": 190},
-        "hard_lines": "三科 105 / 专业综合课 60",
+        "subject_targets": {"demo": 150},
+        "hard_lines": "示例硬线：三科 100 / 专业综合课 60",
         "plan_phase": "P1",
-        "phase_start": "2026-11-01",
-        "phase_end": "2027-03-31",
-        "phase_daily_minutes": 120,
+        "phase_start": "2027-09-01",
+        "phase_end": "2028-01-31",
+        "phase_daily_minutes": 90,
         "phase_goal": "打基础",
-        "total_hours": 800,
-        "target_school": "广东技术师范大学",
+        "total_hours": 600,
+        "target_school": "示例大学 A",
         "target_major": "计算机科学与技术",
-        "target_region": "广州",
-        "backup_school": "广东白云学院",
+        "target_region": "示例城市 A",
+        "backup_school": "示例大学 D",
         "backup_major": "软件工程",
         "exam_type": "专升本",
         "current_education": "专科",
         "graduation_year": 2028,
-        "daily_minutes": 120,
+        "daily_minutes": 90,
         "subjects": ["demo"],
-        "study_window": "工作日晚上 2h + 周末 4h",
-        "constraints": "白天上班",
-        "strengths": "英语单词记得快",
-        "weaknesses": "数学基础弱",
-        "motivation": "想换到计算机相关岗位",
-        "notes": "数学基础弱",
+        "study_window": "工作日晚上 + 周末",
+        "constraints": "示例：白天有其他安排",
+        "strengths": "示例优势：记忆较快",
+        "weaknesses": "示例薄弱点：数学基础",
+        "motivation": "示例动机：换到计算机相关方向",
+        "notes": "示例备注",
         "ai_summary": "目标是 2028 广东专升本。",
         "preferred_tone": "直接",
         "preferred_examples": "先具体再一般",
     }
     response = client.put("/api/profile", json=body)
     assert response.status_code == 200, response.text
-    assert response.json()["static"]["daily_minutes"] == 120
+    assert response.json()["static"]["daily_minutes"] == 90
 
     fetched = client.get("/api/profile").json()
     assert fetched["static"] == {**body, "updated_by": "user"}
@@ -184,13 +184,13 @@ def test_partial_update_keeps_other_fields(client):
 
 def test_v2_fields_partial_update_and_questions(client):
     first = client.put("/api/profile", json={
-        "target_school": "广东技术师范大学",
+        "target_school": "示例大学 A",
         "target_major": "计算机科学与技术",
         "graduation_year": 2028,
         "study_window": "工作日晚上",
         "source": "agent",
     }).json()
-    assert first["static"]["target_school"] == "广东技术师范大学"
+    assert first["static"]["target_school"] == "示例大学 A"
     assert first["static"]["target_major"] == "计算机科学与技术"
     assert first["static"]["graduation_year"] == 2028
     assert first["static"]["study_window"] == "工作日晚上"
@@ -198,9 +198,9 @@ def test_v2_fields_partial_update_and_questions(client):
     # 已有 daily_minutes/subjects，再补志愿表（兼容首选院校）+ 专业。
     assert first["completeness"] == 0.5
 
-    second = client.put("/api/profile", json={"weaknesses": "数学基础弱"}).json()
-    assert second["static"]["target_school"] == "广东技术师范大学"
-    assert second["static"]["weaknesses"] == "数学基础弱"
+    second = client.put("/api/profile", json={"weaknesses": "示例薄弱点：数学基础"}).json()
+    assert second["static"]["target_school"] == "示例大学 A"
+    assert second["static"]["weaknesses"] == "示例薄弱点：数学基础"
     assert second["static"]["updated_by"] == "user"
     assert second["completeness"] == 0.5
 
@@ -209,13 +209,13 @@ def test_completeness_and_next_questions_order(client):
     # 补齐全部必填后，完整度为 1，问题转向选填。
     payload = client.put("/api/profile", json={
         "target_exam": "2028 广东专升本",
-        "target_date": "2028-03-28",
-        "target_score": 425,
-        "target_school": "广东技术师范大学",
+        "target_date": "2028-04-15",
+        "target_score": 400,
+        "target_school": "示例大学 A",
         "target_major": "计算机科学与技术",
-        "daily_minutes": 120,
+        "daily_minutes": 90,
         "subjects": ["demo"],
-        "motivation": "想换到计算机相关岗位",
+        "motivation": "示例动机：换到计算机相关方向",
     }).json()
     assert payload["completeness"] == 1
     assert payload["missing"] == []
@@ -281,7 +281,7 @@ def test_invalid_profile_returns_422(client, body):
 def test_agent_source_keeps_ai_summary_and_user_save_does_not_clear_it(client):
     agent = client.put("/api/profile", json={
         "ai_summary": "目标是 2028 广东专升本，数学偏弱。",
-        "motivation": "想换到计算机相关岗位",
+        "motivation": "示例动机：换到计算机相关方向",
         "source": "agent",
     }).json()
     assert agent["static"]["ai_summary"] == "目标是 2028 广东专升本，数学偏弱。"
@@ -432,7 +432,7 @@ def test_v7_profile_upgrades_to_v9_keeps_existing_fields(tmp_path, monkeypatch):
             """INSERT INTO profile(id, target_exam, target_date, target_score,
                                    daily_minutes, subjects, notes, preferred_tone,
                                    preferred_examples, updated_at)
-               VALUES (1, '2028 广东专升本', '2028-03-28', 425, 90, '["demo"]',
+               VALUES (1, '2028 广东专升本', '2028-04-15', 400, 90, '["demo"]',
                        '旧备注', '直接', '先具体', '2026-01-01T00:00:00')"""
         )
         conn.execute("PRAGMA user_version = 7")
@@ -444,8 +444,8 @@ def test_v7_profile_upgrades_to_v9_keeps_existing_fields(tmp_path, monkeypatch):
         row = conn.execute("SELECT * FROM profile WHERE id = 1").fetchone()
         # 旧字段原样保留。
         assert row["target_exam"] == "2028 广东专升本"
-        assert row["target_date"] == "2028-03-28"
-        assert row["target_score"] == 425
+        assert row["target_date"] == "2028-04-15"
+        assert row["target_score"] == 400
         assert row["daily_minutes"] == 90
         assert row["subjects"] == '["demo"]'
         assert row["notes"] == "旧备注"
@@ -464,13 +464,13 @@ def test_v7_profile_upgrades_to_v9_keeps_existing_fields(tmp_path, monkeypatch):
 
 TARGETS = [
     {"tier": "冲", "school": "示例大学 A", "major": "计算机科学与技术",
-     "score": 424, "rank": 120, "location": "珠海（协同培养）", "note": ""},
+     "score": 400, "rank": 100, "location": "示例城市 A（协同培养）", "note": ""},
     {"tier": "稳", "school": "示例大学 B", "major": "计算机科学与技术",
-     "score": 413, "rank": 200, "location": "梅州", "note": ""},
+     "score": 390, "rank": 200, "location": "示例城市 B", "note": ""},
     {"tier": "保", "school": "示例大学 C", "major": "软件工程",
-     "score": 404, "rank": 308, "location": "惠州（联合培养）", "note": ""},
+     "score": 380, "rank": 300, "location": "示例城市 C（联合培养）", "note": ""},
     {"tier": "兜底", "school": "示例大学 D", "major": "计算机应用工程",
-     "score": 182, "rank": 7599, "location": "广州（民办）", "note": ""},
+     "score": 360, "rank": 400, "location": "示例城市 D（民办）", "note": ""},
 ]
 
 
@@ -499,7 +499,7 @@ def test_targets_write_syncs_schools_and_explicit_values_win(client):
 
 def test_targets_completeness_and_clear(client):
     # v2 数据兼容：只有首选院校、没有志愿表，也算填了 targets。
-    payload = client.put("/api/profile", json={"target_school": "广东技术师范大学"}).json()
+    payload = client.put("/api/profile", json={"target_school": "示例大学 A"}).json()
     assert "targets" not in payload["missing"]
     assert payload["missing"] == [
         "target_exam", "target_date", "target_score", "target_major", "motivation",
@@ -539,7 +539,7 @@ def test_empty_targets_clears_derived_schools(client):
     {"targets": [{"tier": "冲", "school": "A", "rank": 1000001}]},
     {"targets": "not-a-list"},
     {"targets": [{"tier": "冲", "school": f"S{index}"} for index in range(9)]},
-    {"targets": [{"tier": "冲", "school": "A", "score": 424}], "exam_total": 400},
+    {"targets": [{"tier": "冲", "school": "A", "score": 480}], "exam_total": 400},
 ])
 def test_invalid_targets_return_422(client, body):
     response = client.put("/api/profile", json=body)
@@ -550,9 +550,9 @@ def test_invalid_targets_return_422(client, body):
 def test_subject_targets_validation_and_roundtrip(client):
     payload = client.put("/api/profile", json={
         "exam_total": 500,
-        "subject_targets": {"demo": 190},
+        "subject_targets": {"demo": 150},
     }).json()
-    assert payload["static"]["subject_targets"] == {"demo": 190}
+    assert payload["static"]["subject_targets"] == {"demo": 150}
     assert payload["static"]["exam_total"] == 500
 
     # 分数上限跟着 exam_total 走。
@@ -673,8 +673,8 @@ def test_v8_profile_upgrades_to_v9_keeps_existing_fields(tmp_path, monkeypatch):
             """INSERT INTO profile(id, target_exam, target_date, target_score,
                                    target_school, target_major, daily_minutes,
                                    subjects, notes, ai_summary, updated_by, updated_at)
-               VALUES (1, '2028 广东专升本', '2028-03-28', 425,
-                       '广东技术师范大学', '计算机科学与技术', 90,
+               VALUES (1, '2028 广东专升本', '2028-04-15', 400,
+                       '示例大学 A', '计算机科学与技术', 90,
                        '["demo"]', '旧备注', '旧摘要', 'agent', '2026-01-01T00:00:00')"""
         )
         conn.execute("PRAGMA user_version = 8")
@@ -686,9 +686,9 @@ def test_v8_profile_upgrades_to_v9_keeps_existing_fields(tmp_path, monkeypatch):
         row = conn.execute("SELECT * FROM profile WHERE id = 1").fetchone()
         # 旧字段原样保留。
         assert row["target_exam"] == "2028 广东专升本"
-        assert row["target_date"] == "2028-03-28"
-        assert row["target_score"] == 425
-        assert row["target_school"] == "广东技术师范大学"
+        assert row["target_date"] == "2028-04-15"
+        assert row["target_score"] == 400
+        assert row["target_school"] == "示例大学 A"
         assert row["target_major"] == "计算机科学与技术"
         assert row["daily_minutes"] == 90
         assert row["notes"] == "旧备注"
@@ -716,20 +716,20 @@ def test_cli_profile_export_import_roundtrip(tmp_path, monkeypatch, capsys):
     with database.session(db) as conn:
         profiles.update_profile(conn, {
             "target_exam": "2028 广东专升本",
-            "target_date": "2028-03-28",
-            "target_score": 425,
+            "target_date": "2028-04-15",
+            "target_score": 400,
             "target_major": "计算机科学与技术",
-            "motivation": "想换到计算机相关岗位",
+            "motivation": "示例动机：换到计算机相关方向",
             "targets": TARGETS,
             "exam_total": 500,
-            "subject_targets": {"demo": 190},
-            "hard_lines": "三科 105",
+            "subject_targets": {"demo": 150},
+            "hard_lines": "三科 100",
             "plan_phase": "P1",
-            "phase_start": "2026-11-01",
-            "phase_end": "2027-03-31",
-            "phase_daily_minutes": 120,
+            "phase_start": "2027-09-01",
+            "phase_end": "2028-01-31",
+            "phase_daily_minutes": 90,
             "phase_goal": "打基础",
-            "total_hours": 800,
+            "total_hours": 600,
             "source": "agent",
         })
 
@@ -740,7 +740,7 @@ def test_cli_profile_export_import_roundtrip(tmp_path, monkeypatch, capsys):
     assert exported["exported_at"]
     assert "dynamic" not in exported
     assert exported["static"]["targets"] == TARGETS
-    assert exported["static"]["subject_targets"] == {"demo": 190}
+    assert exported["static"]["subject_targets"] == {"demo": 150}
 
     # 清空后导入，静态字段应完整回来。
     with database.session(db) as conn:
@@ -756,7 +756,7 @@ def test_cli_profile_export_import_roundtrip(tmp_path, monkeypatch, capsys):
         restored = profiles.get_profile(conn)
     assert restored["static"]["target_exam"] == "2028 广东专升本"
     assert restored["static"]["targets"] == TARGETS
-    assert restored["static"]["subject_targets"] == {"demo": 190}
+    assert restored["static"]["subject_targets"] == {"demo": 150}
     assert restored["static"]["plan_phase"] == "P1"
     assert restored["completeness"] == 1
     assert restored["missing"] == []

@@ -589,7 +589,7 @@ def update_profile(
         subject_targets: 分科目标分对象，`{科目 id: 分数}`；键必须是已有科目，
             分数 0–`exam_total`。
         exam_total: 考试满分，1–1000，默认 500。
-        hard_lines: 硬线说明，如「三科 105 / 专业综合课 60」，≤200 字。
+        hard_lines: 硬线说明，如「三科 100 / 专业综合课 60」，≤200 字。
         plan_phase: 当前阶段，P1 / P2 / P3。
         phase_start: 阶段开始日期 YYYY-MM-DD。
         phase_end: 阶段结束日期 YYYY-MM-DD，不能早于开始。

@@ -13,7 +13,7 @@
 | `target_date` | 考试日期 `YYYY-MM-DD` |
 | `target_score` | 目标总分 |
 | `exam_total` | 满分，默认 500 |
-| `hard_lines` | 硬线说明，如「三科 105 / 专业综合课 60」 |
+| `hard_lines` | 硬线说明，如「三科 100 / 专业综合课 60」 |
 | `targets` | 志愿表 JSON，见下 |
 | `target_school` | 首选院校（由 `targets` 同步，兼容旧数据） |
 | `target_major` | 目标专业 |

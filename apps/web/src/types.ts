@@ -476,7 +476,7 @@ export interface ProfileStatic {
   exam_type: string | null;
   current_education: string | null;
   graduation_year: number | null;
-  /** 硬线说明，如「三科 105 / 专业综合课 60」。 */
+  /** 硬线说明，如「三科 100 / 专业综合课 60」。 */
   hard_lines: string | null;
   daily_minutes: number;
   subjects: string[];
