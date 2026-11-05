@@ -11,7 +11,7 @@ from . import paths
 
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA = Path(__file__).with_name("schema.sql")
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 _QUESTION_GROUP_DDL = """
 CREATE TABLE IF NOT EXISTS question_group (
@@ -79,7 +79,17 @@ CREATE TABLE IF NOT EXISTS profile (
     preferred_tone     TEXT NOT NULL DEFAULT '',
     preferred_examples TEXT NOT NULL DEFAULT '',
     updated_by         TEXT NOT NULL DEFAULT 'user',
-    updated_at         TEXT
+    updated_at         TEXT,
+    targets            TEXT,
+    subject_targets    TEXT,
+    exam_total         INTEGER,
+    hard_lines         TEXT,
+    plan_phase         TEXT,
+    phase_start        TEXT,
+    phase_end          TEXT,
+    phase_daily_minutes INTEGER,
+    phase_goal         TEXT,
+    total_hours        INTEGER
 )"""
 
 _PROFILE_V8_COLUMNS = {
@@ -98,6 +108,20 @@ _PROFILE_V8_COLUMNS = {
     "motivation": "TEXT",
     "ai_summary": "TEXT",
     "updated_by": "TEXT NOT NULL DEFAULT 'user'",
+}
+
+# v9：志愿表、分科目标、阶段计划。只加列，旧行保留，新列为 NULL。
+_PROFILE_V9_COLUMNS = {
+    "targets": "TEXT",
+    "subject_targets": "TEXT",
+    "exam_total": "INTEGER",
+    "hard_lines": "TEXT",
+    "plan_phase": "TEXT",
+    "phase_start": "TEXT",
+    "phase_end": "TEXT",
+    "phase_daily_minutes": "INTEGER",
+    "phase_goal": "TEXT",
+    "total_hours": "INTEGER",
 }
 
 
@@ -263,6 +287,8 @@ def migrate(conn: sqlite3.Connection) -> None:
     conn.execute(_PROFILE_DDL)
     # v8：画像补升学目标、学习条件、自我评估与 AI 摘要；旧库只加列。
     _add_columns(conn, "profile", _PROFILE_V8_COLUMNS)
+    # v9：画像补志愿表、分科目标分、阶段计划；旧库只加列，已有行保留。
+    _add_columns(conn, "profile", _PROFILE_V9_COLUMNS)
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_subject_pack_source "
         "ON subject(pack_id, source_key) WHERE pack_id IS NOT NULL"

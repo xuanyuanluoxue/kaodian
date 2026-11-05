@@ -283,5 +283,15 @@ CREATE TABLE IF NOT EXISTS profile (
     preferred_tone     TEXT NOT NULL DEFAULT '',
     preferred_examples TEXT NOT NULL DEFAULT '',
     updated_by         TEXT NOT NULL DEFAULT 'user',
-    updated_at         TEXT
+    updated_at         TEXT,
+    targets            TEXT,
+    subject_targets    TEXT,
+    exam_total         INTEGER,
+    hard_lines         TEXT,
+    plan_phase         TEXT,
+    phase_start        TEXT,
+    phase_end          TEXT,
+    phase_daily_minutes INTEGER,
+    phase_goal         TEXT,
+    total_hours        INTEGER
 );

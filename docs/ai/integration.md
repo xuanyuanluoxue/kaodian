@@ -83,30 +83,48 @@ Claude Desktop 的等价配置：
 | 讲义 | `publish_page` `update_page` |
 | 网页编辑 | `get_page_draft` `save_page_draft` `publish_page_draft` `validate_content` |
 
-工具总数仍为 27；画像相关只扩展了 `update_profile` 的参数。
+工具总数仍为 27；画像相关只扩展了 `update_profile` 的参数（v3 志愿表、分科目标、阶段计划）。
 
 ### 画像补全
 
-`get_profile()` 返回 `{static, dynamic, completeness, missing, next_questions}`：
+`get_profile()` 返回
+`{static, dynamic, completeness, missing, next_questions, phase}`：
 
-- `completeness`：必填 8 项完成比例；
-- `missing`：按必填顺序列出未填字段；
-- `next_questions`：建议接下来问的中文问题（必填优先，最多 6 条）。
+- `completeness`：必填 8 项（`target_exam` `target_date` `target_score` `targets`
+  `target_major` `daily_minutes` `subjects` `motivation`）完成比例；
+- `missing`：按必填顺序列出未填字段；`targets` 为空但有 `target_school` 也算已填；
+- `next_questions`：建议接下来问的中文问题（必填优先，最多 6 条）；
+- `phase`：当前阶段 `{name, goal, start, end, daily_minutes, days_left, progress}`，
+  没有阶段时为 `null`。
 
 `update_profile(...)` 支持：
 
-- 升学目标：`target_school` `target_major` `target_region` `backup_school`
+- 升学目标：`target_exam` `target_date` `target_score` `exam_total` `hard_lines`
+  `targets` `target_school` `target_major` `target_region` `backup_school`
   `backup_major` `exam_type` `current_education` `graduation_year`；
-- 学习条件：`study_window` `constraints`；
+- 分科目标：`subject_targets`（`{科目 id: 分数}`，键必须来自 `list_subjects`）；
+- 学习条件：`daily_minutes` `subjects` `study_window` `constraints`；
+- 阶段计划：`plan_phase`（P1/P2/P3）`phase_start` `phase_end`
+  `phase_daily_minutes` `phase_goal` `total_hours`；
 - 自我评估：`strengths` `weaknesses` `motivation`；
 - AI 摘要：`ai_summary`（≤2000 字，和用户手写的 `notes` 分开，互不覆盖）；
 - `source`：默认 `agent`，写入 `updated_by`。
+
+`targets` 用 JSON 数组一次传，不拆成多个参数：
+
+```json
+[{"tier": "冲", "school": "韩山师范学院", "major": "计算机科学与技术",
+  "score": 424, "rank": 120, "location": "珠海（协同培养）", "note": ""}]
+```
+
+`tier` 只能是 `冲` / `稳` / `保` / `兜底`，最多 8 条；写入后
+`target_school` / `backup_school` / `backup_major` 自动同步，显式传值优先。
 
 推荐流程：
 
 ```
 get_profile
-→ 看 missing / next_questions
+→ 看 phase 与 missing / next_questions
 → 一次只问 2–3 个问题（先目标院校/专业/动机，再时间限制和薄弱点）
 → update_profile(..., source="agent", ai_summary="...")
 → 再 get_profile 确认完整度

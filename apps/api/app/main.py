@@ -212,6 +212,16 @@ class ProfileIn(BaseModel):
     target_exam: str | None = None
     target_date: str | None = None
     target_score: float | None = None
+    targets: list[dict[str, Any]] | None = None
+    exam_total: int | None = None
+    subject_targets: dict[str, int] | None = None
+    hard_lines: str | None = None
+    plan_phase: str | None = None
+    phase_start: str | None = None
+    phase_end: str | None = None
+    phase_daily_minutes: int | None = None
+    phase_goal: str | None = None
+    total_hours: int | None = None
     target_school: str | None = Field(default=None, max_length=100)
     target_major: str | None = Field(default=None, max_length=100)
     target_region: str | None = Field(default=None, max_length=50)

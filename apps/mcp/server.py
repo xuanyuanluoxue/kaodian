@@ -27,7 +27,8 @@ mcp = MCPServer(
     version="0.1.0",
     instructions=(
         "考点是 Agent 的作答终端。每次开工先 get_profile：它返回 static/dynamic 以及 "
-        "completeness、missing、next_questions；先看还缺哪些画像信息，再决定今天学什么。"
+        "completeness、missing、next_questions、phase；先看 phase 与 missing，再决定今天学什么、"
+        "问什么。"
         "补画像时一次只问 2–3 个问题，优先问目标院校/专业/动机，再问时间限制和薄弱点，"
         "不要一次问完所有问题；用户回答后用 update_profile(source=\"agent\", ai_summary=\"...\") "
         "写入，然后再次 get_profile 确认完整度。"
@@ -505,12 +506,14 @@ def get_progress() -> dict:
 def get_profile() -> dict:
     """读取学习画像：静态目标、实时学情，以及完整度提示。
 
-    返回 `{static, dynamic, completeness, missing, next_questions}`：
+    返回 `{static, dynamic, completeness, missing, next_questions, phase}`：
     - `completeness`：必填 8 项完成比例（0–1）；
     - `missing`：按必填顺序列出未填字段；
-    - `next_questions`：建议接下来问的中文问题（必填优先，最多 6 条）。
+    - `next_questions`：建议接下来问的中文问题（必填优先，最多 6 条）；
+    - `phase`：当前阶段 `{name, goal, start, end, daily_minutes, days_left, progress}`，
+      没有阶段时为 `null`。
 
-    每次开工先调这个：先看 missing / next_questions 补画像，再决定学什么。
+    每次开工先调这个：先看 phase 与 missing / next_questions，再决定今天的内容。
     """
     return _call("GET", "/api/profile")
 
@@ -539,6 +542,16 @@ def update_profile(
     ai_summary: str | None = None,
     preferred_tone: str | None = None,
     preferred_examples: str | None = None,
+    targets: str | list[dict] | None = None,
+    subject_targets: dict[str, int] | str | None = None,
+    exam_total: int | None = None,
+    hard_lines: str | None = None,
+    plan_phase: str | None = None,
+    phase_start: str | None = None,
+    phase_end: str | None = None,
+    phase_daily_minutes: int | None = None,
+    phase_goal: str | None = None,
+    total_hours: int | None = None,
     source: str = "agent",
 ) -> dict:
     """更新学习画像的静态字段，只传要改的；返回与 get_profile 相同结构。
@@ -569,8 +582,33 @@ def update_profile(
         ai_summary: AI 在对话后整理的摘要，≤2000 字；不影响 notes。
         preferred_tone: 讲解语气偏好，≤200 字。
         preferred_examples: 例子偏好，≤200 字。
+        targets: 志愿表，JSON 数组字符串或列表；每条含
+            `tier`（冲/稳/保/兜底）、`school`、`major`、`score`、`rank`、
+            `location`、`note`，最多 8 条。写入后自动同步
+            `target_school` / `backup_school`（显式传值优先）。
+        subject_targets: 分科目标分对象，`{科目 id: 分数}`；键必须是已有科目，
+            分数 0–`exam_total`。
+        exam_total: 考试满分，1–1000，默认 500。
+        hard_lines: 硬线说明，如「三科 105 / 专业综合课 60」，≤200 字。
+        plan_phase: 当前阶段，P1 / P2 / P3。
+        phase_start: 阶段开始日期 YYYY-MM-DD。
+        phase_end: 阶段结束日期 YYYY-MM-DD，不能早于开始。
+        phase_daily_minutes: 阶段日均分钟，1–600。
+        phase_goal: 阶段目标，≤500 字。
+        total_hours: 全程预算小时，0–100000。
         source: 更新来源，Agent 调用保持默认 agent；会写入 updated_by。
     """
+    if isinstance(targets, str):
+        try:
+            targets = json.loads(targets)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("targets 必须是 JSON 数组字符串或列表") from exc
+    if isinstance(subject_targets, str):
+        try:
+            subject_targets = json.loads(subject_targets)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("subject_targets 必须是 JSON 对象字符串或对象") from exc
+
     payload: dict[str, Any] = {}
     for name, value in (
         ("target_exam", target_exam),
@@ -595,6 +633,16 @@ def update_profile(
         ("ai_summary", ai_summary),
         ("preferred_tone", preferred_tone),
         ("preferred_examples", preferred_examples),
+        ("targets", targets),
+        ("subject_targets", subject_targets),
+        ("exam_total", exam_total),
+        ("hard_lines", hard_lines),
+        ("plan_phase", plan_phase),
+        ("phase_start", phase_start),
+        ("phase_end", phase_end),
+        ("phase_daily_minutes", phase_daily_minutes),
+        ("phase_goal", phase_goal),
+        ("total_hours", total_hours),
     ):
         if value is not None:
             payload[name] = value

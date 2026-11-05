@@ -145,7 +145,8 @@ v6 只给 `page` 加一列并新增草稿表，不重建表：
 
 草稿与发布契约见 [`editing.md`](editing.md)。
 
-旧库迁移前自动备份为 `*.bak-v{old}-{时间}`。
+旧库迁移前自动备份为 `*.bak-v{old}-{时间}`。当前框架 schema 为 v9：
+v8 → v9 只给 `profile` 加画像 v3 列（志愿表、分科目标、阶段计划），不重建表。
 
 唯一索引（partial，`pack_id IS NOT NULL`）：
 
@@ -183,6 +184,9 @@ pack 里删除的内容不自动删库，改 frontmatter `status: archived`。
 | `kaodian content validate [--json]` | 校验 frontmatter、考点、题型、答案、素材、重复 key、块 schema/嵌套/媒体地址 |
 | `kaodian content sync [--json]` | 文件 → DB 索引 |
 | `kaodian doctor [--json]` | 打印路径、DB 版本、pack 状态 |
+| `kaodian profile show [--json]` | 显示画像、完整度、缺失项与阶段 |
+| `kaodian profile export [--output data/profile.json]` | 导出静态画像（版本 3，不含动态学情） |
+| `kaodian profile import <file>` | 导入静态画像，走与 PUT 相同的校验 |
 | `kaodian backup [--out]` | SQLite backup 到 data_dir/exports |
 | `kaodian mcp-config` | 输出 IDE 可用的 MCP JSON |
 

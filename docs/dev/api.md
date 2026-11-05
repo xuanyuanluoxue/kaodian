@@ -180,11 +180,11 @@ data: {"id":42,"session_id":"s_x","kind":"note","role":"agent","body":"...","ref
 | GET | `/profile` | 静态目标 + 实时学情 |
 | PUT | `/profile` | 更新静态字段，返回与 GET 相同结构 |
 
-Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自动插入默认画像：
-`daily_minutes=30`、`subjects` 为当前全部科目 id，其余为空、`updated_by='user'`；已有画像不会被覆盖。
-静态字段只存库，动态字段全部实时查询、不落库。
+Schema v9 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自动插入默认画像：
+`daily_minutes=30`、`exam_total` 默认 500、`subjects` 为当前全部科目 id，其余为空、
+`updated_by='user'`；已有画像不会被覆盖。静态字段只存库，动态字段全部实时查询、不落库。
 
-`GET /api/profile` 返回 `{static, dynamic, completeness, missing, next_questions}`：
+`GET /api/profile` 返回 `{static, dynamic, completeness, missing, next_questions, phase}`：
 
 ```json
 {
@@ -192,16 +192,25 @@ Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自�
     "target_exam": "2028 广东专升本",
     "target_date": "2028-03-28",
     "target_score": 425,
-    "target_school": "广东技术师范大学",
+    "targets": [
+      {"tier": "冲", "school": "韩山师范学院", "major": "计算机科学与技术",
+       "score": 424, "rank": 120, "location": "珠海（协同培养）", "note": ""},
+      {"tier": "兜底", "school": "广州科技职业技术大学", "major": "计算机应用工程",
+       "score": 182, "rank": 7599, "location": "广州（民办）", "note": ""}
+    ],
+    "exam_total": 500,
+    "target_school": "韩山师范学院",
     "target_major": "计算机科学与技术",
-    "target_region": "广州",
-    "backup_school": "广东白云学院",
-    "backup_major": "软件工程",
+    "target_region": "珠海",
+    "backup_school": "广州科技职业技术大学",
+    "backup_major": "计算机应用工程",
     "exam_type": "专升本",
     "current_education": "专科",
     "graduation_year": 2028,
+    "hard_lines": "三科 105 / 专业综合课 60",
     "daily_minutes": 120,
     "subjects": ["computer", "math"],
+    "subject_targets": {"computer": 190, "math": 85},
     "study_window": "工作日晚上 2h + 周末 4h",
     "constraints": "白天上班",
     "strengths": "英语单词记得快",
@@ -211,6 +220,12 @@ Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自�
     "ai_summary": "目标是 2028 广东专升本……",
     "preferred_tone": "",
     "preferred_examples": "",
+    "plan_phase": "P1",
+    "phase_start": "2026-11-01",
+    "phase_end": "2027-03-31",
+    "phase_daily_minutes": 120,
+    "phase_goal": "C 语言基础 + 高数第一轮",
+    "total_hours": 800,
     "updated_by": "agent"
   },
   "dynamic": {
@@ -234,7 +249,16 @@ Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自�
   "missing": [],
   "next_questions": [
     {"field": "target_region", "question": "目标院校在哪个地区？"}
-  ]
+  ],
+  "phase": {
+    "name": "P1",
+    "goal": "C 语言基础 + 高数第一轮",
+    "start": "2026-11-01",
+    "end": "2027-03-31",
+    "daily_minutes": 120,
+    "days_left": 146,
+    "progress": 0.027
+  }
 }
 ```
 
@@ -242,19 +266,33 @@ Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自�
 
 | 分组 | 字段 |
 |---|---|
-| 升学目标 | `target_exam` `target_date` `target_score` `target_school` `target_major` `target_region` `backup_school` `backup_major` `exam_type` `current_education` `graduation_year` |
-| 学习条件 | `daily_minutes` `subjects` `study_window` `constraints` |
+| 升学目标 | `target_exam` `target_date` `target_score` `exam_total` `hard_lines` `targets` `target_school` `target_major` `target_region` `backup_school` `backup_major` `exam_type` `current_education` `graduation_year` |
+| 学习条件 | `daily_minutes` `subjects` `subject_targets` `study_window` `constraints` |
+| 阶段计划 | `plan_phase` `phase_start` `phase_end` `phase_daily_minutes` `phase_goal` `total_hours` |
 | 自我评估 | `strengths` `weaknesses` `motivation` `notes` `ai_summary` |
 | 教学偏好 | `preferred_tone` `preferred_examples` |
 | 来源 | `updated_by`（`user` / `agent`） |
 
+- `targets` 按志愿顺序存 JSON 数组，`tier` 只能是 `冲` / `稳` / `保` / `兜底`，最多 8 条；
+  写入后 `target_school` = 第一条 `school`，`backup_school` = `兜底` 条（无则最后一条），
+  `backup_major` 同步该条 `major`；同一次请求显式传值时以显式值为准。
+- `subject_targets` 是 `{科目 id: 目标分}`，键必须是已有科目，分数 0–`exam_total`。
+- `exam_total` 未设置时按 500 返回。
+
 完整度：
 
-- 必填 8 项：`target_exam` `target_date` `target_score` `target_school`
+- 必填 8 项：`target_exam` `target_date` `target_score` `targets`
   `target_major` `daily_minutes` `subjects` `motivation`；
+- `targets` 为空但 `target_school` 有值时视为已填（兼容 v2 数据）；
 - `completeness` = 已填必填 / 8（0–1，三位小数）；
 - `missing` 按上面的必填顺序列出未填字段；
 - `next_questions` 先列必填、再列选填，每条形如 `{field, question}`，最多 6 条。
+
+`phase` 是**当前执行档位**，不是历史：
+
+- 没有 `plan_phase` / `phase_start` / `phase_end` 时返回 `null`；
+- `days_left` = `phase_end - today`，可为负，无结束日期为 `null`；
+- `progress` = 已过天数 / 总天数（0–1，三位小数），缺起止日期为 `null`。
 
 动态字段口径：
 
@@ -268,17 +306,24 @@ Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自�
 - `weak_codes` 按答错次数取 Top 5；
 - `recent` 为近 7 天（含今天）`{date,seconds,answered}`，缺失日期补 0。
 
-`PUT /api/profile` 只更新传入的静态字段，不传的字段不动：
+`PUT /api/profile` 只更新传入的静态字段，不传的字段不动；传 `null`（或空字符串）
+表示清除：
 
-- `target_date` 必须是有效 `YYYY-MM-DD`（空字符串或 `null` 表示清除）；
+- `target_date` 必须是有效 `YYYY-MM-DD`；
 - `graduation_year` 1950–2100；`daily_minutes` 1–600；
+- `exam_total` 1–1000；`total_hours` 0–100000；`phase_daily_minutes` 1–600；
+- `targets`：数组 ≤8；`tier` 枚举；`school` 必填 ≤100 字；`major` / `location`
+  ≤100 字；`note` ≤200 字；`score` 0–`exam_total`；`rank` 0–1000000；
+- `subject_targets`：科目必须存在；分数 0–`exam_total`；
+- `plan_phase` 只能是 `P1` / `P2` / `P3`；`phase_start` / `phase_end` 为
+  `YYYY-MM-DD` 且 `end >= start`；`phase_goal` ≤500 字；`hard_lines` ≤200 字；
 - `subjects` 必须是已存在科目 id；
 - 文本长度：学校/专业 ≤100 字，地区 ≤50 字，学习时段 ≤200 字，
   限制/优势/薄弱/动机 ≤1000 字，`ai_summary` / `notes` ≤2000 字，
   `preferred_tone` / `preferred_examples` ≤200 字；
 - `source`：`user` / `agent`，默认 `user`，写入 `updated_by`；
 - `ai_summary` 与 `notes` 分开存：AI 写 `ai_summary`，用户保存不会清空它；
-- 校验失败返回 422，且不写库。
+- 校验失败返回 422（中文消息，指明字段），且不写库。
 
 ## 备份：导出 / 导入
 
@@ -300,7 +345,7 @@ Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自�
 ```json
 {
   "format": "kaodian-export",
-  "version": 8,
+  "version": 9,
   "exported_at": "2026-11-04T18:30:00",
   "scope": "content",
   "data": {
@@ -319,12 +364,12 @@ Schema v8 的 `profile` 是单行表（`id=1`）。新库或缺少该行时自�
 导入 body：
 
 ```json
-{"format":"kaodian-export","version":8,"scope":"content","overwrite":false,"data":{}}
+{"format":"kaodian-export","version":9,"scope":"content","overwrite":false,"data":{}}
 ```
 
 规则：
 
-- `format` 必须为 `kaodian-export`；`version` 高于当前 `SCHEMA_VERSION`（当前 8） 返回 422；
+- `format` 必须为 `kaodian-export`；`version` 高于当前 `SCHEMA_VERSION`（当前 9） 返回 422；
 - 整个导入在单个事务里，任一记录失败全部回滚；
 - `overwrite=false`：按主键跳过已存在记录；题目同时按 `fingerprint` 去重；
 - `overwrite=true`：UPSERT（页面标题、题目字段等以导入文件为准）；
