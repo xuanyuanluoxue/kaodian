@@ -43,7 +43,8 @@
 - `score` / `rank` 可为 `null`；
 - 最多 8 条；
 - 写入后同步 `target_school` = 第一条 `school`，`backup_school` = `兜底` 条（无则最后一条）；
-  若同一次请求显式传了 `target_school` / `backup_school`，以显式值为准。
+  若同一次请求显式传了 `target_school` / `backup_school`，以显式值为准；
+- `targets: []` 会一并清空派生的 `target_school` / `backup_school` / `backup_major`。
 
 ### 分科目标
 

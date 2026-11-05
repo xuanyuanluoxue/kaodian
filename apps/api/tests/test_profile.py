@@ -510,6 +510,21 @@ def test_targets_completeness_and_clear(client):
     assert "targets" not in cleared["missing"]  # target_school 还有值
 
 
+def test_empty_targets_clears_derived_schools(client):
+    client.put("/api/profile", json={"targets": TARGETS})
+    payload = client.put("/api/profile", json={"targets": []}).json()["static"]
+    assert payload["targets"] == []
+    assert payload["target_school"] is None
+    assert payload["backup_school"] is None
+    assert payload["backup_major"] is None
+
+    # 显式传值仍然优先于清空。
+    explicit = client.put("/api/profile", json={
+        "targets": [], "target_school": "自定义首选",
+    }).json()["static"]
+    assert explicit["target_school"] == "自定义首选"
+
+
 @pytest.mark.parametrize("body", [
     {"targets": [{"tier": "冲", "school": ""}]},
     {"targets": [{"school": "韩山师范学院"}]},

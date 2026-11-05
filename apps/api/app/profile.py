@@ -707,6 +707,14 @@ def update_profile(conn: sqlite3.Connection, fields: dict[str, Any]) -> dict:
                 updates["backup_school"] = backup["school"] or None
             if "backup_major" not in data:
                 updates["backup_major"] = backup["major"] or None
+        elif targets == []:
+            # 清空志愿表时同步清空派生的首选/兜底，避免页面残留旧学校。
+            if "target_school" not in data:
+                updates["target_school"] = None
+            if "backup_school" not in data:
+                updates["backup_school"] = None
+            if "backup_major" not in data:
+                updates["backup_major"] = None
 
     if "subject_targets" in data:
         subject_targets = _clean_subject_targets(conn, data["subject_targets"], exam_total)
