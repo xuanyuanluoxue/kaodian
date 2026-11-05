@@ -2429,7 +2429,13 @@ def create_app(db_file: Path | None = None) -> FastAPI:
             )]
             active = set(seconds_by_day) | set(completed)
             today_minutes = round(seconds_by_day.get(today.isoformat(), 0) / 60)
-            goal = int(os.environ.get("KAODIAN_DAILY_GOAL_MINUTES", "30"))
+            # 每日目标以画像为准；画像缺失时退回环境变量默认值。
+            goal_row = c.execute("SELECT daily_minutes FROM profile WHERE id = 1").fetchone()
+            goal = (
+                int(goal_row["daily_minutes"])
+                if goal_row and goal_row["daily_minutes"]
+                else int(os.environ.get("KAODIAN_DAILY_GOAL_MINUTES", "30"))
+            )
 
             cursor = today
             if cursor.isoformat() not in active:

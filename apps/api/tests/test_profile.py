@@ -800,3 +800,12 @@ def test_cli_profile_show_default_paths(tmp_path, monkeypatch):
     assert cli_main(["profile", "show", "--json"]) == 0
     assert cli_main(["profile", "export"]) == 0
     assert (tmp_path / "data" / "profile.json").is_file()
+
+
+def test_progress_uses_profile_daily_goal(client):
+    client.put("/api/profile", json={"daily_minutes": 90})
+    progress = client.get("/api/progress").json()
+    assert progress["daily_goal_minutes"] == 90
+
+    client.put("/api/profile", json={"daily_minutes": 45})
+    assert client.get("/api/progress").json()["daily_goal_minutes"] == 45
